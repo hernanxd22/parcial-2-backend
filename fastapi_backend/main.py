@@ -1,0 +1,70 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from app.core.database import engine, create_db_and_tables
+from sqlmodel import Session
+
+
+from app.modules.unidadMedida.models import UnidadMedida
+from app.modules.rol.models import Rol         
+from app.modules.usuario.models import Usuario 
+from app.modules.refreshToken.models import RefreshToken
+from app.modules.FormaPago.models import FormaPago 
+from app.modules.EstadoPedido.models import EstadoPedido 
+from app.modules.DetallePedido.models import DetallePedido
+from app.modules.DireccionEntrega.models import DireccionEntrega  
+from app.modules.Pedido.models import Pedido
+
+from app.modules.producto.router import router as producto_router
+from app.modules.categoria.router import router as categoria_router
+from app.modules.ingrediente.router import router as ingrediente_router
+from app.modules.usuario.router import router as usuario_router
+from app.modules.DireccionEntrega.router import router as direccion_router
+from app.modules.Pedido.router import router as pedido_router
+from app.modules.refreshToken.router import router as auth_router
+
+from app.modules.rol.seed import seed_roles
+from app.modules.FormaPago.seed import seed_formas_pago
+from app.modules.EstadoPedido.seed import seed_estados_pedido
+from app.modules.unidadMedida.seed import seed_unidades_medida
+
+def create_app() -> FastAPI:
+    app = FastAPI(
+        title="Parcial 2",
+        description="API REST ",
+        version="1.0.0"
+    )
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[ "http://localhost:3000","http://localhost:5173",], 
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    @app.on_event("startup")
+    def on_startup():
+        create_db_and_tables()
+
+        with Session(engine) as session:
+            seed_roles(session)
+            seed_formas_pago(session)
+            seed_estados_pedido(session)
+            seed_unidades_medida(session)
+
+    app.include_router(producto_router, prefix="/productos", tags=["Productos"])
+    app.include_router(categoria_router, prefix="/categorias", tags=["Categorias"])
+    app.include_router(ingrediente_router, prefix="/ingredientes", tags=["Ingredientes"])
+    app.include_router(usuario_router, prefix="/usuarios", tags=["Usuarios"])
+    app.include_router(direccion_router, prefix="/direcciones", tags=["Direcciones"])
+    app.include_router(pedido_router, prefix="/pedidos", tags=["Pedidos"])
+    app.include_router(auth_router, prefix="", tags=["Auth"])
+    
+    @app.get("/")
+    def root():
+        return {"message": "Servidor FastAPI funcionando ."}
+
+    return app
+
+
+app = create_app()
