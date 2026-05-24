@@ -4,6 +4,8 @@ from fastapi import APIRouter, Depends, Query, Path, status
 from sqlmodel import Session
 
 from app.core.database import get_session
+from app.core.security import get_current_user, require_roles
+from app.modules.usuario.models import Usuario
 from app.modules.ingrediente.schemas import (
     IngredienteCreate, IngredientePublic, IngredienteUpdate, IngredienteList,
 )
@@ -29,9 +31,9 @@ LimitQuery  = Annotated[int, Query(ge=1, le=100, description="Máximo de resulta
 def create_ingrediente(
     data: IngredienteCreate,
     svc: IngredienteService = Depends(get_ingrediente_service),
+    _: Usuario = Depends(require_roles("ADMIN")),
 ) -> IngredientePublic:
     return svc.create(data)
-
 
 @router.get(
     "/",
@@ -42,9 +44,9 @@ def list_ingredientes(
     offset: OffsetQuery = 0,
     limit: LimitQuery = 20,
     svc: IngredienteService = Depends(get_ingrediente_service),
+    _: Usuario = Depends(get_current_user),
 ) -> IngredienteList:
     return svc.get_all(offset=offset, limit=limit)
-
 
 @router.get(
     "/{ingrediente_id}",
@@ -54,9 +56,9 @@ def list_ingredientes(
 def get_ingrediente(
     ingrediente_id: Annotated[int, Path(gt=0, description="ID del ingrediente")],
     svc: IngredienteService = Depends(get_ingrediente_service),
+    _: Usuario = Depends(get_current_user),
 ) -> IngredientePublic:
     return svc.get_by_id(ingrediente_id)
-
 
 @router.patch(
     "/{ingrediente_id}",
@@ -67,17 +69,18 @@ def update_ingrediente(
     ingrediente_id: Annotated[int, Path(gt=0, description="ID del ingrediente")],
     data: IngredienteUpdate,
     svc: IngredienteService = Depends(get_ingrediente_service),
+    _: Usuario = Depends(require_roles("ADMIN")),
 ) -> IngredientePublic:
     return svc.update(ingrediente_id, data)
-
 
 @router.delete(
     "/{ingrediente_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Eliminar ingrediente",
+    summary="Desactivar ingrediente",
 )
 def delete_ingrediente(
     ingrediente_id: Annotated[int, Path(gt=0, description="ID del ingrediente")],
     svc: IngredienteService = Depends(get_ingrediente_service),
+    _: Usuario = Depends(require_roles("ADMIN")),
 ) -> None:
-    svc.hard_delete(ingrediente_id)
+    svc.soft_delete(ingrediente_id)

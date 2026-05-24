@@ -16,7 +16,36 @@ from app.modules.Pedido.schemas import (
 )
 from app.modules.Pedido.unit_of_work import PedidoUnitOfWork
 from app.modules.producto.models import Producto
+from app.modules.ingrediente.models import Ingrediente
+from app.modules.unidadMedida.models import UnidadMedida
 from app.modules.EstadoPedido.models import EstadoPedido
+
+
+# Tabla de conversión a unidad base (gramo, mL, pieza)
+_UNIT_CONVERSION: dict[tuple[str, str], float] = {
+    ("masa", "g"): 1.0,
+    ("masa", "kg"): 1000.0,
+    ("volumen", "mL"): 1.0,
+    ("volumen", "L"): 1000.0,
+    ("unidad", "u"): 1.0,
+    ("unidad", "doc"): 12.0,
+}
+
+
+def _convertir_unidad(
+    cantidad: float,
+    tipo: str,
+    simbolo_origen: str,
+    simbolo_destino: str,
+) -> float:
+    """Convierte *cantidad* de *simbolo_origen* a *simbolo_destino* (mismo tipo)."""
+    if simbolo_origen == simbolo_destino:
+        return cantidad
+    f_origen = _UNIT_CONVERSION.get((tipo, simbolo_origen))
+    f_destino = _UNIT_CONVERSION.get((tipo, simbolo_destino))
+    if f_origen is None or f_destino is None:
+        return cantidad  # sin conversión conocida
+    return cantidad * f_origen / f_destino
 
 
 def _now() -> datetime:
@@ -122,9 +151,37 @@ class PedidoService:
                     personalizacion=item.personalizacion,
                 ))
 
-                # Descontar stock
+                # Descontar stock del producto
                 producto.stock_cantidad -= item.cantidad
                 self._session.add(producto)
+
+                # Descontar stock de ingredientes
+                for pi in producto.producto_ingredientes:
+                    ingrediente = pi.ingrediente
+                    stock_unidad = ingrediente.unidad_medida
+                    receta_unidad = pi.unidad_medida
+
+                    if stock_unidad and receta_unidad and stock_unidad.tipo == receta_unidad.tipo:
+                        cantidad_por_item = _convertir_unidad(
+                            pi.cantidad,
+                            receta_unidad.tipo,
+                            receta_unidad.simbolo,
+                            stock_unidad.simbolo,
+                        )
+                    else:
+                        cantidad_por_item = pi.cantidad
+
+                    cantidad_necesaria = cantidad_por_item * item.cantidad
+                    if ingrediente.stock_cantidad < cantidad_necesaria:
+                        simb = stock_unidad.simbolo if stock_unidad else ""
+                        raise HTTPException(
+                            status_code=status.HTTP_409_CONFLICT,
+                            detail=f"Stock insuficiente del ingrediente '{ingrediente.nombre}' "
+                                   f"(disponible: {ingrediente.stock_cantidad:.2f} {simb}, "
+                                   f"necesario: {cantidad_necesaria:.2f} {simb})",
+                        )
+                    ingrediente.stock_cantidad -= cantidad_necesaria
+                    self._session.add(ingrediente)
 
             descuento = 0.00
             costo_envio = 0.00 if data.direccion_id is None else 50.00
@@ -161,9 +218,9 @@ class PedidoService:
 
         return result
 
-    def get_all(self, offset: int = 0, limit: int = 20) -> PedidoList:
+    def get_all(self, offset: int = 0, limit: int = 20, usuario_id: int | None = None) -> PedidoList:
         with PedidoUnitOfWork(self._session) as uow:
-            pedidos = uow.pedidos.get_all(offset=offset, limit=limit)
+            pedidos = uow.pedidos.get_all(offset=offset, limit=limit, usuario_id=usuario_id)
             total = uow.pedidos.count()
             result = PedidoList(
                 data=[PedidoPublicSimple.model_validate(p) for p in pedidos],
@@ -215,10 +272,58 @@ class PedidoService:
             )
             uow.historial.add(historial)
 
+            # Restaurar stock si se cancela desde PENDIENTE o CONFIRMADO
+            if data.estado_hacia_codigo == "CANCELADO" and estado_anterior in ("PENDIENTE", "CONFIRMADO"):
+                for detalle in pedido.detalles:
+                    producto = self._session.get(Producto, detalle.producto_id)
+                    if producto:
+                        producto.stock_cantidad += detalle.cantidad
+                        self._session.add(producto)
+
+                        for pi in producto.producto_ingredientes:
+                            ingrediente = pi.ingrediente
+                            stock_unidad = ingrediente.unidad_medida
+                            receta_unidad = pi.unidad_medida
+
+                            if stock_unidad and receta_unidad and stock_unidad.tipo == receta_unidad.tipo:
+                                cantidad_por_item = _convertir_unidad(
+                                    pi.cantidad,
+                                    receta_unidad.tipo,
+                                    receta_unidad.simbolo,
+                                    stock_unidad.simbolo,
+                                )
+                            else:
+                                cantidad_por_item = pi.cantidad
+
+                            ingrediente.stock_cantidad += cantidad_por_item * detalle.cantidad
+                            self._session.add(ingrediente)
+
             uow._session.refresh(pedido)
             result = self._to_public(pedido)
 
         return result
+
+    def cancelar(self, pedido_id: int, usuario_id: int, motivo: str) -> PedidoPublic:
+        """Cancelar un pedido (CLIENTE dueño del pedido)."""
+        with PedidoUnitOfWork(self._session) as uow:
+            pedido = self._get_or_404(uow, pedido_id)
+
+            # Validar ownership
+            if pedido.usuario_id != usuario_id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="No puedes cancelar un pedido que no te pertenece",
+                )
+
+            # Reusar la FSM existente vía avanzar_estado
+            data = PedidoAvanzarEstado(
+                estado_hacia_codigo="CANCELADO",
+                motivo=motivo,
+                usuario_id=usuario_id,
+            )
+            # Nota: avanzar_estado maneja la transición FSM, historial y restauro de stock
+            # La validación de estado (PENDIENTE/CONFIRMADO) la hace _assert_transicion_valida
+            return self.avanzar_estado(pedido_id, data)
 
     def soft_delete(self, pedido_id: int) -> None:
         with PedidoUnitOfWork(self._session) as uow:

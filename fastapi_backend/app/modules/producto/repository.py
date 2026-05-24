@@ -1,5 +1,6 @@
 
 from sqlmodel import Session, select
+from sqlalchemy.orm import selectinload
 from app.core.repository import BaseRepository
 from app.modules.producto.models import Producto, ProductoCategoria, ProductoIngrediente
 
@@ -8,23 +9,32 @@ class ProductoRepository(BaseRepository[Producto]):
     def __init__(self, session: Session) -> None:
         super().__init__(session, Producto)
 
-    def get_all_paged(self, offset: int = 0, limit: int = 20) -> list[Producto]:
-        return list(
-            self.session.exec(
-                select(Producto).offset(offset).limit(limit)
-            ).all()
+    def _load_relations(self, stmt):
+        return stmt.options(
+            selectinload(Producto.producto_ingredientes),
         )
 
-    def get_by_categoria(self, categoria_id: int, offset: int = 0, limit: int = 20) -> list[Producto]:
-        return list(
-            self.session.exec(
-                select(Producto)
-                .join(ProductoCategoria)
-                .where(ProductoCategoria.categoria_id == categoria_id)
-                .offset(offset)
-                .limit(limit)
-            ).all()
+    def get_by_id(self, record_id: int) -> Producto | None:
+        stmt = self._load_relations(
+            select(Producto).where(Producto.id == record_id)
         )
+        return self.session.exec(stmt).first()
+
+    def get_all_paged(self, offset: int = 0, limit: int = 20) -> list[Producto]:
+        stmt = self._load_relations(
+            select(Producto).offset(offset).limit(limit)
+        )
+        return list(self.session.exec(stmt).all())
+
+    def get_by_categoria(self, categoria_id: int, offset: int = 0, limit: int = 20) -> list[Producto]:
+        stmt = self._load_relations(
+            select(Producto)
+            .join(ProductoCategoria)
+            .where(ProductoCategoria.categoria_id == categoria_id)
+            .offset(offset)
+            .limit(limit)
+        )
+        return list(self.session.exec(stmt).all())
 
     def count(self) -> int:
         return len(self.session.exec(select(Producto)).all())

@@ -121,7 +121,7 @@ POST {{baseUrl}}/usuarios/roles
 Content-Type: application/json
 
 {
-  "usuario_id": 4,
+  "usuario_id": 1,
   "rol_codigo": "ADMIN",
   "asignado_por_id": 1
 }

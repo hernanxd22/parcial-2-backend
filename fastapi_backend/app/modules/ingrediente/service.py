@@ -53,9 +53,20 @@ class IngredienteService:
         return relacion
 
 
+    def _assert_unidad_medida_exists(self, uow, unidad_medida_id: int) -> None:
+        from app.modules.unidadMedida.models import UnidadMedida
+        unidad = uow.ingredientes.session.get(UnidadMedida, unidad_medida_id)
+        if not unidad:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Unidad de medida con id={unidad_medida_id} no encontrada",
+            )
+
     def create(self, data: IngredienteCreate) -> IngredientePublic:
         with IngredienteUnitOfWork(self._session) as uow:
             self._assert_nombre_unique(uow, data.nombre)
+            if data.unidad_medida_id is not None:
+                self._assert_unidad_medida_exists(uow, data.unidad_medida_id)
             ingrediente = Ingrediente.model_validate(data)
             uow.ingredientes.add(ingrediente)
             result = IngredientePublic.model_validate(ingrediente)
@@ -98,7 +109,10 @@ class IngredienteService:
 
         return result
 
-    def hard_delete(self, ingrediente_id: int) -> None:
+    def soft_delete(self, ingrediente_id: int) -> None:
         with IngredienteUnitOfWork(self._session) as uow:
             ingrediente = self._get_or_404(uow, ingrediente_id)
-            uow.ingredientes.delete(ingrediente)
+            ingrediente.activo = False
+            ingrediente.deleted_at = _now()
+            ingrediente.updated_at = _now()
+            uow.ingredientes.add(ingrediente)

@@ -3,6 +3,8 @@ from fastapi import APIRouter, Depends, Query, Path, status
 from sqlmodel import Session
 
 from app.core.database import get_session
+from app.core.security import get_current_user
+from app.modules.usuario.models import Usuario
 from app.modules.DireccionEntrega.schemas import (
     DireccionEntregaCreate,
     DireccionEntregaPublic,
@@ -33,6 +35,7 @@ LimitQuery = Annotated[int, Query(ge=1, le=100, description="Máximo de resultad
 def create_direccion(
     data: DireccionEntregaCreate,
     svc: DireccionEntregaService = Depends(get_direccion_service),
+    _: Usuario = Depends(get_current_user),
 ) -> DireccionEntregaPublic:
     return svc.create(data)
 
@@ -47,6 +50,7 @@ def list_direcciones_by_usuario(
     offset: OffsetQuery = 0,
     limit: LimitQuery = 20,
     svc: DireccionEntregaService = Depends(get_direccion_service),
+    _: Usuario = Depends(get_current_user),
 ) -> DireccionEntregaList:
     return svc.get_all_by_usuario(usuario_id, offset, limit)
 
@@ -59,6 +63,7 @@ def list_direcciones_by_usuario(
 def get_direccion(
     direccion_id: Annotated[int, Path(gt=0, description="ID de la dirección")],
     svc: DireccionEntregaService = Depends(get_direccion_service),
+    _: Usuario = Depends(get_current_user),
 ) -> DireccionEntregaPublic:
     return svc.get_by_id(direccion_id)
 
@@ -73,8 +78,22 @@ def update_direccion(
     direccion_id: Annotated[int, Path(gt=0, description="ID de la dirección")],
     data: DireccionEntregaUpdate,
     svc: DireccionEntregaService = Depends(get_direccion_service),
+    _: Usuario = Depends(get_current_user),
 ) -> DireccionEntregaPublic:
     return svc.update(usuario_id, direccion_id, data)
+
+
+@router.patch(
+    "/{direccion_id}/principal",
+    response_model=DireccionEntregaPublic,
+    summary="Marcar dirección como principal",
+)
+def set_principal(
+    direccion_id: Annotated[int, Path(gt=0, description="ID de la dirección")],
+    svc: DireccionEntregaService = Depends(get_direccion_service),
+    current_user: Usuario = Depends(get_current_user),
+) -> DireccionEntregaPublic:
+    return svc.set_principal(direccion_id, current_user.id)
 
 
 @router.delete(
@@ -86,5 +105,6 @@ def delete_direccion(
     usuario_id: Annotated[int, Path(gt=0, description="ID del usuario")],
     direccion_id: Annotated[int, Path(gt=0, description="ID de la dirección")],
     svc: DireccionEntregaService = Depends(get_direccion_service),
+    _: Usuario = Depends(get_current_user),
 ) -> None:
     svc.soft_delete(usuario_id, direccion_id)

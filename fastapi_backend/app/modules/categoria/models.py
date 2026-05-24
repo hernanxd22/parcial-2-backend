@@ -35,3 +35,19 @@ class Categoria(SQLModel, table=True):
     producto_categorias: List["ProductoCategoria"] = Relationship(
         back_populates="categoria"
     )
+
+    # Relaciones para el árbol de categorías
+    parent: Optional["Categoria"] = Relationship(
+        back_populates="children",
+        sa_relationship_kwargs=dict(
+            remote_side="Categoria.id",
+            foreign_keys="[Categoria.parent_id]",
+        ),
+    )
+
+    children: List["Categoria"] = Relationship(
+        back_populates="parent",
+        sa_relationship_kwargs=dict(
+            foreign_keys="[Categoria.parent_id]",
+        ),
+    )

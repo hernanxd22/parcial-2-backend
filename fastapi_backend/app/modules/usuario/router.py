@@ -3,6 +3,8 @@ from fastapi import APIRouter, Depends, Query, Path, status
 from sqlmodel import Session
 
 from app.core.database import get_session
+from app.core.security import get_current_user, require_roles
+from app.modules.usuario.models import Usuario
 from app.modules.usuario.schemas import (
     UsuarioCreate,
     UsuarioPublic,
@@ -47,6 +49,7 @@ def list_usuarios(
     offset: OffsetQuery = 0,
     limit: LimitQuery = 20,
     svc: UsuarioService = Depends(get_usuario_service),
+    _: Usuario = Depends(require_roles("ADMIN")),
 ) -> UsuarioList:
     return svc.get_all(offset, limit)
 
@@ -59,6 +62,7 @@ def list_usuarios(
 def get_usuario(
     usuario_id: Annotated[int,Path(gt=0, description="ID del usuario")],
     svc: UsuarioService = Depends(get_usuario_service),
+    _: Usuario = Depends(require_roles("ADMIN")),
 ) -> UsuarioPublic:
     return svc.get_by_id(usuario_id)
 
@@ -72,6 +76,7 @@ def update_usuario(
     usuario_id: Annotated[int,Path(gt=0, description="ID del usuario")],
     data: UsuarioUpdate,
     svc: UsuarioService = Depends(get_usuario_service),
+    _: Usuario = Depends(require_roles("ADMIN")),
 ) -> UsuarioPublic:
     return svc.update(usuario_id, data)
 
@@ -84,6 +89,7 @@ def update_usuario(
 def delete_usuario(
     usuario_id: Annotated[int,Path(gt=0, description="ID del usuario")],
     svc: UsuarioService = Depends(get_usuario_service),
+    _: Usuario = Depends(require_roles("ADMIN")),
 ) -> None:
     svc.soft_delete(usuario_id)
 
@@ -97,6 +103,7 @@ def delete_usuario(
 def create_rol(
     data: UsuarioRolCreate,
     svc: UsuarioService = Depends(get_usuario_service),
+    _: Usuario = Depends(require_roles("ADMIN")),
 ) -> UsuarioRolPublic:
     return svc.create_rol(data)
 
@@ -112,6 +119,7 @@ def get_roles(
         Path(gt=0, description="ID usuario")
     ],
     svc: UsuarioService = Depends(get_usuario_service),
+    _: Usuario = Depends(require_roles("ADMIN")),
 ) -> UsuarioRolList:
     return svc.get_roles(usuario_id)
 
@@ -125,5 +133,6 @@ def delete_rol(
     usuario_id: Annotated[int,Path(gt=0, description="ID usuario")],
     rol_codigo: Annotated[str,Path(description="Código del rol")],
     svc: UsuarioService = Depends(get_usuario_service),
+    _: Usuario = Depends(require_roles("ADMIN")),
 ) -> None:
     svc.delete_rol(usuario_id, rol_codigo)

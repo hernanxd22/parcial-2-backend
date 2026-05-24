@@ -31,3 +31,12 @@ class RefreshResponse(SQLModel):
 class LogoutResponse(SQLModel):
     """Response de logout."""
     message: str = "Token invalidado correctamente"
+
+
+class MeResponse(SQLModel):
+    """Response con datos del usuario autenticado."""
+    id: int
+    email: str
+    nombre: str
+    apellido: str
+    roles: list[str]

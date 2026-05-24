@@ -88,3 +88,8 @@ class PedidoPublicSimple(SQLModel):
 class PedidoList(SQLModel):
     data: List[PedidoPublicSimple]
     total: int
+
+
+class CancelarPedidoRequest(SQLModel):
+    """Request para cancelar un pedido."""
+    motivo: str

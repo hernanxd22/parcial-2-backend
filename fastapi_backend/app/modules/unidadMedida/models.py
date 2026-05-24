@@ -6,6 +6,7 @@ from datetime import datetime
 if TYPE_CHECKING:
     from app.modules.producto.models import Producto
     from app.modules.producto.models import Producto, ProductoIngrediente
+    from app.modules.ingrediente.models import Ingrediente
 
 
 class UnidadMedida(SQLModel, table=True):
@@ -24,3 +25,4 @@ class UnidadMedida(SQLModel, table=True):
 
     productos: List["Producto"] = Relationship(back_populates="unidad_venta")
     producto_ingredientes: List["ProductoIngrediente"] = Relationship(back_populates="unidad_medida")
+    ingredientes: List["Ingrediente"] = Relationship(back_populates="unidad_medida")

@@ -1,13 +1,16 @@
-from typing import Annotated
+from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, Query, Path, status
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.core.database import get_session
+from app.core.security import get_current_user, require_roles
+from app.modules.usuario.models import Usuario, UsuarioRol
 from app.modules.Pedido.schemas import (
     PedidoCreate,
     PedidoPublic,
     PedidoAvanzarEstado,
     PedidoList,
+    CancelarPedidoRequest,
 )
 from app.modules.Pedido.service import PedidoService
 
@@ -31,6 +34,7 @@ LimitQuery = Annotated[int, Query(ge=1, le=100, description="Máximo de resultad
 def create_pedido(
     data: PedidoCreate,
     svc: PedidoService = Depends(get_pedido_service),
+    _: Usuario = Depends(get_current_user),
 ) -> PedidoPublic:
     return svc.create(data)
 
@@ -38,14 +42,27 @@ def create_pedido(
 @router.get(
     "/",
     response_model=PedidoList,
-    summary="Listar todos los pedidos",
+    summary="Listar pedidos (con filtro por rol)",
 )
 def list_pedidos(
     offset: OffsetQuery = 0,
     limit: LimitQuery = 20,
+    usuario_filter: Annotated[Optional[int], Query(alias="usuario_id", ge=1, description="Filtrar por usuario (solo ADMIN/PEDIDOS)")] = None,
     svc: PedidoService = Depends(get_pedido_service),
+    current_user: Usuario = Depends(get_current_user),
+    session: Session = Depends(get_session),
 ) -> PedidoList:
-    return svc.get_all(offset, limit)
+    # Determinar roles del usuario autenticado
+    stmt = select(UsuarioRol).where(UsuarioRol.usuario_id == current_user.id)
+    roles = session.exec(stmt).all()
+    role_codes = [ur.rol_codigo for ur in roles] if roles else ["CLIENTE"]
+
+    if "ADMIN" in role_codes or "PEDIDOS" in role_codes:
+        # ADMIN/PEDIDOS: puede filtrar por usuario_id opcionalmente
+        return svc.get_all(offset, limit, usuario_id=usuario_filter)
+    else:
+        # CLIENTE: solo ve sus propios pedidos
+        return svc.get_all(offset, limit, usuario_id=current_user.id)
 
 
 @router.get(
@@ -58,6 +75,7 @@ def list_pedidos_by_usuario(
     offset: OffsetQuery = 0,
     limit: LimitQuery = 20,
     svc: PedidoService = Depends(get_pedido_service),
+    _: Usuario = Depends(require_roles("ADMIN")),
 ) -> PedidoList:
     return svc.get_by_usuario(usuario_id, offset, limit)
 
@@ -70,8 +88,23 @@ def list_pedidos_by_usuario(
 def get_pedido(
     pedido_id: Annotated[int, Path(gt=0, description="ID del pedido")],
     svc: PedidoService = Depends(get_pedido_service),
+    _: Usuario = Depends(get_current_user),
 ) -> PedidoPublic:
     return svc.get_by_id(pedido_id)
+
+
+@router.patch(
+    "/{pedido_id}/cancelar",
+    response_model=PedidoPublic,
+    summary="Cancelar pedido (CLIENTE dueño)",
+)
+def cancelar_pedido(
+    pedido_id: Annotated[int, Path(gt=0, description="ID del pedido")],
+    data: CancelarPedidoRequest,
+    svc: PedidoService = Depends(get_pedido_service),
+    current_user: Usuario = Depends(get_current_user),
+) -> PedidoPublic:
+    return svc.cancelar(pedido_id, current_user.id, data.motivo)
 
 
 @router.patch(
@@ -83,6 +116,7 @@ def avanzar_estado(
     pedido_id: Annotated[int, Path(gt=0, description="ID del pedido")],
     data: PedidoAvanzarEstado,
     svc: PedidoService = Depends(get_pedido_service),
+    _: Usuario = Depends(require_roles("ADMIN", "STOCK")),
 ) -> PedidoPublic:
     return svc.avanzar_estado(pedido_id, data)
 
@@ -95,5 +129,6 @@ def avanzar_estado(
 def delete_pedido(
     pedido_id: Annotated[int, Path(gt=0, description="ID del pedido")],
     svc: PedidoService = Depends(get_pedido_service),
+    _: Usuario = Depends(require_roles("ADMIN")),
 ) -> None:
     svc.soft_delete(pedido_id)

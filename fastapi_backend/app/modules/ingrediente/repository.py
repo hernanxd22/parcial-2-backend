@@ -18,7 +18,10 @@ class IngredienteRepository(BaseRepository[Ingrediente]):
     def get_all_paged(self, offset: int = 0, limit: int = 20) -> list[Ingrediente]:
         return list(
             self.session.exec(
-                select(Ingrediente).offset(offset).limit(limit)
+                select(Ingrediente)
+                .where(Ingrediente.activo == True)
+                .offset(offset)
+                .limit(limit)
             ).all()
         )
 

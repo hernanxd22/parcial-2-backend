@@ -1,6 +1,6 @@
 from sqlmodel import Session, select
 from app.core.repository import BaseRepository
-from app.modules.unidad_medida.models import UnidadMedida
+from app.modules.unidadMedida.models import UnidadMedida
 
 
 class UnidadMedidaRepository(BaseRepository[UnidadMedida]):

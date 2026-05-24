@@ -1,4 +1,5 @@
 from typing import Optional, List
+from pydantic import BaseModel
 from sqlmodel import SQLModel, Field
 from datetime import datetime
 
@@ -31,3 +32,11 @@ class CategoriaPublic(SQLModel):
 class CategoriaList(SQLModel):
     data: List[CategoriaPublic]
     total: int
+
+
+class CategoriaTree(BaseModel):
+    id: int
+    parent_id: Optional[int] = None
+    nombre: str
+    descripcion: Optional[str] = None
+    children: List["CategoriaTree"] = []

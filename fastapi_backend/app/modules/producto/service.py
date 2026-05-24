@@ -6,8 +6,8 @@ from datetime import datetime, timezone
 from app.modules.producto.models import Producto, ProductoCategoria, ProductoIngrediente
 from app.modules.producto.schemas import (
     ProductoCreate, ProductoPublic, ProductoUpdate, ProductoList,
-    ProductoCategoriaCreate, ProductoCategoriaPublic, ProductoCategoriaList,
-    ProductoIngredienteCreate, ProductoIngredientePublic, ProductoIngredienteList,
+    ProductoCategoriaPublic, ProductoCategoriaList,
+    ProductoIngredientePublic, ProductoIngredienteList,
 )
 from app.modules.producto.unit_of_work import ProductoUnitOfWork
 
@@ -30,15 +30,6 @@ class ProductoService:
             )
         return producto
 
-    def _assert_relacion_categoria_not_exists(
-        self, uow: ProductoUnitOfWork, producto_id: int, categoria_id: int
-    ) -> None:
-        if uow.producto_categorias.exists(producto_id, categoria_id):
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"La categoría id={categoria_id} ya está asignada al producto id={producto_id}",
-            )
-
     def _get_relacion_categoria_or_404(
         self, uow: ProductoUnitOfWork, producto_id: int, categoria_id: int
     ) -> ProductoCategoria:
@@ -49,15 +40,6 @@ class ProductoService:
                 detail=f"Relación entre producto id={producto_id} y categoría id={categoria_id} no encontrada",
             )
         return relacion
-
-    def _assert_relacion_ingrediente_not_exists(
-        self, uow: ProductoUnitOfWork, producto_id: int, ingrediente_id: int
-    ) -> None:
-        if uow.producto_ingredientes.exists(producto_id, ingrediente_id):
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"El ingrediente id={ingrediente_id} ya está asignado al producto id={producto_id}",
-            )
 
     def _get_relacion_ingrediente_or_404(
         self, uow: ProductoUnitOfWork, producto_id: int, ingrediente_id: int
@@ -70,11 +52,52 @@ class ProductoService:
             )
         return relacion
 
-
     def create(self, data: ProductoCreate) -> ProductoPublic:
         with ProductoUnitOfWork(self._session) as uow:
-            producto = Producto.model_validate(data)
+            # Validar que la categoría existe
+            from app.modules.categoria.models import Categoria
+            categoria = uow.productos.session.get(Categoria, data.categoria_id)
+            if not categoria:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Categoría con id={data.categoria_id} no encontrada",
+                )
+
+            # Crear producto (sin categoria_id, es_principal ni ingredientes)
+            create_data = data.model_dump(exclude={"categoria_id", "es_principal", "ingredientes"})
+            producto = Producto.model_validate(create_data)
             uow.productos.add(producto)
+
+            # Crear relación ProductoCategoria
+            from app.modules.producto.models import ProductoCategoria
+            relacion_cat = ProductoCategoria(
+                producto_id=producto.id,
+                categoria_id=data.categoria_id,
+                es_principal=data.es_principal,
+            )
+            uow.producto_categorias.add(relacion_cat)
+
+            # Crear relaciones ProductoIngrediente
+            from app.modules.producto.models import ProductoIngrediente
+            for ing_data in data.ingredientes:
+                # Validar que el ingrediente existe
+                from app.modules.ingrediente.models import Ingrediente
+                ingrediente = uow.productos.session.get(Ingrediente, ing_data.ingrediente_id)
+                if not ingrediente:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=f"Ingrediente con id={ing_data.ingrediente_id} no encontrada",
+                    )
+
+                relacion_ing = ProductoIngrediente(
+                    producto_id=producto.id,
+                    ingrediente_id=ing_data.ingrediente_id,
+                    es_removible=ing_data.es_removible,
+                    cantidad=ing_data.cantidad,
+                    unidad_medida_id=ing_data.unidad_medida_id,
+                )
+                uow.producto_ingredientes.add(relacion_ing)
+
             result = ProductoPublic.model_validate(producto)
         return result
 
@@ -122,21 +145,6 @@ class ProductoService:
             producto.updated_at = _now()
             uow.productos.add(producto)
 
-    def hard_delete(self, producto_id: int) -> None:
-        with ProductoUnitOfWork(self._session) as uow:
-            producto = self._get_or_404(uow, producto_id)
-            uow.productos.delete(producto)
-
-
-    def create_relacion(self, data: ProductoCategoriaCreate) -> ProductoCategoriaPublic:
-        with ProductoUnitOfWork(self._session) as uow:
-            self._get_or_404(uow, data.producto_id)
-            self._assert_relacion_categoria_not_exists(uow, data.producto_id, data.categoria_id)
-            relacion = ProductoCategoria.model_validate(data)
-            uow.producto_categorias.add(relacion)
-            result = ProductoCategoriaPublic.model_validate(relacion)
-        return result
-
     def get_all_relaciones(self) -> ProductoCategoriaList:
         with ProductoUnitOfWork(self._session) as uow:
             relaciones = uow.producto_categorias.get_all_relaciones()
@@ -151,15 +159,6 @@ class ProductoService:
             relacion = self._get_relacion_categoria_or_404(uow, producto_id, categoria_id)
             uow.producto_categorias.delete(relacion)
 
-
-    def create_relacion_ingrediente(self, data: ProductoIngredienteCreate) -> ProductoIngredientePublic:
-        with ProductoUnitOfWork(self._session) as uow:
-            self._get_or_404(uow, data.producto_id)
-            self._assert_relacion_ingrediente_not_exists(uow, data.producto_id, data.ingrediente_id)
-            relacion = ProductoIngrediente.model_validate(data)
-            uow.producto_ingredientes.add(relacion)
-            result = ProductoIngredientePublic.model_validate(relacion)
-        return result
 
     def get_all_relaciones_ingrediente(self) -> ProductoIngredienteList:
         with ProductoUnitOfWork(self._session) as uow:

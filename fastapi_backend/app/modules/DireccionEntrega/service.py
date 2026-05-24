@@ -98,6 +98,18 @@ class DireccionEntregaService:
             result = DireccionEntregaPublic.model_validate(direccion)
         return result
 
+    def set_principal(self, direccion_id: int, usuario_id: int) -> DireccionEntregaPublic:
+        """Marca una dirección como principal, desmarcando las demás del usuario."""
+        with DireccionEntregaUnitOfWork(self._session) as uow:
+            direccion = self._get_or_404(uow, direccion_id)
+            self._assert_pertenece_a_usuario(direccion, usuario_id)
+            self._desmarcar_principal(uow, usuario_id)
+            direccion.es_principal = True
+            direccion.updated_at = _now()
+            uow.direcciones.add(direccion)
+            result = DireccionEntregaPublic.model_validate(direccion)
+        return result
+
     def soft_delete(self, usuario_id: int, direccion_id: int) -> None:
         with DireccionEntregaUnitOfWork(self._session) as uow:
             direccion = self._get_or_404(uow, direccion_id)

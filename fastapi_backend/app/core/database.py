@@ -21,10 +21,10 @@ from app.modules.HistorialEstadoPedido.models import HistorialEstadoPedido
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://postgres:Nicolasxd22@localhost:5432/gestor_productos_tp4"
+    "postgresql://postgres:Nicolasxd22@localhost:5432/Parcial2"
 )
 
-engine = create_engine("postgresql://postgres:Nicolasxd22@localhost:5432/gestor_productos_tp4", echo=True)
+engine = create_engine(DATABASE_URL, echo=True)
 
 
 def create_db_and_tables():

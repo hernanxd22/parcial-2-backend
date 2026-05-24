@@ -1,3 +1,4 @@
+from typing import Optional
 from sqlmodel import Session, select
 from app.core.repository import BaseRepository
 from app.modules.Pedido.models import Pedido
@@ -8,6 +9,16 @@ from app.modules.HistorialEstadoPedido.models import HistorialEstadoPedido
 class PedidoRepository(BaseRepository[Pedido]):
     def __init__(self, session: Session):
         super().__init__(session, Pedido)
+
+    def get_all(
+        self, offset: int = 0, limit: int = 20, usuario_id: Optional[int] = None
+    ) -> list[Pedido]:
+        stmt = select(Pedido).where(Pedido.deleted_at == None)
+        if usuario_id is not None:
+            stmt = stmt.where(Pedido.usuario_id == usuario_id)
+        return list(
+            self.session.exec(stmt.offset(offset).limit(limit)).all()
+        )
 
     def get_by_usuario(self,usuario_id: int,offset: int = 0,limit: int = 20,) -> list[Pedido]:
         return list(

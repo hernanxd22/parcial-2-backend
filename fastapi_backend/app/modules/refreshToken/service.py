@@ -1,3 +1,4 @@
+import os
 import secrets
 import hashlib
 from datetime import datetime, timezone, timedelta
@@ -19,7 +20,7 @@ from app.modules.refreshToken.unit_of_work import RefreshTokenUnitOfWork
 from app.modules.usuario.models import Usuario, UsuarioRol
 
 # Configuración de JWT
-JWT_SECRET = "tu_secret_key_aqui_cambiar_en_produccion"  # TODO: mover a .env
+JWT_SECRET = os.getenv("JWT_SECRET", "fallback_dev_only")
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 15
 REFRESH_TOKEN_EXPIRE_DAYS = 7

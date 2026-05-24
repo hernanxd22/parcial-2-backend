@@ -1,10 +1,13 @@
 
 from fastapi import HTTPException, status
-from sqlmodel import Session
+from sqlmodel import Session, select
 from datetime import datetime, timezone
 
 from app.modules.categoria.models import Categoria
-from app.modules.categoria.schemas import CategoriaCreate, CategoriaPublic, CategoriaUpdate, CategoriaList
+from app.modules.categoria.schemas import (
+    CategoriaCreate, CategoriaPublic, CategoriaUpdate, CategoriaList,
+    CategoriaTree,
+)
 from app.modules.categoria.unit_of_work import CategoriaUnitOfWork
 
 def _now() -> datetime:
@@ -105,10 +108,66 @@ class CategoriaService:
 
         return result
 
+    def _get_descendant_ids(self, categoria_id: int) -> list[int]:
+        """Recolecta recursivamente todos los IDs de subcategorías activas."""
+        from app.modules.categoria.models import Categoria
+        ids = [categoria_id]
+        children = self._session.exec(
+            select(Categoria)
+            .where(Categoria.parent_id == categoria_id, Categoria.activo == True)
+        ).all()
+        for child in children:
+            ids.extend(self._get_descendant_ids(child.id))
+        return ids
+
     def soft_delete(self, categoria_id: int) -> None:
         with CategoriaUnitOfWork(self._session) as uow:
             categoria = self._get_or_404(uow, categoria_id)
+
+            # Verificar productos activos (incluyendo subcategorías)
+            from app.modules.producto.models import Producto, ProductoCategoria
+            category_ids = self._get_descendant_ids(categoria_id)
+            stmt = (
+                select(ProductoCategoria)
+                .join(Producto, ProductoCategoria.producto_id == Producto.id)
+                .where(ProductoCategoria.categoria_id.in_(category_ids))
+                .where(Producto.disponible == True)
+                .where(Producto.deleted_at == None)
+                .limit(1)
+            )
+            has_active = self._session.exec(stmt).first() is not None
+            if has_active:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="No se puede eliminar la categoría porque tiene productos activos asociados",
+                )
+
             categoria.activo = False
             categoria.deleted_at = _now()
             categoria.updated_at = _now()
             uow.categorias.add(categoria)
+
+    def get_tree(self) -> list[CategoriaTree]:
+        with CategoriaUnitOfWork(self._session) as uow:
+            return self._build_tree(uow, parent_id=None)
+
+    def _build_tree(self, uow: CategoriaUnitOfWork, parent_id: int | None) -> list[CategoriaTree]:
+        from app.modules.categoria.models import Categoria
+        categorias = uow.categorias.session.exec(
+            select(Categoria)
+            .where(Categoria.parent_id == parent_id)
+            .where(Categoria.activo == True)
+            .order_by(Categoria.nombre)
+        ).all()
+
+        result = []
+        for cat in categorias:
+            children = self._build_tree(uow, cat.id)
+            result.append(CategoriaTree(
+                id=cat.id,
+                parent_id=cat.parent_id,
+                nombre=cat.nombre,
+                descripcion=cat.descripcion,
+                children=children,
+            ))
+        return result

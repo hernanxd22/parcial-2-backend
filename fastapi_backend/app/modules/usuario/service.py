@@ -74,6 +74,14 @@ class UsuarioService:
                 password_hash=hash_password(password)
             )
             uow.usuarios.add(usuario)
+
+            # Auto-asignar rol CLIENTE al registrarse públicamente
+            rol = UsuarioRol(
+                usuario_id=usuario.id,
+                rol_codigo="CLIENTE",
+            )
+            uow.usuario_roles.add(rol)
+
             result = UsuarioPublic.model_validate(usuario)
         return result
 
@@ -126,12 +134,6 @@ class UsuarioService:
             usuario.deleted_at = _now()
             usuario.updated_at = _now()
             uow.usuarios.add(usuario)
-
-
-    def hard_delete(self, usuario_id: int) -> None:
-        with UsuarioUnitOfWork(self._session) as uow:
-            usuario = self._get_or_404(uow, usuario_id)
-            uow.usuarios.delete(usuario)
 
 
     def create_rol(self,data: UsuarioRolCreate,) -> UsuarioRolPublic:

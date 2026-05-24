@@ -3,6 +3,13 @@ from typing import Optional, List
 from sqlmodel import SQLModel, Field
 from datetime import datetime
 
+class ProductoIngredienteCreateInline(SQLModel):
+    ingrediente_id: int = Field(gt=0)
+    es_removible: bool = False
+    cantidad: float = Field(gt=0)
+    unidad_medida_id: int = Field(gt=0)
+
+
 class ProductoCreate(SQLModel):
     nombre: str = Field(min_length=2, max_length=150)
     descripcion: Optional[str] = None
@@ -11,6 +18,9 @@ class ProductoCreate(SQLModel):
     stock_cantidad: int = Field(default=0, ge=0)
     disponible: bool = True
     unidad_venta_id: Optional[int] = None
+    categoria_id: int = Field(gt=0)
+    es_principal: bool = False
+    ingredientes: list["ProductoIngredienteCreateInline"] = Field(default_factory=list, min_length=1)
 
 
 class ProductoUpdate(SQLModel):
@@ -21,6 +31,13 @@ class ProductoUpdate(SQLModel):
     stock_cantidad: Optional[int] = Field(default=None, ge=0)
     disponible: Optional[bool] = None
     unidad_venta_id: Optional[int] = None
+
+
+class ProductoIngredientePublicInline(SQLModel):
+    ingrediente_id: int
+    es_removible: bool
+    cantidad: float
+    unidad_medida_id: int
 
 
 class ProductoPublic(SQLModel):
@@ -35,6 +52,7 @@ class ProductoPublic(SQLModel):
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime] = None
+    producto_ingredientes: list[ProductoIngredientePublicInline] = []
 
 
 class ProductoList(SQLModel):
@@ -76,3 +94,8 @@ class ProductoIngredientePublic(SQLModel):
 class ProductoIngredienteList(SQLModel):
     data: List[ProductoIngredientePublic]
     total: int
+
+
+class DisponibilidadUpdate(SQLModel):
+    """Request para cambiar disponibilidad de un producto."""
+    disponible: bool

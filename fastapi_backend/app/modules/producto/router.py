@@ -4,10 +4,13 @@ from fastapi import APIRouter, Depends, Query, Path, status
 from sqlmodel import Session
 
 from app.core.database import get_session
+from app.core.security import require_roles
+from app.modules.usuario.models import Usuario
 from app.modules.producto.schemas import (
     ProductoCreate, ProductoPublic, ProductoUpdate, ProductoList,
-    ProductoCategoriaCreate, ProductoCategoriaPublic, ProductoCategoriaList,
-    ProductoIngredienteCreate, ProductoIngredientePublic, ProductoIngredienteList,
+    ProductoCategoriaList,
+    ProductoIngredienteList,
+    DisponibilidadUpdate,
 )
 from app.modules.producto.service import ProductoService
 
@@ -31,6 +34,7 @@ LimitQuery  = Annotated[int, Query(ge=1, le=100, description="Máximo de resulta
 def create_producto(
     data: ProductoCreate,
     svc: ProductoService = Depends(get_producto_service),
+    _: Usuario = Depends(require_roles("ADMIN", "STOCK")),
 ) -> ProductoPublic:
     return svc.create(data)
 
@@ -59,19 +63,6 @@ def list_relaciones_categoria(
     return svc.get_all_relaciones()
 
 
-@router.post(
-    "/categorias",
-    response_model=ProductoCategoriaPublic,
-    status_code=status.HTTP_201_CREATED,
-    summary="Asignar una categoría a un producto",
-)
-def create_relacion_categoria(
-    data: ProductoCategoriaCreate,
-    svc: ProductoService = Depends(get_producto_service),
-) -> ProductoCategoriaPublic:
-    return svc.create_relacion(data)
-
-
 @router.delete(
     "/categorias/{producto_id}/{categoria_id}",
     status_code=status.HTTP_204_NO_CONTENT,
@@ -81,6 +72,7 @@ def delete_relacion_categoria(
     producto_id: Annotated[int, Path(gt=0, description="ID del producto")],
     categoria_id: Annotated[int, Path(gt=0, description="ID de la categoría")],
     svc: ProductoService = Depends(get_producto_service),
+    _: Usuario = Depends(require_roles("ADMIN")),
 ) -> None:
     svc.delete_relacion(producto_id, categoria_id)
 
@@ -96,19 +88,6 @@ def list_relaciones_ingrediente(
     return svc.get_all_relaciones_ingrediente()
 
 
-@router.post(
-    "/ingredientes",
-    response_model=ProductoIngredientePublic,
-    status_code=status.HTTP_201_CREATED,
-    summary="Asignar un ingrediente a un producto",
-)
-def create_relacion_ingrediente(
-    data: ProductoIngredienteCreate,
-    svc: ProductoService = Depends(get_producto_service),
-) -> ProductoIngredientePublic:
-    return svc.create_relacion_ingrediente(data)
-
-
 @router.delete(
     "/ingredientes/{producto_id}/{ingrediente_id}",
     status_code=status.HTTP_204_NO_CONTENT,
@@ -118,6 +97,7 @@ def delete_relacion_ingrediente(
     producto_id: Annotated[int, Path(gt=0, description="ID del producto")],
     ingrediente_id: Annotated[int, Path(gt=0, description="ID del ingrediente")],
     svc: ProductoService = Depends(get_producto_service),
+    _: Usuario = Depends(require_roles("ADMIN")),
 ) -> None:
     svc.delete_relacion_ingrediente(producto_id, ingrediente_id)
 
@@ -157,8 +137,25 @@ def update_producto(
     producto_id: Annotated[int, Path(gt=0, description="ID del producto")],
     data: ProductoUpdate,
     svc: ProductoService = Depends(get_producto_service),
+    _: Usuario = Depends(require_roles("ADMIN", "STOCK")),
 ) -> ProductoPublic:
     return svc.update(producto_id, data)
+
+
+@router.patch(
+    "/{producto_id}/disponibilidad",
+    response_model=ProductoPublic,
+    summary="Cambiar disponibilidad de un producto",
+)
+def cambiar_disponibilidad(
+    producto_id: Annotated[int, Path(gt=0, description="ID del producto")],
+    data: DisponibilidadUpdate,
+    svc: ProductoService = Depends(get_producto_service),
+    _: Usuario = Depends(require_roles("ADMIN", "STOCK")),
+) -> ProductoPublic:
+    # Reusa el update existente (partial) para cambiar solo disponible
+    from app.modules.producto.schemas import ProductoUpdate
+    return svc.update(producto_id, ProductoUpdate(disponible=data.disponible))
 
 
 @router.delete(
@@ -169,17 +166,8 @@ def update_producto(
 def soft_delete_producto(
     producto_id: Annotated[int, Path(gt=0, description="ID del producto")],
     svc: ProductoService = Depends(get_producto_service),
+    _: Usuario = Depends(require_roles("ADMIN")),
 ) -> None:
     svc.soft_delete(producto_id)
 
 
-@router.delete(
-    "/{producto_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    summary="Eliminar producto físicamente",
-)
-def hard_delete_producto(
-    producto_id: Annotated[int, Path(gt=0, description="ID del producto")],
-    svc: ProductoService = Depends(get_producto_service),
-) -> None:
-    svc.hard_delete(producto_id)
