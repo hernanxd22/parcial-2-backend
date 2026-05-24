@@ -1,0 +1,87 @@
+import { useEffect } from 'react'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import { useAuthStore } from './store/useAuthStore'
+import Layout from './components/Layout'
+import ProtectedRoute from './components/ProtectedRoute'
+import Home from './pages/Home'
+import ProductoDetalle from './pages/ProductoDetalle'
+import Carrito from './pages/Carrito'
+import Checkout from './pages/Checkout'
+import MisPedidos from './pages/MisPedidos'
+import Login from './pages/auth/Login'
+import Register from './pages/auth/Register'
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30000,
+      retry: 1,
+    },
+  },
+})
+
+function AuthInitializer({ children }: { children: React.ReactNode }) {
+  const checkAuth = useAuthStore((state) => state.checkAuth)
+  const loading = useAuthStore((state) => state.loading)
+
+  useEffect(() => {
+    checkAuth()
+  }, [checkAuth])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto"></div>
+          <p className="text-gray-500 mt-4">Cargando...</p>
+        </div>
+      </div>
+    )
+  }
+
+  return <>{children}</>
+}
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AuthInitializer>
+          <Routes>
+            <Route element={<Layout />}>
+              {/* Public routes */}
+              <Route path="/" element={<Home />} />
+              <Route path="/productos/:id" element={<ProductoDetalle />} />
+              <Route path="/carrito" element={<Carrito />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+
+              {/* Protected routes (CLIENT only) */}
+              <Route
+                path="/checkout"
+                element={
+                  <ProtectedRoute>
+                    <Checkout />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/mis-pedidos"
+                element={
+                  <ProtectedRoute>
+                    <MisPedidos />
+                  </ProtectedRoute>
+                }
+              />
+            </Route>
+          </Routes>
+        </AuthInitializer>
+      </BrowserRouter>
+      <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
+  )
+}
+
+export default App
