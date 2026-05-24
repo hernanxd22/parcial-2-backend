@@ -1,46 +1,128 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { getCategorias, deleteCategoria } from '../../api/endpoints'
-import DataTable from '../../components/DataTable'
+import { getArbolCategorias, deleteCategoria } from '../../api/endpoints'
 import Modal from '../../components/Modal'
 
+function NodoArbol({ nodo, onEdit, onDelete, depth = 0 }) {
+  const [expandido, setExpandido] = useState(depth < 2)
+  const tieneHijos = nodo.children && nodo.children.length > 0
+
+  return (
+    <div>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '8px 12px',
+          paddingLeft: `${20 + depth * 24}px`,
+          borderRadius: '6px',
+          marginBottom: '2px',
+          backgroundColor: depth % 2 === 0 ? '#fff' : '#f8f9fa',
+          border: '1px solid #eee',
+          transition: 'background-color 0.15s',
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#eef2ff'}
+        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = depth % 2 === 0 ? '#fff' : '#f8f9fa'}
+      >
+        {/* Botón expandir/colapsar */}
+        <button
+          type="button"
+          onClick={() => setExpandido(!expandido)}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: tieneHijos ? 'pointer' : 'default',
+            width: '20px',
+            fontSize: '14px',
+            color: tieneHijos ? '#666' : '#ccc',
+            padding: 0,
+            visibility: tieneHijos ? 'visible' : 'hidden',
+          }}
+        >
+          {expandido ? '▼' : '▶'}
+        </button>
+
+        {/* Icono de carpeta/folder */}
+        <span style={{ fontSize: '16px', color: tieneHijos ? '#f0ad4e' : '#999' }}>
+          {tieneHijos ? '📁' : '📄'}
+        </span>
+
+        {/* Nombre */}
+        <span style={{ flex: 1, fontWeight: depth === 0 ? 600 : 400 }}>
+          {nodo.nombre}
+        </span>
+
+        {/* Descripción (solo si hay) */}
+        {nodo.descripcion && (
+          <span style={{ color: '#999', fontSize: '0.85em', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {nodo.descripcion}
+          </span>
+        )}
+
+        {/* Acciones */}
+        <div style={{ display: 'flex', gap: '4px' }}>
+          <button
+            type="button"
+            className="btn btn-sm"
+            onClick={() => onEdit(nodo)}
+            title="Editar"
+            style={{ padding: '2px 8px', fontSize: '0.85em' }}
+          >
+            ✏️
+          </button>
+          <button
+            type="button"
+            className="btn btn-danger btn-sm"
+            onClick={() => onDelete(nodo)}
+            title="Eliminar"
+            style={{ padding: '2px 8px', fontSize: '0.85em' }}
+          >
+            🗑️
+          </button>
+        </div>
+      </div>
+
+      {/* Hijos recursivos */}
+      {expandido && tieneHijos && (
+        <div>
+          {nodo.children.map((hijo) => (
+            <NodoArbol
+              key={hijo.id}
+              nodo={hijo}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              depth={depth + 1}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function CategoriaList() {
-  const [categorias, setCategorias] = useState([])
+  const [arbol, setArbol] = useState([])
   const [loading, setLoading] = useState(true)
-  const [filtro, setFiltro] = useState('')
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [categoriaToDelete, setCategoriaToDelete] = useState(null)
+  const [filtro, setFiltro] = useState('')
   const navigate = useNavigate()
 
-  const fetchCategorias = async () => {
+  const fetchArbol = useCallback(async () => {
     try {
-      const response = await getCategorias({ limit: 100 })
-      setCategorias(response.data.data || [])
+      const response = await getArbolCategorias()
+      setArbol(response.data || [])
     } catch (err) {
-      console.error('Error:', err)
+      console.error('Error al cargar árbol:', err)
     } finally {
       setLoading(false)
     }
-  }
-
-  useEffect(() => {
-    fetchCategorias()
   }, [])
 
-  const filteredCategorias = categorias.filter(c => 
-    c.nombre?.toLowerCase().includes(filtro.toLowerCase())
-  )
-
-  const columns = [
-    { key: 'id', label: 'ID' },
-    { key: 'nombre', label: 'Nombre' },
-    { key: 'descripcion', label: 'Descripción' },
-    { 
-      key: 'parent_id', 
-      label: 'Categoría Padre',
-      render: (val) => val ? `ID: ${val}` : '-'
-    }
-  ]
+  useEffect(() => {
+    fetchArbol()
+  }, [fetchArbol])
 
   const handleEdit = (categoria) => {
     navigate(`/categorias/${categoria.id}/editar`)
@@ -56,10 +138,40 @@ function CategoriaList() {
       await deleteCategoria(categoriaToDelete.id)
       setShowDeleteModal(false)
       setCategoriaToDelete(null)
-      fetchCategorias()
+      fetchArbol()
     } catch (err) {
       alert('Error al eliminar categoría')
     }
+  }
+
+  // Filtro por nombre (búsqueda simple sobre el árbol plano)
+  const aplanarArbol = (nodos, profundidad = 0) => {
+    let resultado = []
+    for (const nodo of nodos) {
+      resultado.push({ ...nodo, depth: profundidad })
+      if (nodo.children) {
+        resultado = resultado.concat(aplanarArbol(nodo.children, profundidad + 1))
+      }
+    }
+    return resultado
+  }
+
+  const todasLasCats = aplanarArbol(arbol)
+  const filtradas = filtro
+    ? todasLasCats.filter(c => c.nombre?.toLowerCase().includes(filtro.toLowerCase()))
+    : null
+
+  if (loading) {
+    return (
+      <div>
+        <div className="card-header">
+          <h1>Categorías</h1>
+        </div>
+        <div className="card">
+          <p style={{ textAlign: 'center', color: '#999', padding: '40px' }}>Cargando...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -83,14 +195,51 @@ function CategoriaList() {
           </div>
         </div>
 
-        <DataTable
-          data={filteredCategorias}
-          columns={columns}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          loading={loading}
-          emptyMessage="No hay categorías"
-        />
+        {/* Vista de árbol */}
+        {filtro ? (
+          <div>
+            {filtradas.length === 0 ? (
+              <p style={{ textAlign: 'center', color: '#999', padding: '20px' }}>
+                No se encontraron categorías con ese nombre.
+              </p>
+            ) : (
+              filtradas.map((cat) => (
+                <div key={cat.id} style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 12px',
+                  paddingLeft: `${20 + cat.depth * 24}px`,
+                  borderRadius: '6px',
+                  marginBottom: '2px',
+                  backgroundColor: '#fffbe6',
+                  border: '1px solid #eee',
+                }}>
+                  <span style={{ fontSize: '12px', color: '#999', width: '20px' }}>
+                    {cat.depth > 0 ? '↳' : '•'}
+                  </span>
+                  <span style={{ flex: 1 }}>{cat.nombre}</span>
+                  <button type="button" className="btn btn-sm" onClick={() => handleEdit(cat)} style={{ padding: '2px 8px', fontSize: '0.85em' }}>✏️</button>
+                  <button type="button" className="btn btn-danger btn-sm" onClick={() => handleDelete(cat)} style={{ padding: '2px 8px', fontSize: '0.85em' }}>🗑️</button>
+                </div>
+              ))
+            )}
+          </div>
+        ) : arbol.length === 0 ? (
+          <p style={{ textAlign: 'center', color: '#999', padding: '40px' }}>
+            No hay categorías todavía. ¡Creá la primera!
+          </p>
+        ) : (
+          arbol.map((nodo) => (
+            <NodoArbol
+              key={nodo.id}
+              nodo={nodo}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              depth={0}
+            />
+          ))
+        )}
       </div>
 
       <Modal

@@ -1,22 +1,37 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { getProductos, deleteProducto } from '../../api/endpoints'
+import { getProductos, deleteProducto, getIngredientes, getUnidadesMedida } from '../../api/endpoints'
 import DataTable from '../../components/DataTable'
 import Modal from '../../components/Modal'
 
 function ProductoList() {
   const [productos, setProductos] = useState([])
+  const [ingredienteMap, setIngredienteMap] = useState({})
+  const [unidadMap, setUnidadMap] = useState({})
   const [loading, setLoading] = useState(true)
   const [filtroNombre, setFiltroNombre] = useState('')
   const [filtroDisponible, setFiltroDisponible] = useState('')
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [productoToDelete, setProductoToDelete] = useState(null)
+  const [expandedProducto, setExpandedProducto] = useState(null)
   const navigate = useNavigate()
 
   const fetchProductos = async () => {
     try {
-      const response = await getProductos({ limit: 100 })
-      setProductos(response.data.data || [])
+      const [prodRes, ingRes, uniRes] = await Promise.all([
+        getProductos({ limit: 100 }),
+        getIngredientes({ limit: 100 }),
+        getUnidadesMedida({ limit: 100 }),
+      ])
+      setProductos(prodRes.data.data || [])
+
+      const ingMap = {}
+      ;(ingRes.data.data || []).forEach(i => { ingMap[i.id] = i })
+      setIngredienteMap(ingMap)
+
+      const uniMap = {}
+      ;(uniRes.data.data || []).forEach(u => { uniMap[u.id] = u })
+      setUnidadMap(uniMap)
     } catch (err) {
       console.error('Error:', err)
     } finally {
@@ -37,6 +52,31 @@ function ProductoList() {
         : !p.disponible
     return matchNombre && matchDisponible
   })
+
+  const renderIngredientes = (producto) => {
+    if (!producto.producto_ingredientes || producto.producto_ingredientes.length === 0) {
+      return <span style={{ color: '#999' }}>Sin ingredientes</span>
+    }
+
+    const preview = producto.producto_ingredientes.slice(0, 2).map(ing => {
+      const nombre = ingredienteMap[ing.ingrediente_id]?.nombre || `ID: ${ing.ingrediente_id}`
+      const uni = unidadMap[ing.unidad_medida_id]
+      const uniStr = uni ? `${uni.simbolo}` : ''
+      return `${nombre} (${ing.cantidad} ${uniStr})`
+    }).join(', ')
+
+    const restantes = producto.producto_ingredientes.length - 2
+    const sufijo = restantes > 0 ? ` y ${restantes} más` : ''
+
+    return (
+      <span style={{ fontSize: '0.9em', cursor: 'pointer' }}
+        onClick={(e) => { e.stopPropagation(); setExpandedProducto(expandedProducto === producto.id ? null : producto.id) }}
+        title="Click para ver todos"
+      >
+        {preview}{sufijo}
+      </span>
+    )
+  }
 
   const columns = [
     { key: 'id', label: 'ID' },
@@ -63,7 +103,12 @@ function ProductoList() {
           {val ? 'Sí' : 'No'}
         </span>
       )
-    }
+    },
+    {
+      key: 'ingredientes',
+      label: 'Ingredientes',
+      render: (_, item) => renderIngredientes(item),
+    },
   ]
 
   const handleEdit = (producto) => {
@@ -130,18 +175,70 @@ function ProductoList() {
         />
       </div>
 
+      {/* Panel expandible de ingredientes */}
+      {expandedProducto && (
+        <div className="card" style={{ marginBottom: '20px', backgroundColor: '#f8f9ff', border: '1px solid #cce' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <h3 style={{ margin: 0 }}>
+              Ingredientes de: <strong>{productos.find(p => p.id === expandedProducto)?.nombre}</strong>
+            </h3>
+            <button
+              className="btn btn-sm btn-secondary"
+              onClick={() => setExpandedProducto(null)}
+              style={{ padding: '2px 10px' }}
+            >
+              Cerrar ✕
+            </button>
+          </div>
+          {(() => {
+            const prod = productos.find(p => p.id === expandedProducto)
+            if (!prod || !prod.producto_ingredientes || prod.producto_ingredientes.length === 0) {
+              return <p style={{ color: '#999' }}>Este producto no tiene ingredientes cargados.</p>
+            }
+            return (
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid #ddd', textAlign: 'left' }}>
+                    <th style={{ padding: '8px' }}>Ingrediente</th>
+                    <th style={{ padding: '8px' }}>Cantidad</th>
+                    <th style={{ padding: '8px' }}>Unidad</th>
+                    <th style={{ padding: '8px' }}>Removible</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {prod.producto_ingredientes.map((ing, idx) => {
+                    const nombre = ingredienteMap[ing.ingrediente_id]?.nombre || `ID: ${ing.ingrediente_id}`
+                    const uni = unidadMap[ing.unidad_medida_id]
+                    const uniStr = uni ? `${uni.simbolo} (${uni.nombre})` : `ID: ${ing.unidad_medida_id}`
+                    return (
+                      <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
+                        <td style={{ padding: '8px' }}>{nombre}</td>
+                        <td style={{ padding: '8px' }}>{ing.cantidad}</td>
+                        <td style={{ padding: '8px' }}>{uniStr}</td>
+                        <td style={{ padding: '8px' }}>{ing.es_removible ? 'Sí' : 'No'}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            )
+          })()}
+        </div>
+      )}
+
       <Modal
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
-        title="Eliminar Producto"
+        title="Desactivar Producto"
       >
-        <p>¿Estás seguro de eliminar el producto <strong>{productoToDelete?.nombre}</strong>?</p>
+        <p>¿Estás seguro de desactivar el producto <strong>{productoToDelete?.nombre}</strong>?</p>
+        <p style={{ fontSize: '0.9em', color: '#666' }}>El producto quedará como no disponible, pero no se eliminará físicamente.</p>
         <div style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
           <button className="btn btn-secondary" onClick={() => setShowDeleteModal(false)}>
             Cancelar
           </button>
           <button className="btn btn-danger" onClick={confirmDelete}>
-            Eliminar
+            Desactivar
           </button>
         </div>
       </Modal>

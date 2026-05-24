@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { getPedidoById, avanzarEstadoPedido } from '../../api/endpoints'
+import { useAuth } from '../../context/AuthContext'
 
 const FSM = {
   'PENDIENTE': ['CONFIRMADO', 'CANCELADO'],
@@ -14,12 +15,15 @@ const FSM = {
 function PedidoDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [pedido, setPedido] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showAvanzarModal, setShowAvanzarModal] = useState(false)
   const [selectedEstado, setSelectedEstado] = useState('')
   const [motivo, setMotivo] = useState('')
   const [saving, setSaving] = useState(false)
+
+  const isAdmin = user?.rol === 'ADMIN'
 
   const fetchPedido = async () => {
     try {
@@ -133,67 +137,71 @@ function PedidoDetail() {
         )}
       </div>
 
-      {/* Detalles del pedido */}
-      <div className="card">
-        <h2 className="card-title">Items del Pedido</h2>
-        
-        {pedido?.detalles?.length > 0 ? (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Producto</th>
-                <th>Cantidad</th>
-                <th>Precio Unitario</th>
-                <th>Subtotal</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pedido.detalles.map((detalle, idx) => (
-                <tr key={idx}>
-                  <td>{detalle.nombre_snapshot}</td>
-                  <td>{detalle.cantidad}</td>
-                  <td>${detalle.precio_snapshot}</td>
-                  <td>${detalle.subtotal_snap}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <p>No hay items</p>
-        )}
-      </div>
+      {isAdmin && (
+        <>
+          {/* Detalles del pedido */}
+          <div className="card">
+            <h2 className="card-title">Items del Pedido</h2>
+            
+            {pedido?.detalles?.length > 0 ? (
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Producto</th>
+                    <th>Cantidad</th>
+                    <th>Precio Unitario</th>
+                    <th>Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pedido.detalles.map((detalle, idx) => (
+                    <tr key={idx}>
+                      <td>{detalle.nombre_snapshot}</td>
+                      <td>{detalle.cantidad}</td>
+                      <td>${detalle.precio_snapshot}</td>
+                      <td>${detalle.subtotal_snap}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p>No hay items</p>
+            )}
+          </div>
 
-      {/* Historial de estados */}
-      <div className="card">
-        <h2 className="card-title">Historial de Estados</h2>
-        
-        {pedido?.historial?.length > 0 ? (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Desde</th>
-                <th>Hacia</th>
-                <th>Usuario</th>
-                <th>Motivo</th>
-                <th>Fecha</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pedido.historial.map((h, idx) => (
-                <tr key={idx}>
-                  <td>{h.estado_desde_codigo || 'Creación'}</td>
-                  <td>{h.estado_hacia_codigo}</td>
-                  <td>{h.usuario_id || 'Sistema'}</td>
-                  <td>{h.motivo || '-'}</td>
-                  <td>{new Date(h.created_at).toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <p>No hay historial</p>
-        )}
-      </div>
+          {/* Historial de estados */}
+          <div className="card">
+            <h2 className="card-title">Historial de Estados</h2>
+            
+            {pedido?.historial?.length > 0 ? (
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Desde</th>
+                    <th>Hacia</th>
+                    <th>Usuario</th>
+                    <th>Motivo</th>
+                    <th>Fecha</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pedido.historial.map((h, idx) => (
+                    <tr key={idx}>
+                      <td>{h.estado_desde_codigo || 'Creación'}</td>
+                      <td>{h.estado_hacia_codigo}</td>
+                      <td>{h.usuario_id || 'Sistema'}</td>
+                      <td>{h.motivo || '-'}</td>
+                      <td>{new Date(h.created_at).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p>No hay historial</p>
+            )}
+          </div>
+        </>
+      )}
 
       {/* Modal para avanzar estado */}
       {showAvanzarModal && (

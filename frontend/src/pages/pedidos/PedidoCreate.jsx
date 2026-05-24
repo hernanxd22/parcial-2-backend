@@ -140,7 +140,7 @@ function PedidoCreate() {
 
   if (loading) return <div className="loading">Cargando...</div>
 
-  // Productos disponibles (con stock > 0)
+
   const productosDisponibles = productos.filter(p => p.disponible && p.stock_cantidad > 0)
 
   return (

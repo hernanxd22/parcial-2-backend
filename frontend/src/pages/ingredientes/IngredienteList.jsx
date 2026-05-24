@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { getIngredientes, deleteIngrediente } from '../../api/endpoints'
+import { getIngredientes, deleteIngrediente, getUnidadesMedida } from '../../api/endpoints'
 import DataTable from '../../components/DataTable'
 import Modal from '../../components/Modal'
 
 function IngredienteList() {
   const [ingredientes, setIngredientes] = useState([])
+  const [unidadMap, setUnidadMap] = useState({})
   const [loading, setLoading] = useState(true)
   const [filtro, setFiltro] = useState('')
   const [filtroAlergeno, setFiltroAlergeno] = useState('')
@@ -15,8 +16,14 @@ function IngredienteList() {
 
   const fetchIngredientes = async () => {
     try {
-      const response = await getIngredientes({ limit: 100 })
-      setIngredientes(response.data.data || [])
+      const [ingRes, uniRes] = await Promise.all([
+        getIngredientes({ limit: 100 }),
+        getUnidadesMedida({ limit: 100 })
+      ])
+      setIngredientes(ingRes.data.data || [])
+      const map = {}
+      ;(uniRes.data.data || []).forEach(u => { map[u.id] = u })
+      setUnidadMap(map)
     } catch (err) {
       console.error('Error:', err)
     } finally {
@@ -50,6 +57,18 @@ function IngredienteList() {
           {val ? 'Sí' : 'No'}
         </span>
       )
+    },
+    { 
+      key: 'stock_cantidad', 
+      label: 'Stock',
+      render: (val, item) => {
+        const uni = item.unidad_medida_id ? unidadMap[item.unidad_medida_id] : null
+        return (
+          <span style={{ color: val === 0 ? '#999' : 'inherit' }}>
+            {val} {uni ? `${uni.simbolo} (${uni.nombre})` : ''}
+          </span>
+        )
+      }
     }
   ]
 

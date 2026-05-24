@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { getIngredienteById, createIngrediente, updateIngrediente } from '../../api/endpoints'
+import { getIngredienteById, createIngrediente, updateIngrediente, getUnidadesMedida } from '../../api/endpoints'
 
 function IngredienteForm() {
   const { id } = useParams()
@@ -10,24 +10,36 @@ function IngredienteForm() {
   const [formData, setFormData] = useState({
     nombre: '',
     descripcion: '',
-    es_alergeno: false
+    es_alergeno: false,
+    stock_cantidad: 0,
+    unidad_medida_id: ''
   })
+  const [unidades, setUnidades] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (isEdit) {
-      fetchIngrediente()
-    }
+    fetchData()
   }, [id])
 
-  const fetchIngrediente = async () => {
+  const fetchData = async () => {
     try {
-      const response = await getIngredienteById(id)
-      setFormData(response.data)
+      const uniRes = await getUnidadesMedida({ limit: 100 })
+      setUnidades(uniRes.data.data || [])
+
+      if (isEdit) {
+        const response = await getIngredienteById(id)
+        setFormData({
+          nombre: response.data.nombre || '',
+          descripcion: response.data.descripcion || '',
+          es_alergeno: response.data.es_alergeno || false,
+          stock_cantidad: response.data.stock_cantidad || 0,
+          unidad_medida_id: response.data.unidad_medida_id || ''
+        })
+      }
     } catch (err) {
       console.error('Error:', err)
-      navigate('/ingredientes')
+      if (isEdit) navigate('/ingredientes')
     }
   }
 
@@ -35,7 +47,7 @@ function IngredienteForm() {
     const { name, value, type, checked } = e.target
     setFormData({
       ...formData,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === 'checkbox' ? checked : type === 'number' ? parseFloat(value) || 0 : value
     })
   }
 
@@ -45,10 +57,16 @@ function IngredienteForm() {
     setLoading(true)
 
     try {
+      const payload = {
+        ...formData,
+        stock_cantidad: parseFloat(formData.stock_cantidad) || 0,
+        unidad_medida_id: formData.unidad_medida_id ? parseInt(formData.unidad_medida_id) : null,
+      }
+
       if (isEdit) {
-        await updateIngrediente(id, formData)
+        await updateIngrediente(id, payload)
       } else {
-        await createIngrediente(formData)
+        await createIngrediente(payload)
       }
       navigate('/ingredientes')
     } catch (err) {
@@ -100,8 +118,38 @@ function IngredienteForm() {
                 checked={formData.es_alergeno}
                 onChange={handleChange}
               />{' '}
-              Es alérgeno (mostrará advertencia en la UI)
+              Es alérgeno
             </label>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+            <div className="form-group">
+              <label className="form-label">Stock / Cantidad</label>
+              <input
+                type="number"
+                name="stock_cantidad"
+                className="form-input"
+                value={formData.stock_cantidad}
+                onChange={handleChange}
+                step="0.01"
+                min="0"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Unidad de Medida</label>
+              <select
+                name="unidad_medida_id"
+                className="form-select"
+                value={formData.unidad_medida_id}
+                onChange={handleChange}
+              >
+                <option value="">Sin unidad</option>
+                {unidades.map(uni => (
+                  <option key={uni.id} value={uni.id}>{uni.nombre} ({uni.simbolo})</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div style={{ display: 'flex', gap: '10px' }}>

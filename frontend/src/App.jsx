@@ -18,10 +18,12 @@ import Error404 from './pages/Error404'
 import Navbar from './components/Navbar'
 
 function ProtectedRoute({ children, roles }) {
-  const { isAuthenticated, user } = useAuth()
+  const { isAuthenticated, user, loading } = useAuth()
 
-  console.log("USER:", user)
-  console.log("ROLES NECESARIOS:", roles)
+  // Esperar a que AuthContext termine de verificar el token
+  if (loading) {
+    return null
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" />
@@ -29,11 +31,9 @@ function ProtectedRoute({ children, roles }) {
 
   if (roles && user) {
     const hasRole = roles.includes(user.rol)
-    console.log("ROL USER:", user.rol)
-    console.log("HAS ROLE:", hasRole)
 
     if (!hasRole) {
-      return <Navigate to="/" />
+      return <Navigate to="/login" />
     }
   }
 
@@ -51,9 +51,9 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           
-          {/* Dashboard */}
+          {/* Dashboard — ADMIN + STOCK + PEDIDOS */}
           <Route path="/" element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={['ADMIN', 'STOCK', 'PEDIDOS']}>
               <Dashboard />
             </ProtectedRoute>
           } />
@@ -75,26 +75,26 @@ function App() {
             </ProtectedRoute>
           } />
           
-          {/* Productos */}
+          {/* Productos — list: ADMIN + STOCK, create/edit: ADMIN only */}
           <Route path="/productos" element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={['ADMIN', 'STOCK']}>
               <ProductoList />
             </ProtectedRoute>
           } />
           <Route path="/productos/nuevo" element={
-            <ProtectedRoute roles={['ADMIN', 'STOCK']}>
+            <ProtectedRoute roles={['ADMIN']}>
               <ProductoForm />
             </ProtectedRoute>
           } />
           <Route path="/productos/:id/editar" element={
-            <ProtectedRoute roles={['ADMIN', 'STOCK']}>
+            <ProtectedRoute roles={['ADMIN']}>
               <ProductoForm />
             </ProtectedRoute>
           } />
           
-          {/* Categorías */}
+          {/* Categorías — ADMIN only */}
           <Route path="/categorias" element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={['ADMIN']}>
               <CategoriaList />
             </ProtectedRoute>
           } />
@@ -109,9 +109,9 @@ function App() {
             </ProtectedRoute>
           } />
           
-          {/* Ingredientes */}
+          {/* Ingredientes — ADMIN only */}
           <Route path="/ingredientes" element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={['ADMIN']}>
               <IngredienteList />
             </ProtectedRoute>
           } />
@@ -126,19 +126,19 @@ function App() {
             </ProtectedRoute>
           } />
           
-          {/* Pedidos */}
+          {/* Pedidos — ADMIN + PEDIDOS */}
           <Route path="/pedidos" element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={['ADMIN', 'PEDIDOS']}>
               <PedidoList />
             </ProtectedRoute>
           } />
           <Route path="/pedidos/nuevo" element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={['ADMIN']}>
               <PedidoCreate />
             </ProtectedRoute>
           } />
           <Route path="/pedidos/:id" element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={['ADMIN', 'PEDIDOS']}>
               <PedidoDetail />
             </ProtectedRoute>
           } />

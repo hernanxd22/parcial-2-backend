@@ -9,7 +9,7 @@ export const logout = (data) => api.post('/auth/logout', data)
 export const getUsuarios = (params) => api.get('/usuarios/', { params })
 export const getUsuarioById = (id) => api.get(`/usuarios/${id}`)
 export const createUsuario = (data) => api.post('/usuarios/', data)
-export const updateUsuario = (id, data) => api.put(`/usuarios/${id}`, data)
+export const updateUsuario = (id, data) => api.patch(`/usuarios/${id}`, data)
 export const deleteUsuario = (id) => api.delete(`/usuarios/${id}`)
 
 // ============== PRODUCTOS ==============
@@ -17,7 +17,9 @@ export const getProductos = (params) => api.get('/productos/', { params })
 export const getProductoById = (id) => api.get(`/productos/${id}`)
 export const createProducto = (data) => api.post('/productos/', data)
 export const updateProducto = (id, data) => api.patch(`/productos/${id}`, data)
-export const deleteProducto = (id) => api.delete(`/productos/${id}`)
+export const deleteProducto = (id) => api.delete(`/productos/${id}/desactivar`)
+export const getArbolCategorias = () => api.get('/categorias/arbol')
+export const getUnidadesMedida = (params) => api.get('/unidad-medida/', { params })
 
 // ============== CATEGORIAS ==============
 export const getCategorias = (params) => api.get('/categorias/', { params })
@@ -45,5 +47,7 @@ export const deletePedido = (id) => api.delete(`/pedidos/${id}`)
 export const getDirecciones = (params) => api.get('/direcciones/', { params })
 export const getDireccionById = (id) => api.get(`/direcciones/${id}`)
 export const createDireccion = (data) => api.post('/direcciones/', data)
-export const updateDireccion = (id, data) => api.patch(`/direcciones/${id}`, data)
-export const deleteDireccion = (id) => api.delete(`/direcciones/${id}`)
+export const updateDireccion = (usuario_id, direccion_id, data) =>
+  api.patch(`/direcciones/${usuario_id}/${direccion_id}`, data)
+export const deleteDireccion = (usuario_id, direccion_id) =>
+  api.delete(`/direcciones/${usuario_id}/${direccion_id}`)
