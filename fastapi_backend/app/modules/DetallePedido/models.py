@@ -16,7 +16,7 @@ class DetallePedido(SQLModel, table=True):
 
     cantidad: int = Field(ge=1, sa_type=SmallInteger())
 
-    # Snapshot inmutable (RN-04) — se copian al crear el pedido
+
     nombre_snapshot: str = Field(max_length=200)
     precio_snapshot: float = Field(sa_type=Numeric(10, 2))
     subtotal_snap: float = Field(sa_type=Numeric(10, 2))
@@ -24,12 +24,11 @@ class DetallePedido(SQLModel, table=True):
         default=None, sa_type=ARRAY(Integer())
     )
 
-    # Solo created_at — fila inmutable por diseño (RN-04)
     created_at: datetime = Field(
         default_factory=datetime.utcnow,
         sa_type=DateTime(timezone=True)
     )
 
-    # Relaciones
+
     pedido: Optional["Pedido"] = Relationship(back_populates="detalles")
     producto: Optional["Producto"] = Relationship(back_populates="detalles_pedido")

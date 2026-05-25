@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate,useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../store/useAuthStore'
 
 export default function Login() {
@@ -8,6 +8,9 @@ export default function Login() {
   const [error, setError] = useState('')
   const login = useAuthStore((state) => state.login)
   const navigate = useNavigate()
+  const location = useLocation()
+
+  const from = (location.state as { from?: string })?.from || '/'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -15,7 +18,7 @@ export default function Login() {
 
     try {
       await login(email, password)
-      navigate('/')
+      navigate(from, { replace: true })
     } catch {
       setError('Credenciales inválidas')
     }

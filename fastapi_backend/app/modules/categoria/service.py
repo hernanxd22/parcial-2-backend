@@ -124,7 +124,7 @@ class CategoriaService:
         with CategoriaUnitOfWork(self._session) as uow:
             categoria = self._get_or_404(uow, categoria_id)
 
-            # Verificar productos activos (incluyendo subcategorías)
+
             from app.modules.producto.models import Producto, ProductoCategoria
             category_ids = self._get_descendant_ids(categoria_id)
             stmt = (

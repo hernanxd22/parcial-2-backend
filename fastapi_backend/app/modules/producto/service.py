@@ -54,7 +54,7 @@ class ProductoService:
 
     def create(self, data: ProductoCreate) -> ProductoPublic:
         with ProductoUnitOfWork(self._session) as uow:
-            # Validar que la categoría existe
+           
             from app.modules.categoria.models import Categoria
             categoria = uow.productos.session.get(Categoria, data.categoria_id)
             if not categoria:
@@ -63,12 +63,12 @@ class ProductoService:
                     detail=f"Categoría con id={data.categoria_id} no encontrada",
                 )
 
-            # Crear producto (sin categoria_id, es_principal ni ingredientes)
+    
             create_data = data.model_dump(exclude={"categoria_id", "es_principal", "ingredientes"})
             producto = Producto.model_validate(create_data)
             uow.productos.add(producto)
 
-            # Crear relación ProductoCategoria
+          
             from app.modules.producto.models import ProductoCategoria
             relacion_cat = ProductoCategoria(
                 producto_id=producto.id,
@@ -77,10 +77,10 @@ class ProductoService:
             )
             uow.producto_categorias.add(relacion_cat)
 
-            # Crear relaciones ProductoIngrediente
+           
             from app.modules.producto.models import ProductoIngrediente
             for ing_data in data.ingredientes:
-                # Validar que el ingrediente existe
+             
                 from app.modules.ingrediente.models import Ingrediente
                 ingrediente = uow.productos.session.get(Ingrediente, ing_data.ingrediente_id)
                 if not ingrediente:

@@ -51,9 +51,21 @@ function ProductoForm() {
           disponible: prod.disponible ?? true,
           unidad_venta_id: prod.unidad_venta_id || null,
           imagen_url: prod.imagen_url || [],
-          categoria_id: '',
-          es_principal: false,
+          categoria_id: prod.categoria_id || '',
+          es_principal: prod.es_principal || false,
         })
+
+        // ← Pre-cargar ingredientes
+        if (prod.producto_ingredientes?.length > 0) {
+          setIngredientesSeleccionados(
+            prod.producto_ingredientes.map(ing => ({
+              ingrediente_id: String(ing.ingrediente_id),
+              cantidad: ing.cantidad,
+              unidad_medida_id: String(ing.unidad_medida_id),
+              es_removible: ing.es_removible || false,
+            }))
+          )
+        }
       }
     } catch (err) {
       console.error('Error:', err)
@@ -121,14 +133,6 @@ function ProductoForm() {
       setLoading(false)
     }
   }
-
-  const ingredienteOptions = ingredientesDisponibles.filter(ing => {
-    if (ing.activo === false) return false
-    const yaAgregado = ingredientesSeleccionados.some(
-      (sel, idx) => parseInt(sel.ingrediente_id) === ing.id
-    )
-    return !yaAgregado
-  })
 
   return (
     <div>
@@ -204,7 +208,6 @@ function ProductoForm() {
             </label>
           </div>
 
-          {/* CATEGORÍA — obligatoria, única */}
           <div className="form-group">
             <label className="form-label">
               Categoría <span style={{ color: 'red' }}>*</span>
@@ -235,7 +238,6 @@ function ProductoForm() {
             </label>
           </div>
 
-          {/* INGREDIENTES — dinámicos */}
           <div className="form-group">
             <label className="form-label">
               Ingredientes <span style={{ color: 'red' }}>*</span>

@@ -54,7 +54,7 @@ def create_app() -> FastAPI:
             seed_estados_pedido(session)
             seed_unidades_medida(session)
 
-            # Seed admin user if not exists
+  
             admin_email = "admin@admin.com"
             existing = session.exec(
                 select(Usuario).where(Usuario.email == admin_email)

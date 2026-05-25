@@ -15,7 +15,7 @@ class EstadoPedido(SQLModel, table=True):
     orden: int = Field(default=0)
     es_terminal: bool = Field(default=False)
 
-    ##relaciones
+
     pedidos: List["Pedido"] = Relationship(back_populates="estado_pedido")
     
     historial_desde: List["HistorialEstadoPedido"] = Relationship(

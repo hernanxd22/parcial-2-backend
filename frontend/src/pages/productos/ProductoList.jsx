@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { getProductos, deleteProducto, getIngredientes, getUnidadesMedida } from '../../api/endpoints'
+import { useAuth } from '../../context/AuthContext'
 import DataTable from '../../components/DataTable'
 import Modal from '../../components/Modal'
 
 function ProductoList() {
+  const { user } = useAuth()
+  const isAdmin = user?.rol === 'ADMIN' || user?.roles?.includes('ADMIN')
+
   const [productos, setProductos] = useState([])
   const [ingredienteMap, setIngredienteMap] = useState({})
   const [unidadMap, setUnidadMap] = useState({})
@@ -45,10 +49,10 @@ function ProductoList() {
 
   const filteredProductos = productos.filter(p => {
     const matchNombre = p.nombre?.toLowerCase().includes(filtroNombre.toLowerCase())
-    const matchDisponible = filtroDisponible === '' 
-      ? true 
-      : filtroDisponible === 'true' 
-        ? p.disponible 
+    const matchDisponible = filtroDisponible === ''
+      ? true
+      : filtroDisponible === 'true'
+        ? p.disponible
         : !p.disponible
     return matchNombre && matchDisponible
   })
@@ -69,8 +73,12 @@ function ProductoList() {
     const sufijo = restantes > 0 ? ` y ${restantes} más` : ''
 
     return (
-      <span style={{ fontSize: '0.9em', cursor: 'pointer' }}
-        onClick={(e) => { e.stopPropagation(); setExpandedProducto(expandedProducto === producto.id ? null : producto.id) }}
+      <span
+        style={{ fontSize: '0.9em', cursor: 'pointer' }}
+        onClick={(e) => {
+          e.stopPropagation()
+          setExpandedProducto(expandedProducto === producto.id ? null : producto.id)
+        }}
         title="Click para ver todos"
       >
         {preview}{sufijo}
@@ -81,13 +89,13 @@ function ProductoList() {
   const columns = [
     { key: 'id', label: 'ID' },
     { key: 'nombre', label: 'Nombre' },
-    { 
-      key: 'precio_base', 
+    {
+      key: 'precio_base',
       label: 'Precio',
       render: (val) => `$${val}`
     },
-    { 
-      key: 'stock_cantidad', 
+    {
+      key: 'stock_cantidad',
       label: 'Stock',
       render: (val, item) => (
         <span style={{ color: item.stock_cantidad === 0 ? 'red' : 'inherit' }}>
@@ -95,8 +103,8 @@ function ProductoList() {
         </span>
       )
     },
-    { 
-      key: 'disponible', 
+    {
+      key: 'disponible',
       label: 'Disponible',
       render: (val) => (
         <span className={`badge ${val ? 'badge-success' : 'badge-warning'}`}>
@@ -135,7 +143,9 @@ function ProductoList() {
     <div>
       <div className="card-header">
         <h1>Productos</h1>
-        <Link to="/productos/nuevo" className="btn btn-primary">Nuevo Producto</Link>
+        {isAdmin && (
+          <Link to="/productos/nuevo" className="btn btn-primary">Nuevo Producto</Link>
+        )}
       </div>
 
       <div className="card">
@@ -169,7 +179,7 @@ function ProductoList() {
           data={filteredProductos}
           columns={columns}
           onEdit={handleEdit}
-          onDelete={handleDelete}
+          onDelete={isAdmin ? handleDelete : undefined}
           loading={loading}
           emptyMessage="No hay productos"
         />

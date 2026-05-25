@@ -10,10 +10,10 @@ export interface Producto {
   id: number
   nombre: string
   descripcion: string
-  precio_unitario: number
-  stock: number
+  precio_base: number        // ← era precio_unitario
+  stock_cantidad: number     // ← era stock
   disponible: boolean
-  imagen_url?: string
+  imagen_url?: string[]      // ← es array en el backend
   categoria_nombre?: string
   ingredientes?: ProductoIngrediente[]
 }
@@ -41,10 +41,16 @@ export interface CartItem {
 
 export interface Direccion {
   id: number
-  direccion: string
+  usuario_id: number
+  alias: string
+  linea1: string
+  linea2?: string
   ciudad: string
+  provincia: string
   codigo_postal: string
-  principal: boolean
+  latitud?: number
+  longitud?: number
+  es_principal: boolean
 }
 
 export interface Pedido {

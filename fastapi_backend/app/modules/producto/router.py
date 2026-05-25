@@ -153,7 +153,7 @@ def cambiar_disponibilidad(
     svc: ProductoService = Depends(get_producto_service),
     _: Usuario = Depends(require_roles("ADMIN", "STOCK")),
 ) -> ProductoPublic:
-    # Reusa el update existente (partial) para cambiar solo disponible
+
     from app.modules.producto.schemas import ProductoUpdate
     return svc.update(producto_id, ProductoUpdate(disponible=data.disponible))
 

@@ -36,7 +36,7 @@ class Categoria(SQLModel, table=True):
         back_populates="categoria"
     )
 
-    # Relaciones para el árbol de categorías
+
     parent: Optional["Categoria"] = Relationship(
         back_populates="children",
         sa_relationship_kwargs=dict(

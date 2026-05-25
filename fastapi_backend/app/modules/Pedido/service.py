@@ -21,7 +21,7 @@ from app.modules.unidadMedida.models import UnidadMedida
 from app.modules.EstadoPedido.models import EstadoPedido
 
 
-# Tabla de conversión a unidad base (gramo, mL, pieza)
+
 _UNIT_CONVERSION: dict[tuple[str, str], float] = {
     ("masa", "g"): 1.0,
     ("masa", "kg"): 1000.0,
@@ -44,7 +44,7 @@ def _convertir_unidad(
     f_origen = _UNIT_CONVERSION.get((tipo, simbolo_origen))
     f_destino = _UNIT_CONVERSION.get((tipo, simbolo_destino))
     if f_origen is None or f_destino is None:
-        return cantidad  # sin conversión conocida
+        return cantidad  
     return cantidad * f_origen / f_destino
 
 
@@ -52,7 +52,7 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-# FSM: transiciones válidas según el UML
+
 FSM: dict[str, list[str]] = {
     "PENDIENTE":   ["CONFIRMADO", "CANCELADO"],
     "CONFIRMADO":  ["EN_PREP", "CANCELADO"],
@@ -67,7 +67,6 @@ class PedidoService:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    # ── helpers privados ──────────────────────────────────────────────────────
 
     def _get_or_404(self, uow: PedidoUnitOfWork, pedido_id: int) -> Pedido:
         pedido = uow.pedidos.get_active_by_id(pedido_id)
@@ -114,7 +113,7 @@ class PedidoService:
     def _assert_motivo_si_cancelado(
         self, estado_hacia: str, motivo: str | None
     ) -> None:
-        # RN-05: motivo obligatorio si se cancela
+    
         if estado_hacia == "CANCELADO" and not motivo:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -128,7 +127,6 @@ class PedidoService:
             historial=[HistorialEstadoPublic.model_validate(h) for h in pedido.historial],
         )
 
-    # ── operaciones públicas ──────────────────────────────────────────────────
 
     def create(self, data: PedidoCreate) -> PedidoPublic:
         with PedidoUnitOfWork(self._session) as uow:
@@ -151,11 +149,11 @@ class PedidoService:
                     personalizacion=item.personalizacion,
                 ))
 
-                # Descontar stock del producto
+               
                 producto.stock_cantidad -= item.cantidad
                 self._session.add(producto)
 
-                # Descontar stock de ingredientes
+              
                 for pi in producto.producto_ingredientes:
                     ingrediente = pi.ingrediente
                     stock_unidad = ingrediente.unidad_medida
@@ -204,7 +202,7 @@ class PedidoService:
                 detalle.pedido_id = pedido.id
                 uow.detalles.add(detalle)
 
-            # RN-02: primer historial con estado_desde=NULL
+            
             historial = HistorialEstadoPedido(
                 pedido_id=pedido.id,
                 estado_desde_codigo=None,
@@ -257,12 +255,12 @@ class PedidoService:
 
             estado_anterior = pedido.estado_codigo
 
-            # 1. UPDATE estado en Pedido
+            
             pedido.estado_codigo = data.estado_hacia_codigo
             pedido.updated_at = _now()
             uow.pedidos.add(pedido)
 
-            # 2. INSERT en historial (RN-03: append-only)
+            
             historial = HistorialEstadoPedido(
                 pedido_id=pedido.id,
                 estado_desde_codigo=estado_anterior,
@@ -272,7 +270,7 @@ class PedidoService:
             )
             uow.historial.add(historial)
 
-            # Restaurar stock si se cancela desde PENDIENTE o CONFIRMADO
+           
             if data.estado_hacia_codigo == "CANCELADO" and estado_anterior in ("PENDIENTE", "CONFIRMADO"):
                 for detalle in pedido.detalles:
                     producto = self._session.get(Producto, detalle.producto_id)
@@ -308,21 +306,18 @@ class PedidoService:
         with PedidoUnitOfWork(self._session) as uow:
             pedido = self._get_or_404(uow, pedido_id)
 
-            # Validar ownership
             if pedido.usuario_id != usuario_id:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="No puedes cancelar un pedido que no te pertenece",
                 )
 
-            # Reusar la FSM existente vía avanzar_estado
             data = PedidoAvanzarEstado(
                 estado_hacia_codigo="CANCELADO",
                 motivo=motivo,
                 usuario_id=usuario_id,
             )
-            # Nota: avanzar_estado maneja la transición FSM, historial y restauro de stock
-            # La validación de estado (PENDIENTE/CONFIRMADO) la hace _assert_transicion_valida
+
             return self.avanzar_estado(pedido_id, data)
 
     def soft_delete(self, pedido_id: int) -> None:

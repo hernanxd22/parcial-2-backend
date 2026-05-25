@@ -52,16 +52,14 @@ def list_pedidos(
     current_user: Usuario = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> PedidoList:
-    # Determinar roles del usuario autenticado
+
     stmt = select(UsuarioRol).where(UsuarioRol.usuario_id == current_user.id)
     roles = session.exec(stmt).all()
     role_codes = [ur.rol_codigo for ur in roles] if roles else ["CLIENTE"]
 
     if "ADMIN" in role_codes or "PEDIDOS" in role_codes:
-        # ADMIN/PEDIDOS: puede filtrar por usuario_id opcionalmente
         return svc.get_all(offset, limit, usuario_id=usuario_filter)
     else:
-        # CLIENTE: solo ve sus propios pedidos
         return svc.get_all(offset, limit, usuario_id=current_user.id)
 
 
@@ -116,7 +114,7 @@ def avanzar_estado(
     pedido_id: Annotated[int, Path(gt=0, description="ID del pedido")],
     data: PedidoAvanzarEstado,
     svc: PedidoService = Depends(get_pedido_service),
-    _: Usuario = Depends(require_roles("ADMIN", "STOCK")),
+    _: Usuario = Depends(require_roles("ADMIN", "STOCK", "PEDIDOS")),
 ) -> PedidoPublic:
     return svc.avanzar_estado(pedido_id, data)
 

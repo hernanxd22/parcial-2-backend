@@ -1,5 +1,5 @@
 import api from './axios'
-import type { Producto, Categoria, Pedido } from '../types'
+import type { Producto, Categoria, Pedido,Direccion  } from '../types'
 
 // Response wrappers matching backend SQLModel list schemas
 interface ListResponse<T> {
@@ -19,6 +19,8 @@ export const getCategorias = (params?: Record<string, unknown>) =>
 
 // ============== PEDIDOS ==============
 export const createPedido = (data: {
+  usuario_id: number
+  forma_pago_codigo: string
   direccion_entrega_id: number
   items: Array<{ producto_id: number; cantidad: number }>
 }) => api.post('/pedidos/', data)
@@ -28,8 +30,20 @@ export const getMisPedidos = (usuarioId?: number) =>
 
 // ============== DIRECCIONES ==============
 export const getDirecciones = (usuarioId: number) =>
-  api.get<ListResponse<import('../types').Direccion>>(`/direcciones/usuario/${usuarioId}`)
+  api.get<ListResponse<Direccion>>(`/direcciones/usuario/${usuarioId}`)
 
+export const createDireccion = (data: {
+  usuario_id: number
+  alias: string
+  linea1: string
+  linea2?: string
+  ciudad: string
+  provincia: string
+  codigo_postal: string
+  latitud?: number
+  longitud?: number
+  es_principal: boolean
+}) => api.post('/direcciones/', data)
 // ============== AUTH ==============
 export const login = (data: { email: string; password: string }) =>
   api.post('/auth/login', data)

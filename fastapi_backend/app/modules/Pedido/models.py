@@ -21,7 +21,7 @@ class Pedido(SQLModel, table=True):
     estado_codigo: str = Field(foreign_key="estado_pedido.codigo", max_length=20)
     forma_pago_codigo: str = Field(foreign_key="forma_pago.codigo", max_length=20)
 
-    # Snapshot monetario — inmutable desde creación
+
     subtotal: float = Field(sa_type=Numeric(10, 2))
     descuento: float = Field(default=0.00, sa_type=Numeric(10, 2))
     costo_envio: float = Field(default=50.00, sa_type=Numeric(10, 2))

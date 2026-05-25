@@ -22,7 +22,7 @@ class RefreshTokenRepository(BaseRepository[RefreshToken]):
                 select(RefreshToken)
                 .where(
                     RefreshToken.usuario_id == usuario_id,
-                    RefreshToken.revoked_at == None,  # noqa: E711
+                    RefreshToken.revoked_at == None,  
                     RefreshToken.expires_at > datetime.utcnow()
                 )
             ).all()
@@ -34,7 +34,7 @@ class RefreshTokenRepository(BaseRepository[RefreshToken]):
             select(RefreshToken)
             .where(
                 RefreshToken.token_hash == token_hash,
-                RefreshToken.revoked_at == None,  # noqa: E711
+                RefreshToken.revoked_at == None,  
                 RefreshToken.expires_at > datetime.utcnow()
             )
         ).first()

@@ -75,7 +75,7 @@ class UsuarioService:
             )
             uow.usuarios.add(usuario)
 
-            # Auto-asignar rol CLIENTE al registrarse públicamente
+
             rol = UsuarioRol(
                 usuario_id=usuario.id,
                 rol_codigo="CLIENTE",

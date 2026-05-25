@@ -24,7 +24,7 @@ class HistorialEstadoPedido(SQLModel, table=True):
     usuario_id: Optional[int] = Field(default=None, foreign_key="usuario.id")
     motivo: Optional[str] = Field(default=None)
  
-    # Solo created_at — es append-only, nunca se actualiza (RN-03)
+
     created_at: datetime = Field(
         default_factory=datetime.utcnow,
         sa_type=DateTime(timezone=True)

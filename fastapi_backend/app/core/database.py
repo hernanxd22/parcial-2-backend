@@ -4,7 +4,6 @@ from sqlmodel import create_engine, Session, SQLModel
 
 load_dotenv()
 
-# Importar TODOS los modelos para que se creen las tablas
 from app.modules.usuario.models import Usuario, UsuarioRol
 from app.modules.rol.models import Rol
 from app.modules.refreshToken.models import RefreshToken

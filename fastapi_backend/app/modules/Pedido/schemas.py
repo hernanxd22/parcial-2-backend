@@ -3,8 +3,6 @@ from sqlmodel import SQLModel, Field
 from datetime import datetime
 
 
-# ── DetallePedido schemas ─────────────────────────────────────────────────────
-
 class ItemPedidoRequest(SQLModel):
     """Un ítem dentro del request de creación de pedido."""
     producto_id: int = Field(gt=0)
@@ -23,8 +21,6 @@ class DetallePedidoPublic(SQLModel):
     created_at: datetime
 
 
-# ── HistorialEstadoPedido schemas ─────────────────────────────────────────────
-
 class HistorialEstadoPublic(SQLModel):
     id: int
     pedido_id: int
@@ -35,7 +31,6 @@ class HistorialEstadoPublic(SQLModel):
     created_at: datetime
 
 
-# ── Pedido schemas ────────────────────────────────────────────────────────────
 
 class PedidoCreate(SQLModel):
     usuario_id: int = Field(gt=0)
@@ -48,7 +43,7 @@ class PedidoCreate(SQLModel):
 class PedidoAvanzarEstado(SQLModel):
     estado_hacia_codigo: str
     motivo: Optional[str] = None
-    usuario_id: Optional[int] = None  # None = actor es el sistema/webhook
+    usuario_id: Optional[int] = None  
 
 
 class PedidoPublic(SQLModel):

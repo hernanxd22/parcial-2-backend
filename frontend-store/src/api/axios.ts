@@ -60,7 +60,7 @@ api.interceptors.response.use(
         const response = await api.post('/auth/refresh', { refresh_token })
         const { access_token, refresh_token: new_refresh_token } = response.data
 
-        Cookies.set('access_token', access_token, { expires: 1 / 24 / 15 })
+        Cookies.set('access_token', access_token, { expires: 1 / 48 })
         Cookies.set('refresh_token', new_refresh_token, { expires: 7 })
 
         processQueue(null, access_token)

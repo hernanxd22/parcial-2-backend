@@ -9,7 +9,7 @@ interface ProductoCardProps {
 export default function ProductoCard({ producto }: ProductoCardProps) {
   const addItem = useCartStore((state) => state.addItem)
 
-  const sinStock = producto.stock === 0 || !producto.disponible
+  const sinStock = producto.stock_cantidad === 0 || !producto.disponible
 
   const handleAddToCart = () => {
     if (sinStock) return
@@ -17,19 +17,24 @@ export default function ProductoCard({ producto }: ProductoCardProps) {
       {
         id: producto.id,
         nombre: producto.nombre,
-        precio_unitario: producto.precio_unitario,
+        precio_unitario: producto.precio_base,
       },
       1
     )
   }
 
+  // imagen_url es array, tomamos el primero si existe
+  const imagenSrc = Array.isArray(producto.imagen_url) && producto.imagen_url.length > 0
+    ? producto.imagen_url[0]
+    : null
+
   return (
     <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow">
       <Link to={`/productos/${producto.id}`}>
         <div className="h-48 bg-gray-100 flex items-center justify-center">
-          {producto.imagen_url ? (
+          {imagenSrc ? (
             <img
-              src={producto.imagen_url}
+              src={imagenSrc}
               alt={producto.nombre}
               className="w-full h-full object-cover"
             />
@@ -51,11 +56,13 @@ export default function ProductoCard({ producto }: ProductoCardProps) {
         )}
 
         <p className="text-xl font-bold text-orange-600 mt-2">
-          ${producto.precio_unitario.toFixed(2)}
+          ${producto.precio_base.toFixed(2)}
         </p>
 
         <p className="text-sm text-gray-500 mt-1">
-          {producto.stock > 0 ? `${producto.stock} disponibles` : 'Sin stock'}
+          {producto.stock_cantidad > 0
+            ? `${producto.stock_cantidad} disponibles`
+            : 'Sin stock'}
         </p>
 
         <button

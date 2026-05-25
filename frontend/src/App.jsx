@@ -33,7 +33,7 @@ function ProtectedRoute({ children, roles }) {
     const hasRole = roles.includes(user.rol)
 
     if (!hasRole) {
-      return <Navigate to="/login" />
+      return <Navigate to="/" />
     }
   }
 
@@ -87,7 +87,7 @@ function App() {
             </ProtectedRoute>
           } />
           <Route path="/productos/:id/editar" element={
-            <ProtectedRoute roles={['ADMIN']}>
+            <ProtectedRoute roles={['ADMIN', 'STOCK']}>
               <ProductoForm />
             </ProtectedRoute>
           } />

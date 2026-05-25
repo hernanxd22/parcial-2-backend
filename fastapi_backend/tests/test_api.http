@@ -117,15 +117,16 @@ DELETE {{baseUrl}}/usuarios/1
 
 ###Usuario-rol
 ### asignar rol a usuario
+### asignar rol a usuario
 POST {{baseUrl}}/usuarios/roles
 Content-Type: application/json
+Authorization: Bearer "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZW1haWwiOiJwZXBlQGdtYWlsLmNvbSIsInJvbCI6IkFETUlOIiwiZXhwIjoxNzc5NjcxNjMyfQ.mC2Fem1xK0TBwVlt6g0IjYsjrT7wpti2nD4OIw2qFTM"
 
 {
-  "usuario_id": 1,
+  "usuario_id": 4,
   "rol_codigo": "ADMIN",
   "asignado_por_id": 1
 }
-
 ### listar roles de usuario
 GET {{baseUrl}}/usuarios/4/roles
 

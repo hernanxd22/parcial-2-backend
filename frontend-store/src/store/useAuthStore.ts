@@ -21,23 +21,40 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   loading: true,
 
   login: async (email: string, password: string) => {
-    const formData = new URLSearchParams()
-    formData.append('username', email)
-    formData.append('password', password)
-
     const response = await api.post('/auth/login', { email, password })
     const { access_token, refresh_token } = response.data
 
-    Cookies.set('access_token', access_token, { expires: 1 / 24 / 15 })
+    Cookies.set('access_token', access_token, { expires: 1 / 48 })
     Cookies.set('refresh_token', refresh_token, { expires: 7 })
 
-    set({
-      token: access_token,
-      isAuthenticated: true,
-    })
+    // Traer el user ANTES de setear isAuthenticated
+    // así cuando el Login navega, ya está todo listo
+    try {
+      const meResponse = await api.get('/auth/me', {
+        headers: { Authorization: `Bearer ${access_token}` }
+      })
+      const userData = meResponse.data
 
-    // Fetch user data
-    await get().checkAuth()
+      set({
+        user: {
+          id: userData.id,
+          email: userData.email,
+          nombre: userData.nombre,
+          apellido: userData.apellido,
+          roles: userData.roles,
+        },
+        token: access_token,
+        isAuthenticated: true,
+        loading: false,
+      })
+    } catch {
+      // Si falla el /me igual dejamos logueado con el token
+      set({
+        token: access_token,
+        isAuthenticated: true,
+        loading: false,
+      })
+    }
   },
 
   logout: async () => {
@@ -57,8 +74,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   register: async (nombre: string, apellido: string, email: string, password: string) => {
     await api.post('/usuarios/', { nombre, apellido, email, password })
-
-    // Auto login after registration
     await get().login(email, password)
   },
 
@@ -86,7 +101,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         loading: false,
       })
     } catch {
-      // Token invalid or expired
       const refreshTokenValue = Cookies.get('refresh_token')
       if (refreshTokenValue) {
         try {
@@ -95,10 +109,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           })
           const { access_token, refresh_token: newRefreshToken } = refreshResponse.data
 
-          Cookies.set('access_token', access_token, { expires: 1 / 24 / 15 })
+          Cookies.set('access_token', access_token, { expires: 1 / 48 })
           Cookies.set('refresh_token', newRefreshToken, { expires: 7 })
 
-          // Retry getting user data
           const response = await api.get('/auth/me')
           const userData = response.data
 

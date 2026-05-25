@@ -1,9 +1,21 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'  // ← agregar useNavigate
 import { useCartStore } from '../store/useCartStore'
+import { useAuthStore } from '../store/useAuthStore'  // ← agregar esto
 import CarritoItem from '../components/CarritoItem'
 
 export default function Carrito() {
   const { items, total } = useCartStore()
+  const { isAuthenticated } = useAuthStore()  // ← agregar esto
+  const navigate = useNavigate()              // ← agregar esto
+
+  const handleFinalizarPedido = () => {
+    if (!isAuthenticated) {
+      // Manda al login y le dice que vuelva al checkout
+      navigate('/login', { state: { from: '/checkout' } })
+    } else {
+      navigate('/checkout')
+    }
+  }
 
   if (items.length === 0) {
     return (
@@ -67,12 +79,13 @@ export default function Carrito() {
             </div>
           </div>
 
-          <Link
-            to="/checkout"
+          {/* ← Cambió de Link a button */}
+          <button
+            onClick={handleFinalizarPedido}
             className="block mt-6 w-full bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-lg font-medium text-center transition-colors"
           >
             Finalizar pedido
-          </Link>
+          </button>
         </div>
       </div>
     </div>
