@@ -18,12 +18,12 @@ from app.modules.Pedido.models import Pedido
 from app.modules.DetallePedido.models import DetallePedido
 from app.modules.HistorialEstadoPedido.models import HistorialEstadoPedido
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://postgres:Nicolasxd22@localhost:5432/Parcial2"
-)
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-engine = create_engine(DATABASE_URL, echo=True)
+engine = create_engine(
+    DATABASE_URL,
+    echo=os.getenv("ENVIRONMENT") != "production",
+)
 
 
 def create_db_and_tables():

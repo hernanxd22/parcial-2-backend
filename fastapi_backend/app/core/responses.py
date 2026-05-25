@@ -1,6 +1,6 @@
 from typing import Generic, TypeVar, Optional, Any, List
 from pydantic import BaseModel, Field
-from datetime import datetime
+from datetime import datetime, timezone
 
 T = TypeVar("T")
 
@@ -9,7 +9,7 @@ class APIResponse(BaseModel, Generic[T]):
     success: bool = True
     message: str = "Operación exitosa"
     data: Optional[T] = None
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class SuccessResponse(APIResponse[T]):
@@ -29,4 +29,5 @@ class ListResponse(BaseModel):
     total: int = 0
     skip: int = 0
     limit: int = 10
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+

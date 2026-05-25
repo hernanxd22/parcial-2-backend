@@ -1,33 +1,20 @@
 import axios from 'axios'
-import Cookies from 'js-cookie'
 
 const api = axios.create({
   baseURL: 'http://localhost:8000',
   withCredentials: true,
 })
 
-// Request interceptor - agregar token desde cookie
-api.interceptors.request.use(
-  (config) => {
-    const token = Cookies.get('access_token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-    return config
-  },
-  (error) => Promise.reject(error)
-)
-
-// Response interceptor - manejar 401 y refresh
+// Response interceptor - refresh automático con cookie httponly
 let isRefreshing = false
-let failedQueue: Array<{ resolve: (token: string) => void; reject: (error: unknown) => void }> = []
+let failedQueue: Array<{ resolve: () => void; reject: (error: unknown) => void }> = []
 
-const processQueue = (error: unknown, token: string | null = null) => {
+const processQueue = (error: unknown) => {
   failedQueue.forEach((prom) => {
     if (error) {
       prom.reject(error)
     } else {
-      prom.resolve(token!)
+      prom.resolve()
     }
   })
   failedQueue = []
@@ -39,39 +26,25 @@ api.interceptors.response.use(
     const originalRequest = error.config
 
     if (error.response?.status === 401 && !originalRequest._retry) {
+      if (originalRequest.url?.includes('/auth/refresh')) {
+        return Promise.reject(error)
+      }
+
       if (isRefreshing) {
-        return new Promise((resolve, reject) => {
+        return new Promise<void>((resolve, reject) => {
           failedQueue.push({ resolve, reject })
-        }).then((token) => {
-          originalRequest.headers.Authorization = `Bearer ${token}`
-          return api(originalRequest)
-        })
+        }).then(() => api(originalRequest))
       }
 
       originalRequest._retry = true
       isRefreshing = true
 
       try {
-        const refresh_token = Cookies.get('refresh_token')
-        if (!refresh_token) {
-          throw new Error('No refresh token')
-        }
-
-        const response = await api.post('/auth/refresh', { refresh_token })
-        const { access_token, refresh_token: new_refresh_token } = response.data
-
-        Cookies.set('access_token', access_token, { expires: 1 / 48 })
-        Cookies.set('refresh_token', new_refresh_token, { expires: 7 })
-
-        processQueue(null, access_token)
-        originalRequest.headers.Authorization = `Bearer ${access_token}`
-
+        await api.post('/auth/refresh')
+        processQueue(null)
         return api(originalRequest)
       } catch (refreshError) {
-        processQueue(refreshError, null)
-        Cookies.remove('access_token')
-        Cookies.remove('refresh_token')
-        window.location.href = '/login'
+        processQueue(refreshError)
         return Promise.reject(refreshError)
       } finally {
         isRefreshing = false

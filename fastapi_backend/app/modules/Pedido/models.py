@@ -1,7 +1,7 @@
 from typing import Optional, List, TYPE_CHECKING
 from sqlmodel import SQLModel, Field, Relationship
 from sqlalchemy import DateTime, Numeric
-from datetime import datetime
+from datetime import datetime, timezone
 
 if TYPE_CHECKING:
     from app.modules.usuario.models import Usuario
@@ -30,11 +30,11 @@ class Pedido(SQLModel, table=True):
     notas: Optional[str] = Field(default=None)
 
     created_at: datetime = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_type=DateTime(timezone=True)
     )
     updated_at: datetime = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_type=DateTime(timezone=True)
     )
     deleted_at: Optional[datetime] = Field(

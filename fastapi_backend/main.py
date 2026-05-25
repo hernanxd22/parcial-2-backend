@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.database import engine, create_db_and_tables
 from sqlmodel import Session, select
-
+import os 
 
 from app.modules.unidadMedida.models import UnidadMedida
 from app.modules.rol.models import Rol         
@@ -36,12 +36,17 @@ def create_app() -> FastAPI:
         version="1.0.0"
     )
 
+    origins = (
+        ["http://localhost:3000", "http://localhost:5173"]
+        if os.getenv("ENVIRONMENT") == "development"
+        else [os.getenv("FRONTEND_URL")]
+    )
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[ "http://localhost:3000","http://localhost:5173",], 
+        allow_origins=origins,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PATCH", "DELETE"],
+        allow_headers=["Authorization", "Content-Type"],
     )
 
     @app.on_event("startup")
@@ -55,7 +60,11 @@ def create_app() -> FastAPI:
             seed_unidades_medida(session)
 
   
-            admin_email = "admin@admin.com"
+            admin_email = os.getenv("ADMIN_EMAIL")
+            admin_password = os.getenv("ADMIN_PASSWORD")
+            if not admin_email or not admin_password:
+                raise ValueError("ADMIN_EMAIL y ADMIN_PASSWORD deben estar en el .env")
+
             existing = session.exec(
                 select(Usuario).where(Usuario.email == admin_email)
             ).first()
@@ -64,7 +73,7 @@ def create_app() -> FastAPI:
                     nombre="Admin",
                     apellido="Sistema",
                     email=admin_email,
-                    password_hash=hash_password("admin123"),
+                    password_hash=hash_password(admin_password),
                 )
                 session.add(admin)
                 session.flush()

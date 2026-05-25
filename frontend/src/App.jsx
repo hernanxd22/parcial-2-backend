@@ -20,7 +20,6 @@ import Navbar from './components/Navbar'
 function ProtectedRoute({ children, roles }) {
   const { isAuthenticated, user, loading } = useAuth()
 
-  // Esperar a que AuthContext termine de verificar el token
   if (loading) {
     return null
   }

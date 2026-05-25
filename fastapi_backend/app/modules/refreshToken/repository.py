@@ -1,7 +1,7 @@
 from sqlmodel import Session, select
 from app.core.repository import BaseRepository
 from app.modules.refreshToken.models import RefreshToken
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class RefreshTokenRepository(BaseRepository[RefreshToken]):
@@ -23,7 +23,7 @@ class RefreshTokenRepository(BaseRepository[RefreshToken]):
                 .where(
                     RefreshToken.usuario_id == usuario_id,
                     RefreshToken.revoked_at == None,  
-                    RefreshToken.expires_at > datetime.utcnow()
+                    RefreshToken.expires_at > datetime.now(timezone.utc)
                 )
             ).all()
         )
@@ -35,13 +35,13 @@ class RefreshTokenRepository(BaseRepository[RefreshToken]):
             .where(
                 RefreshToken.token_hash == token_hash,
                 RefreshToken.revoked_at == None,  
-                RefreshToken.expires_at > datetime.utcnow()
+                RefreshToken.expires_at > datetime.now(timezone.utc)
             )
         ).first()
 
     def revoke(self, token: RefreshToken) -> None:
         """Invalidar un token."""
-        token.revoked_at = datetime.utcnow()
+        token.revoked_at = datetime.now(timezone.utc)
         self.session.add(token)
         self.session.flush()
 
@@ -49,7 +49,7 @@ class RefreshTokenRepository(BaseRepository[RefreshToken]):
         """Invalidar todos los tokens de un usuario (logout de todos los dispositivos)."""
         tokens = self.get_active_by_usuario(usuario_id)
         for token in tokens:
-            token.revoked_at = datetime.utcnow()
+            token.revoked_at = datetime.now(timezone.utc)
             self.session.add(token)
         self.session.flush()
 
@@ -58,7 +58,7 @@ class RefreshTokenRepository(BaseRepository[RefreshToken]):
         tokens = list(
             self.session.exec(
                 select(RefreshToken)
-                .where(RefreshToken.expires_at < datetime.utcnow())
+                .where(RefreshToken.expires_at < datetime.now(timezone.utc))
             ).all()
         )
         for token in tokens:

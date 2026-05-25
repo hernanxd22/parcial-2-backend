@@ -1,11 +1,9 @@
 import { create } from 'zustand'
-import Cookies from 'js-cookie'
 import api from '../api/axios'
 import type { User } from '../types'
 
 interface AuthState {
   user: User | null
-  token: string | null
   isAuthenticated: boolean
   loading: boolean
   login: (email: string, password: string) => Promise<void>
@@ -16,59 +14,35 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
-  token: null,
   isAuthenticated: false,
   loading: true,
 
   login: async (email: string, password: string) => {
-    const response = await api.post('/auth/login', { email, password })
-    const { access_token, refresh_token } = response.data
+    await api.post('/auth/login', { email, password })
+    // La cookie httponly fue seteada por el backend
+    const meResponse = await api.get('/auth/me')
+    const userData = meResponse.data
 
-    Cookies.set('access_token', access_token, { expires: 1 / 48 })
-    Cookies.set('refresh_token', refresh_token, { expires: 7 })
-
-    // Traer el user ANTES de setear isAuthenticated
-    // así cuando el Login navega, ya está todo listo
-    try {
-      const meResponse = await api.get('/auth/me', {
-        headers: { Authorization: `Bearer ${access_token}` }
-      })
-      const userData = meResponse.data
-
-      set({
-        user: {
-          id: userData.id,
-          email: userData.email,
-          nombre: userData.nombre,
-          apellido: userData.apellido,
-          roles: userData.roles,
-        },
-        token: access_token,
-        isAuthenticated: true,
-        loading: false,
-      })
-    } catch {
-      // Si falla el /me igual dejamos logueado con el token
-      set({
-        token: access_token,
-        isAuthenticated: true,
-        loading: false,
-      })
-    }
+    set({
+      user: {
+        id: userData.id,
+        email: userData.email,
+        nombre: userData.nombre,
+        apellido: userData.apellido,
+        roles: userData.roles,
+      },
+      isAuthenticated: true,
+      loading: false,
+    })
   },
 
   logout: async () => {
     try {
-      const refresh_token = Cookies.get('refresh_token')
-      if (refresh_token) {
-        await api.post('/auth/logout', { refresh_token })
-      }
+      await api.post('/auth/logout')
     } catch {
       // Ignore errors on logout
     } finally {
-      Cookies.remove('access_token')
-      Cookies.remove('refresh_token')
-      set({ user: null, token: null, isAuthenticated: false })
+      set({ user: null, isAuthenticated: false })
     }
   },
 
@@ -79,12 +53,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   checkAuth: async () => {
     try {
-      const token = Cookies.get('access_token')
-      if (!token) {
-        set({ user: null, token: null, isAuthenticated: false, loading: false })
-        return
-      }
-
+      // La cookie httponly se envía sola con withCredentials
       const response = await api.get('/auth/me')
       const userData = response.data
 
@@ -96,45 +65,30 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           apellido: userData.apellido,
           roles: userData.roles,
         },
-        token,
         isAuthenticated: true,
         loading: false,
       })
     } catch {
-      const refreshTokenValue = Cookies.get('refresh_token')
-      if (refreshTokenValue) {
-        try {
-          const refreshResponse = await api.post('/auth/refresh', {
-            refresh_token: refreshTokenValue,
-          })
-          const { access_token, refresh_token: newRefreshToken } = refreshResponse.data
+      // Token expirado → intentar refresh
+      try {
+        await api.post('/auth/refresh')
+        const response = await api.get('/auth/me')
+        const userData = response.data
 
-          Cookies.set('access_token', access_token, { expires: 1 / 48 })
-          Cookies.set('refresh_token', newRefreshToken, { expires: 7 })
-
-          const response = await api.get('/auth/me')
-          const userData = response.data
-
-          set({
-            user: {
-              id: userData.id,
-              email: userData.email,
-              nombre: userData.nombre,
-              apellido: userData.apellido,
-              roles: userData.roles,
-            },
-            token: access_token,
-            isAuthenticated: true,
-            loading: false,
-          })
-          return
-        } catch {
-          Cookies.remove('access_token')
-          Cookies.remove('refresh_token')
-        }
+        set({
+          user: {
+            id: userData.id,
+            email: userData.email,
+            nombre: userData.nombre,
+            apellido: userData.apellido,
+            roles: userData.roles,
+          },
+          isAuthenticated: true,
+          loading: false,
+        })
+      } catch {
+        set({ user: null, isAuthenticated: false, loading: false })
       }
-
-      set({ user: null, token: null, isAuthenticated: false, loading: false })
     }
   },
 }))

@@ -1,5 +1,5 @@
 from typing import Annotated, Optional
-from fastapi import APIRouter, Depends, Query, Path, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Path, status
 from sqlmodel import Session, select
 
 from app.core.database import get_session
@@ -34,8 +34,13 @@ LimitQuery = Annotated[int, Query(ge=1, le=100, description="Máximo de resultad
 def create_pedido(
     data: PedidoCreate,
     svc: PedidoService = Depends(get_pedido_service),
-    _: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(get_current_user),
 ) -> PedidoPublic:
+    if data.usuario_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No puedes crear pedidos para otro usuario",
+        )
     return svc.create(data)
 
 
@@ -114,8 +119,9 @@ def avanzar_estado(
     pedido_id: Annotated[int, Path(gt=0, description="ID del pedido")],
     data: PedidoAvanzarEstado,
     svc: PedidoService = Depends(get_pedido_service),
-    _: Usuario = Depends(require_roles("ADMIN", "STOCK", "PEDIDOS")),
+    current_user: Usuario = Depends(require_roles("ADMIN", "STOCK", "PEDIDOS")),
 ) -> PedidoPublic:
+    data.usuario_id = current_user.id
     return svc.avanzar_estado(pedido_id, data)
 
 

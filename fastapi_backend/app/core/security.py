@@ -13,7 +13,9 @@ from app.modules.usuario.models import Usuario, UsuarioRol
 security_scheme = HTTPBearer(auto_error=False)
 
 
-JWT_SECRET = os.getenv("JWT_SECRET", "fallback_dev_only")
+JWT_SECRET = os.getenv("JWT_SECRET")
+if not JWT_SECRET:
+    raise ValueError("JWT_SECRET no está definida en el .env")
 JWT_ALGORITHM = "HS256"
 
 

@@ -20,7 +20,9 @@ from app.modules.refreshToken.unit_of_work import RefreshTokenUnitOfWork
 from app.modules.usuario.models import Usuario, UsuarioRol
 
 
-JWT_SECRET = os.getenv("JWT_SECRET", "fallback_dev_only")
+JWT_SECRET = os.getenv("JWT_SECRET")
+if not JWT_SECRET:
+    raise ValueError("JWT_SECRET no está definida en el .env")
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 15
 REFRESH_TOKEN_EXPIRE_DAYS = 7
@@ -55,14 +57,13 @@ def _create_access_token(
         else "CLIENTE"
     )
 
+    now = datetime.now(timezone.utc)
     payload = {
         "sub": str(usuario.id),
         "email": usuario.email,
         "rol": rol,
-        "exp": datetime.now(timezone.utc)
-        + timedelta(
-            minutes=ACCESS_TOKEN_EXPIRE_MINUTES
-        )
+        "iat": now,
+        "exp": now + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
     }
 
     return jwt.encode(

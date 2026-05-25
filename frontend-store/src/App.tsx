@@ -51,14 +51,14 @@ function App() {
         <AuthInitializer>
           <Routes>
             <Route element={<Layout />}>
-              {/* Public routes */}
+
               <Route path="/" element={<Home />} />
               <Route path="/productos/:id" element={<ProductoDetalle />} />
               <Route path="/carrito" element={<Carrito />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+ 
 
-              {/* Protected routes (CLIENT only) */}
               <Route
                 path="/checkout"
                 element={

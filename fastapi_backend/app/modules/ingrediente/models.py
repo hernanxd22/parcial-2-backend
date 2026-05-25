@@ -2,7 +2,7 @@
 from typing import Optional, List, TYPE_CHECKING
 from sqlmodel import SQLModel, Field, Relationship
 from sqlalchemy import DateTime
-from datetime import datetime
+from datetime import datetime, timezone
 
 if TYPE_CHECKING:
     from app.modules.producto.models import Producto, ProductoIngrediente
@@ -21,11 +21,11 @@ class Ingrediente(SQLModel, table=True):
     activo: bool = Field(default=True)
 
     created_at: datetime = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_type=DateTime(timezone=True)
     )
     updated_at: datetime = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_type=DateTime(timezone=True)
     )
     deleted_at: Optional[datetime] = Field(
@@ -40,3 +40,4 @@ class Ingrediente(SQLModel, table=True):
     unidad_medida: Optional["UnidadMedida"] = Relationship(
         back_populates="ingredientes"
     )
+

@@ -1,7 +1,7 @@
 from typing import Optional, List, TYPE_CHECKING
 from sqlmodel import SQLModel, Field, Relationship
 from sqlalchemy import DateTime, Numeric, ARRAY, Integer, SmallInteger
-from datetime import datetime
+from datetime import datetime, timezone
 
 if TYPE_CHECKING:
     from app.modules.pedido.models import Pedido
@@ -25,7 +25,7 @@ class DetallePedido(SQLModel, table=True):
     )
 
     created_at: datetime = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_type=DateTime(timezone=True)
     )
 
