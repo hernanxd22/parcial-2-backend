@@ -49,7 +49,7 @@ export default function ProductoDetalle() {
     )
   }
 
-  const sinStock = producto.stock === 0 || !producto.disponible
+  const sinStock = !producto.disponible
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -84,12 +84,6 @@ export default function ProductoDetalle() {
           </p>
 
           <p className="text-gray-600 mt-4">{producto.descripcion}</p>
-
-          <p className="text-sm text-gray-500 mt-2">
-            {producto.stock > 0
-              ? `${producto.stock} unidades disponibles`
-              : 'Sin stock'}
-          </p>
 
           {/* Ingredientes */}
           {producto.ingredientes && producto.ingredientes.length > 0 && (

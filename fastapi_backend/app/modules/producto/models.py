@@ -14,12 +14,10 @@ class Producto(SQLModel, table=True):
     __tablename__ = "producto"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    unidad_venta_id: Optional[int] = Field(default=None, foreign_key="unidad_medida.id")
     nombre: str = Field(max_length=150)
     descripcion: Optional[str] = Field(default=None)
     precio_base: float = Field(gt=0)
     imagen_url: List[str] = Field(default_factory=list, sa_type=ARRAY(String()))
-    stock_cantidad: int = Field(default=0, ge=0)
     disponible: bool = Field(default=True)
 
     created_at: datetime = Field(
@@ -43,7 +41,6 @@ class Producto(SQLModel, table=True):
         back_populates="producto"
     )
 
-    unidad_venta: Optional["UnidadMedida"] = Relationship(back_populates="productos")
     detalles_pedido: List["DetallePedido"] = Relationship(back_populates="producto")
 
 class ProductoCategoria(SQLModel, table=True):

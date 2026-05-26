@@ -36,11 +36,10 @@ def create_app() -> FastAPI:
         version="1.0.0"
     )
 
-    origins = (
-        ["http://localhost:3000", "http://localhost:5173"]
-        if os.getenv("ENVIRONMENT") == "development"
-        else [os.getenv("FRONTEND_URL")]
-    )
+    origins = ["http://localhost:3000", "http://localhost:5173"]
+
+    if os.getenv("ENVIRONMENT") != "development":
+        origins = [os.getenv("FRONTEND_URL")]
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,

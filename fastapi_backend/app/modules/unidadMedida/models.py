@@ -4,8 +4,7 @@ from sqlalchemy import String, ARRAY, DateTime
 from datetime import datetime, timezone
 
 if TYPE_CHECKING:
-    from app.modules.producto.models import Producto
-    from app.modules.producto.models import Producto, ProductoIngrediente
+    from app.modules.producto.models import ProductoIngrediente
     from app.modules.ingrediente.models import Ingrediente
 
 
@@ -23,6 +22,5 @@ class UnidadMedida(SQLModel, table=True):
         sa_type=DateTime(timezone=True)
     )
 
-    productos: List["Producto"] = Relationship(back_populates="unidad_venta")
     producto_ingredientes: List["ProductoIngrediente"] = Relationship(back_populates="unidad_medida")
     ingredientes: List["Ingrediente"] = Relationship(back_populates="unidad_medida")

@@ -86,11 +86,8 @@ def refresh(request: Request, session: Session = Depends(get_session)):
 def logout(
     request: Request,
     session: Session = Depends(get_session),
-    _: Usuario = Depends(get_current_user),
 ):
-    """
-    Cerrar sesión: invalida refresh token y limpia cookies httponly.
-    """
+    
     refresh_token = request.cookies.get("refresh_token")
     if refresh_token:
         service = AuthService(session)

@@ -9,7 +9,7 @@ interface ProductoCardProps {
 export default function ProductoCard({ producto }: ProductoCardProps) {
   const addItem = useCartStore((state) => state.addItem)
 
-  const sinStock = producto.stock_cantidad === 0 || !producto.disponible
+  const sinStock = !producto.disponible
 
   const handleAddToCart = () => {
     if (sinStock) return
@@ -57,12 +57,6 @@ export default function ProductoCard({ producto }: ProductoCardProps) {
 
         <p className="text-xl font-bold text-orange-600 mt-2">
           ${producto.precio_base.toFixed(2)}
-        </p>
-
-        <p className="text-sm text-gray-500 mt-1">
-          {producto.stock_cantidad > 0
-            ? `${producto.stock_cantidad} disponibles`
-            : 'Sin stock'}
         </p>
 
         <button
