@@ -12,6 +12,7 @@ class ProductoRepository(BaseRepository[Producto]):
     def _load_relations(self, stmt):
         return stmt.options(
             selectinload(Producto.producto_ingredientes),
+            selectinload(Producto.producto_categorias),
         )
 
     def get_by_id(self, record_id: int) -> Producto | None:

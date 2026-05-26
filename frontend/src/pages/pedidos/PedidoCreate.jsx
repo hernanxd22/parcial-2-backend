@@ -141,7 +141,7 @@ function PedidoCreate() {
   if (loading) return <div className="loading">Cargando...</div>
 
 
-  const productosDisponibles = productos.filter(p => p.disponible && p.stock_cantidad > 0)
+  const productosDisponibles = productos
 
   return (
     <div>
@@ -244,7 +244,7 @@ function PedidoCreate() {
                   <option value="">Seleccionar...</option>
                   {productosDisponibles.map(p => (
                     <option key={p.id} value={p.id}>
-                      {p.nombre} - ${p.precio_base} (Stock: {p.stock_cantidad})
+                      {p.nombre} - ${p.precio_base} 
                     </option>
                   ))}
                 </select>

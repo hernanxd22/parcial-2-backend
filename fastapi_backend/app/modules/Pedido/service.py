@@ -86,17 +86,11 @@ class PedidoService:
             )
         return producto
 
-    def _assert_disponible(self, producto: Producto, cantidad: int) -> None:
+    def _assert_disponible(self, producto: Producto) -> None:
         if not producto.disponible:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"Producto '{producto.nombre}' no está disponible",
-            )
-        if producto.stock_cantidad < cantidad:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"Stock insuficiente para '{producto.nombre}' "
-                       f"(disponible: {producto.stock_cantidad}, pedido: {cantidad})",
             )
 
     def _assert_transicion_valida(
@@ -134,7 +128,7 @@ class PedidoService:
             detalles: list[DetallePedido] = []
             for item in data.items:
                 producto = self._get_producto_or_404(self._session, item.producto_id)
-                self._assert_disponible(producto, item.cantidad)
+                self._assert_disponible(producto)
 
                 precio = float(producto.precio_base)
                 sub = round(precio * item.cantidad, 2)
@@ -148,10 +142,6 @@ class PedidoService:
                     subtotal_snap=sub,
                     personalizacion=item.personalizacion,
                 ))
-
-               
-                producto.stock_cantidad -= item.cantidad
-                self._session.add(producto)
 
               
                 for pi in producto.producto_ingredientes:
@@ -275,9 +265,6 @@ class PedidoService:
                 for detalle in pedido.detalles:
                     producto = self._session.get(Producto, detalle.producto_id)
                     if producto:
-                        producto.stock_cantidad += detalle.cantidad
-                        self._session.add(producto)
-
                         for pi in producto.producto_ingredientes:
                             ingrediente = pi.ingrediente
                             stock_unidad = ingrediente.unidad_medida

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { getProductoById, createProducto, updateProducto, getCategorias, getIngredientes, getUnidadesMedida } from '../../api/endpoints'
+import SearchableSelect from '../../components/SearchableSelect'
 
 function ProductoForm() {
   const { id } = useParams()
@@ -11,13 +12,12 @@ function ProductoForm() {
     nombre: '',
     descripcion: '',
     precio_base: '',
-    stock_cantidad: 0,
     disponible: true,
-    unidad_venta_id: null,
     imagen_url: [],
     categoria_id: '',
     es_principal: false,
   })
+  const [llevaIngredientes, setLlevaIngredientes] = useState(true)
   const [categorias, setCategorias] = useState([])
   const [ingredientesDisponibles, setIngredientesDisponibles] = useState([])
   const [unidades, setUnidades] = useState([])
@@ -34,7 +34,7 @@ function ProductoForm() {
       const [catRes, ingRes, uniRes] = await Promise.all([
         getCategorias({ limit: 100 }),
         getIngredientes({ limit: 100 }),
-        getUnidadesMedida({ limit: 100 })
+        getUnidadesMedida({ limit: 100 }),
       ])
       setCategorias(catRes.data.data || [])
       setIngredientesDisponibles(ingRes.data.data || [])
@@ -47,24 +47,23 @@ function ProductoForm() {
           nombre: prod.nombre || '',
           descripcion: prod.descripcion || '',
           precio_base: prod.precio_base || '',
-          stock_cantidad: prod.stock_cantidad || 0,
           disponible: prod.disponible ?? true,
-          unidad_venta_id: prod.unidad_venta_id || null,
           imagen_url: prod.imagen_url || [],
           categoria_id: prod.categoria_id || '',
           es_principal: prod.es_principal || false,
         })
 
-        // ← Pre-cargar ingredientes
         if (prod.producto_ingredientes?.length > 0) {
           setIngredientesSeleccionados(
-            prod.producto_ingredientes.map(ing => ({
-              ingrediente_id: String(ing.ingrediente_id),
+            prod.producto_ingredientes.map((ing) => ({
+              ingrediente_id: ing.ingrediente_id,
               cantidad: ing.cantidad,
-              unidad_medida_id: String(ing.unidad_medida_id),
+              unidad_medida_id: ing.unidad_medida_id,
               es_removible: ing.es_removible || false,
             }))
           )
+        } else {
+          setLlevaIngredientes(false)
         }
       }
     } catch (err) {
@@ -76,25 +75,64 @@ function ProductoForm() {
     const { name, value, type, checked } = e.target
     setFormData({
       ...formData,
-      [name]: type === 'checkbox' ? checked : type === 'number' ? parseFloat(value) || 0 : value
+      [name]:
+        type === 'checkbox'
+          ? checked
+          : type === 'number'
+            ? parseFloat(value) || 0
+            : value,
     })
   }
 
-  const agregarIngrediente = () => {
+  // --- Manejo de ingredientes ---
+
+  const agregarIngrediente = (ingredienteId) => {
+    const ingrediente = ingredientesDisponibles.find(
+      (i) => i.id === ingredienteId
+    )
+    if (!ingrediente) return
+
+    // No duplicar
+    if (ingredientesSeleccionados.some((i) => i.ingrediente_id === ingredienteId)) {
+      return
+    }
+
     setIngredientesSeleccionados([
       ...ingredientesSeleccionados,
-      { ingrediente_id: '', cantidad: '', unidad_medida_id: '', es_removible: false }
+      {
+        ingrediente_id: ingredienteId,
+        cantidad: 1,
+        unidad_medida_id: ingrediente.unidad_medida_id,
+        es_removible: false,
+      },
     ])
   }
 
   const quitarIngrediente = (index) => {
-    setIngredientesSeleccionados(ingredientesSeleccionados.filter((_, i) => i !== index))
+    setIngredientesSeleccionados(
+      ingredientesSeleccionados.filter((_, i) => i !== index)
+    )
   }
 
-  const handleIngredienteChange = (index, field, value) => {
+  const handleIngredienteCantidad = (index, cantidad) => {
     const nuevos = [...ingredientesSeleccionados]
-    nuevos[index][field] = value
+    nuevos[index].cantidad = parseFloat(cantidad) || 0
     setIngredientesSeleccionados(nuevos)
+  }
+
+  const handleIngredienteRemovible = (index, checked) => {
+    const nuevos = [...ingredientesSeleccionados]
+    nuevos[index].es_removible = checked
+    setIngredientesSeleccionados(nuevos)
+  }
+
+  const getIngredienteNombre = (id) => {
+    return ingredientesDisponibles.find((i) => i.id === id)?.nombre || `ID: ${id}`
+  }
+
+  const getUnidadSimbolo = (id) => {
+    if (!id) return ''
+    return unidades.find((u) => u.id === id)?.simbolo || ''
   }
 
   const handleSubmit = async (e) => {
@@ -107,18 +145,18 @@ function ProductoForm() {
         nombre: formData.nombre,
         descripcion: formData.descripcion || null,
         precio_base: parseFloat(formData.precio_base),
-        stock_cantidad: parseInt(formData.stock_cantidad) || 0,
         disponible: formData.disponible,
-        unidad_venta_id: formData.unidad_venta_id ? parseInt(formData.unidad_venta_id) : null,
         imagen_url: formData.imagen_url,
         categoria_id: parseInt(formData.categoria_id),
         es_principal: formData.es_principal,
-        ingredientes: ingredientesSeleccionados.map(ing => ({
-          ingrediente_id: parseInt(ing.ingrediente_id),
-          cantidad: parseFloat(ing.cantidad),
-          unidad_medida_id: parseInt(ing.unidad_medida_id),
-          es_removible: ing.es_removible,
-        })),
+        ingredientes: llevaIngredientes
+          ? ingredientesSeleccionados.map((ing) => ({
+              ingrediente_id: ing.ingrediente_id,
+              cantidad: ing.cantidad,
+              unidad_medida_id: ing.unidad_medida_id,
+              es_removible: ing.es_removible,
+            }))
+          : [],
       }
 
       if (isEdit) {
@@ -134,11 +172,18 @@ function ProductoForm() {
     }
   }
 
+  // Omitir ingredientes ya seleccionados de las opciones
+  const ingredientesFiltrados = ingredientesDisponibles.filter(
+    (ing) => !ingredientesSeleccionados.some((s) => s.ingrediente_id === ing.id)
+  )
+
   return (
     <div>
       <div className="card-header">
         <h1>{isEdit ? 'Editar' : 'Nuevo'} Producto</h1>
-        <Link to="/productos" className="btn btn-secondary">Volver</Link>
+        <Link to="/productos" className="btn btn-secondary">
+          Volver
+        </Link>
       </div>
 
       <div className="card">
@@ -168,32 +213,18 @@ function ProductoForm() {
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-            <div className="form-group">
-              <label className="form-label">Precio Base</label>
-              <input
-                type="number"
-                name="precio_base"
-                className="form-input"
-                value={formData.precio_base}
-                onChange={handleChange}
-                step="0.01"
-                min="0"
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Stock</label>
-              <input
-                type="number"
-                name="stock_cantidad"
-                className="form-input"
-                value={formData.stock_cantidad}
-                onChange={handleChange}
-                min="0"
-              />
-            </div>
+          <div className="form-group">
+            <label className="form-label">Precio Base</label>
+            <input
+              type="number"
+              name="precio_base"
+              className="form-input"
+              value={formData.precio_base}
+              onChange={handleChange}
+              step="0.01"
+              min="0"
+              required
+            />
           </div>
 
           <div className="form-group">
@@ -212,18 +243,15 @@ function ProductoForm() {
             <label className="form-label">
               Categoría <span style={{ color: 'red' }}>*</span>
             </label>
-            <select
-              name="categoria_id"
-              className="form-select"
+            <SearchableSelect
+              options={categorias}
               value={formData.categoria_id}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Seleccionar categoría...</option>
-              {categorias.map(cat => (
-                <option key={cat.id} value={cat.id}>{cat.nombre}</option>
-              ))}
-            </select>
+              onChange={(val) =>
+                setFormData({ ...formData, categoria_id: val })
+              }
+              placeholder="Buscar categoría..."
+              labelKey="nombre"
+            />
           </div>
 
           <div className="form-group">
@@ -240,102 +268,104 @@ function ProductoForm() {
 
           <div className="form-group">
             <label className="form-label">
-              Ingredientes <span style={{ color: 'red' }}>*</span>
+              <input
+                type="checkbox"
+                checked={llevaIngredientes}
+                onChange={(e) => {
+                  setLlevaIngredientes(e.target.checked)
+                  if (!e.target.checked) setIngredientesSeleccionados([])
+                }}
+              />{' '}
+              Lleva ingredientes
             </label>
-
-            {ingredientesSeleccionados.length === 0 && (
-              <p style={{ color: '#999', fontSize: '0.9em', marginBottom: '10px' }}>
-                Agregá al menos un ingrediente al producto.
-              </p>
-            )}
-
-            {ingredientesSeleccionados.map((ing, index) => (
-              <div key={index} style={{
-                border: '1px solid #ddd',
-                borderRadius: '6px',
-                padding: '12px',
-                marginBottom: '10px',
-                backgroundColor: '#f9f9f9'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <strong>Ingrediente #{index + 1}</strong>
-                  <button
-                    type="button"
-                    className="btn btn-danger btn-sm"
-                    onClick={() => quitarIngrediente(index)}
-                    style={{ padding: '2px 8px', fontSize: '0.85em' }}
-                  >
-                    Quitar
-                  </button>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <div className="form-group" style={{ marginBottom: '5px' }}>
-                    <label style={{ fontSize: '0.85em', display: 'block', marginBottom: '3px' }}>Ingrediente</label>
-                    <select
-                      className="form-select"
-                      value={ing.ingrediente_id}
-                      onChange={(e) => handleIngredienteChange(index, 'ingrediente_id', e.target.value)}
-                      required
-                    >
-                      <option value="">Seleccionar...</option>
-                      {ingredientesDisponibles.map(opt => (
-                        <option key={opt.id} value={opt.id}>{opt.nombre}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="form-group" style={{ marginBottom: '5px' }}>
-                    <label style={{ fontSize: '0.85em', display: 'block', marginBottom: '3px' }}>Cantidad</label>
-                    <input
-                      type="number"
-                      className="form-input"
-                      value={ing.cantidad}
-                      onChange={(e) => handleIngredienteChange(index, 'cantidad', e.target.value)}
-                      step="0.01"
-                      min="0"
-                      required
-                    />
-                  </div>
-
-                  <div className="form-group" style={{ marginBottom: '5px' }}>
-                    <label style={{ fontSize: '0.85em', display: 'block', marginBottom: '3px' }}>Unidad de Medida</label>
-                    <select
-                      className="form-select"
-                      value={ing.unidad_medida_id}
-                      onChange={(e) => handleIngredienteChange(index, 'unidad_medida_id', e.target.value)}
-                      required
-                    >
-                      <option value="">Seleccionar...</option>
-                      {unidades.map(uni => (
-                        <option key={uni.id} value={uni.id}>{uni.nombre} ({uni.simbolo || ''})</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="form-group" style={{ marginBottom: '5px', display: 'flex', alignItems: 'flex-end' }}>
-                    <label style={{ fontSize: '0.85em', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                      <input
-                        type="checkbox"
-                        checked={ing.es_removible}
-                        onChange={(e) => handleIngredienteChange(index, 'es_removible', e.target.checked)}
-                      />
-                      Removible
-                    </label>
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={agregarIngrediente}
-              style={{ marginTop: '5px' }}
-            >
-              + Agregar ingrediente
-            </button>
           </div>
+
+          {/* --- INGREDIENTES --- */}
+          {llevaIngredientes && (
+            <div className="form-group">
+              <label className="form-label">Ingredientes</label>
+
+              {/* Buscador de ingredientes */}
+              <div style={{ marginBottom: '12px' }}>
+                <SearchableSelect
+                  options={ingredientesFiltrados}
+                  value={null}
+                  onChange={(val) => agregarIngrediente(val)}
+                  placeholder="Buscar ingrediente para agregar..."
+                  labelKey="nombre"
+                />
+                {ingredientesFiltrados.length === 0 && (
+                  <p style={{ color: '#999', fontSize: '0.85em', marginTop: '4px' }}>
+                    Todos los ingredientes disponibles ya fueron agregados.
+                  </p>
+                )}
+              </div>
+
+              {/* Tabla de ingredientes */}
+              {ingredientesSeleccionados.length > 0 ? (
+                <div className="table-container">
+                  <table className="table" style={{ fontSize: '0.9em' }}>
+                    <thead>
+                      <tr>
+                        <th>Ingrediente</th>
+                        <th style={{ width: '120px' }}>Cantidad</th>
+                        <th style={{ width: '80px' }}>Unidad</th>
+                        <th style={{ width: '90px' }}>Removible</th>
+                        <th style={{ width: '50px' }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ingredientesSeleccionados.map((ing, index) => (
+                        <tr key={index}>
+                          <td>{getIngredienteNombre(ing.ingrediente_id)}</td>
+                          <td>
+                            <input
+                              type="number"
+                              className="form-input"
+                              value={ing.cantidad}
+                              onChange={(e) =>
+                                handleIngredienteCantidad(index, e.target.value)
+                              }
+                              step="0.01"
+                              min="0"
+                              required
+                              style={{ width: '100%' }}
+                            />
+                          </td>
+                          <td style={{ color: '#666' }}>
+                            {getUnidadSimbolo(ing.unidad_medida_id)}
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <input
+                              type="checkbox"
+                              checked={ing.es_removible}
+                              onChange={(e) =>
+                                handleIngredienteRemovible(index, e.target.checked)
+                              }
+                            />
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              className="btn btn-danger btn-sm"
+                              onClick={() => quitarIngrediente(index)}
+                              title="Quitar ingrediente"
+                            >
+                              ✕
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p style={{ color: '#999', fontSize: '0.9em' }}>
+                  Buscá ingredientes arriba para agregarlos al producto.
+                </p>
+              )}
+            </div>
+          )}
 
           <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
             <button type="submit" className="btn btn-primary" disabled={loading}>

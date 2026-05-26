@@ -95,15 +95,6 @@ function ProductoList() {
       render: (val) => `$${val}`
     },
     {
-      key: 'stock_cantidad',
-      label: 'Stock',
-      render: (val, item) => (
-        <span style={{ color: item.stock_cantidad === 0 ? 'red' : 'inherit' }}>
-          {val}
-        </span>
-      )
-    },
-    {
       key: 'disponible',
       label: 'Disponible',
       render: (val) => (
