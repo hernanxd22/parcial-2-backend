@@ -1,6 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { getProductoById, createProducto, updateProducto, getCategorias, getIngredientes, getUnidadesMedida } from '../../api/endpoints'
+import {
+  getProductoById,
+  createProducto,
+  updateProducto,
+  getCategorias,
+  getIngredientes,
+  getUnidadesMedida
+} from '../../api/endpoints'
+
 import SearchableSelect from '../../components/SearchableSelect'
 
 function ProductoForm() {
@@ -17,6 +25,7 @@ function ProductoForm() {
     categoria_id: '',
     es_principal: false,
   })
+
   const [llevaIngredientes, setLlevaIngredientes] = useState(true)
   const [categorias, setCategorias] = useState([])
   const [ingredientesDisponibles, setIngredientesDisponibles] = useState([])
@@ -36,6 +45,7 @@ function ProductoForm() {
         getIngredientes({ limit: 100 }),
         getUnidadesMedida({ limit: 100 }),
       ])
+
       setCategorias(catRes.data.data || [])
       setIngredientesDisponibles(ingRes.data.data || [])
       setUnidades(uniRes.data.data || [])
@@ -43,6 +53,7 @@ function ProductoForm() {
       if (isEdit) {
         const prodRes = await getProductoById(id)
         const prod = prodRes.data
+
         setFormData({
           nombre: prod.nombre || '',
           descripcion: prod.descripcion || '',
@@ -57,7 +68,7 @@ function ProductoForm() {
           setIngredientesSeleccionados(
             prod.producto_ingredientes.map((ing) => ({
               ingrediente_id: ing.ingrediente_id,
-              cantidad: ing.cantidad,
+              cantidad: String(ing.cantidad),
               unidad_medida_id: ing.unidad_medida_id,
               es_removible: ing.es_removible || false,
             }))
@@ -73,14 +84,13 @@ function ProductoForm() {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
+
     setFormData({
       ...formData,
       [name]:
         type === 'checkbox'
           ? checked
-          : type === 'number'
-            ? parseFloat(value) || 0
-            : value,
+          : value,
     })
   }
 
@@ -90,10 +100,15 @@ function ProductoForm() {
     const ingrediente = ingredientesDisponibles.find(
       (i) => i.id === ingredienteId
     )
+
     if (!ingrediente) return
 
     // No duplicar
-    if (ingredientesSeleccionados.some((i) => i.ingrediente_id === ingredienteId)) {
+    if (
+      ingredientesSeleccionados.some(
+        (i) => i.ingrediente_id === ingredienteId
+      )
+    ) {
       return
     }
 
@@ -101,7 +116,7 @@ function ProductoForm() {
       ...ingredientesSeleccionados,
       {
         ingrediente_id: ingredienteId,
-        cantidad: 1,
+        cantidad: '1',
         unidad_medida_id: ingrediente.unidad_medida_id,
         es_removible: false,
       },
@@ -116,7 +131,7 @@ function ProductoForm() {
 
   const handleIngredienteCantidad = (index, cantidad) => {
     const nuevos = [...ingredientesSeleccionados]
-    nuevos[index].cantidad = parseFloat(cantidad) || 0
+    nuevos[index].cantidad = cantidad
     setIngredientesSeleccionados(nuevos)
   }
 
@@ -127,7 +142,10 @@ function ProductoForm() {
   }
 
   const getIngredienteNombre = (id) => {
-    return ingredientesDisponibles.find((i) => i.id === id)?.nombre || `ID: ${id}`
+    return (
+      ingredientesDisponibles.find((i) => i.id === id)?.nombre ||
+      `ID: ${id}`
+    )
   }
 
   const getUnidadSimbolo = (id) => {
@@ -137,6 +155,7 @@ function ProductoForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+
     setError('')
     setLoading(true)
 
@@ -144,15 +163,26 @@ function ProductoForm() {
       const payload = {
         nombre: formData.nombre,
         descripcion: formData.descripcion || null,
-        precio_base: parseFloat(formData.precio_base),
+
+        precio_base:
+          parseFloat(
+            String(formData.precio_base).replace(',', '.')
+          ) || 0,
+
         disponible: formData.disponible,
         imagen_url: formData.imagen_url,
         categoria_id: parseInt(formData.categoria_id),
         es_principal: formData.es_principal,
+
         ingredientes: llevaIngredientes
           ? ingredientesSeleccionados.map((ing) => ({
               ingrediente_id: ing.ingrediente_id,
-              cantidad: ing.cantidad,
+
+              cantidad:
+                parseFloat(
+                  String(ing.cantidad).replace(',', '.')
+                ) || 0,
+
               unidad_medida_id: ing.unidad_medida_id,
               es_removible: ing.es_removible,
             }))
@@ -164,7 +194,9 @@ function ProductoForm() {
       } else {
         await createProducto(payload)
       }
+
       navigate('/productos')
+
     } catch (err) {
       setError(err.response?.data?.detail || 'Error al guardar')
     } finally {
@@ -174,24 +206,43 @@ function ProductoForm() {
 
   // Omitir ingredientes ya seleccionados de las opciones
   const ingredientesFiltrados = ingredientesDisponibles.filter(
-    (ing) => !ingredientesSeleccionados.some((s) => s.ingrediente_id === ing.id)
+    (ing) =>
+      !ingredientesSeleccionados.some(
+        (s) => s.ingrediente_id === ing.id
+      )
   )
 
   return (
     <div>
+
       <div className="card-header">
-        <h1>{isEdit ? 'Editar' : 'Nuevo'} Producto</h1>
-        <Link to="/productos" className="btn btn-secondary">
+        <h1>
+          {isEdit ? 'Editar' : 'Nuevo'} Producto
+        </h1>
+
+        <Link
+          to="/productos"
+          className="btn btn-secondary"
+        >
           Volver
         </Link>
       </div>
 
       <div className="card">
-        {error && <div className="alert alert-error">{error}</div>}
+
+        {error && (
+          <div className="alert alert-error">
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
+
           <div className="form-group">
-            <label className="form-label">Nombre</label>
+            <label className="form-label">
+              Nombre
+            </label>
+
             <input
               type="text"
               name="nombre"
@@ -203,7 +254,10 @@ function ProductoForm() {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Descripción</label>
+            <label className="form-label">
+              Descripción
+            </label>
+
             <textarea
               name="descripcion"
               className="form-textarea"
@@ -214,15 +268,26 @@ function ProductoForm() {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Precio Base</label>
+            <label className="form-label">
+              Precio Base
+            </label>
+
             <input
-              type="number"
+              type="text"
               name="precio_base"
               className="form-input"
               value={formData.precio_base}
-              onChange={handleChange}
-              step="0.01"
-              min="0"
+              onChange={(e) => {
+                let value = e.target.value
+
+                value = value.replace(/[^0-9.,]/g, '')
+
+                setFormData({
+                  ...formData,
+                  precio_base: value
+                })
+              }}
+              placeholder="0,00"
               required
             />
           </div>
@@ -243,11 +308,15 @@ function ProductoForm() {
             <label className="form-label">
               Categoría <span style={{ color: 'red' }}>*</span>
             </label>
+
             <SearchableSelect
               options={categorias}
               value={formData.categoria_id}
               onChange={(val) =>
-                setFormData({ ...formData, categoria_id: val })
+                setFormData({
+                  ...formData,
+                  categoria_id: val
+                })
               }
               placeholder="Buscar categoría..."
               labelKey="nombre"
@@ -273,7 +342,10 @@ function ProductoForm() {
                 checked={llevaIngredientes}
                 onChange={(e) => {
                   setLlevaIngredientes(e.target.checked)
-                  if (!e.target.checked) setIngredientesSeleccionados([])
+
+                  if (!e.target.checked) {
+                    setIngredientesSeleccionados([])
+                  }
                 }}
               />{' '}
               Lleva ingredientes
@@ -281,11 +353,16 @@ function ProductoForm() {
           </div>
 
           {/* --- INGREDIENTES --- */}
+
           {llevaIngredientes && (
             <div className="form-group">
-              <label className="form-label">Ingredientes</label>
+
+              <label className="form-label">
+                Ingredientes
+              </label>
 
               {/* Buscador de ingredientes */}
+
               <div style={{ marginBottom: '12px' }}>
                 <SearchableSelect
                   options={ingredientesFiltrados}
@@ -294,87 +371,160 @@ function ProductoForm() {
                   placeholder="Buscar ingrediente para agregar..."
                   labelKey="nombre"
                 />
+
                 {ingredientesFiltrados.length === 0 && (
-                  <p style={{ color: '#999', fontSize: '0.85em', marginTop: '4px' }}>
+                  <p
+                    style={{
+                      color: '#999',
+                      fontSize: '0.85em',
+                      marginTop: '4px'
+                    }}
+                  >
                     Todos los ingredientes disponibles ya fueron agregados.
                   </p>
                 )}
               </div>
 
               {/* Tabla de ingredientes */}
+
               {ingredientesSeleccionados.length > 0 ? (
+
                 <div className="table-container">
-                  <table className="table" style={{ fontSize: '0.9em' }}>
+
+                  <table
+                    className="table"
+                    style={{ fontSize: '0.9em' }}
+                  >
+
                     <thead>
                       <tr>
                         <th>Ingrediente</th>
-                        <th style={{ width: '120px' }}>Cantidad</th>
-                        <th style={{ width: '80px' }}>Unidad</th>
-                        <th style={{ width: '90px' }}>Removible</th>
+                        <th style={{ width: '120px' }}>
+                          Cantidad
+                        </th>
+                        <th style={{ width: '80px' }}>
+                          Unidad
+                        </th>
+                        <th style={{ width: '90px' }}>
+                          Removible
+                        </th>
                         <th style={{ width: '50px' }}></th>
                       </tr>
                     </thead>
+
                     <tbody>
+
                       {ingredientesSeleccionados.map((ing, index) => (
+
                         <tr key={index}>
-                          <td>{getIngredienteNombre(ing.ingrediente_id)}</td>
+
+                          <td>
+                            {getIngredienteNombre(
+                              ing.ingrediente_id
+                            )}
+                          </td>
+
                           <td>
                             <input
-                              type="number"
+                              type="text"
                               className="form-input"
                               value={ing.cantidad}
-                              onChange={(e) =>
-                                handleIngredienteCantidad(index, e.target.value)
-                              }
-                              step="0.01"
-                              min="0"
+                              onChange={(e) => {
+                                let value = e.target.value
+
+                                // Permitir números, coma y punto
+                                value = value.replace(/[^0-9.,]/g, '')
+
+                                handleIngredienteCantidad(
+                                  index,
+                                  value
+                                )
+                              }}
+                              placeholder="0,00"
                               required
                               style={{ width: '100%' }}
                             />
                           </td>
+
                           <td style={{ color: '#666' }}>
-                            {getUnidadSimbolo(ing.unidad_medida_id)}
+                            {getUnidadSimbolo(
+                              ing.unidad_medida_id
+                            )}
                           </td>
+
                           <td style={{ textAlign: 'center' }}>
                             <input
                               type="checkbox"
                               checked={ing.es_removible}
                               onChange={(e) =>
-                                handleIngredienteRemovible(index, e.target.checked)
+                                handleIngredienteRemovible(
+                                  index,
+                                  e.target.checked
+                                )
                               }
                             />
                           </td>
+
                           <td>
                             <button
                               type="button"
                               className="btn btn-danger btn-sm"
-                              onClick={() => quitarIngrediente(index)}
+                              onClick={() =>
+                                quitarIngrediente(index)
+                              }
                               title="Quitar ingrediente"
                             >
                               ✕
                             </button>
                           </td>
+
                         </tr>
                       ))}
+
                     </tbody>
+
                   </table>
                 </div>
+
               ) : (
-                <p style={{ color: '#999', fontSize: '0.9em' }}>
+
+                <p
+                  style={{
+                    color: '#999',
+                    fontSize: '0.9em'
+                  }}
+                >
                   Buscá ingredientes arriba para agregarlos al producto.
                 </p>
               )}
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-            <button type="submit" className="btn btn-primary" disabled={loading}>
+          <div
+            style={{
+              display: 'flex',
+              gap: '10px',
+              marginTop: '20px'
+            }}
+          >
+
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={loading}
+            >
               {loading ? 'Guardando...' : 'Guardar'}
             </button>
-            <Link to="/productos" className="btn btn-secondary">
+
+            <Link
+              to="/productos"
+              className="btn btn-secondary"
+            >
               Cancelar
             </Link>
+
           </div>
+
         </form>
       </div>
     </div>
