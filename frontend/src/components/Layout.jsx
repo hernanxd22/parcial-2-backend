@@ -13,7 +13,7 @@ const roleBadgeColors = {
 const sidebarItems = [
   {
     path: "/",
-    label: "Dashboardss",
+    label: "Dashboard",
     icon: "grid",
     roles: ["ADMIN", "STOCK", "PEDIDOS"],
   },
@@ -289,7 +289,6 @@ function Layout() {
           overflow-hidden
         `}
       >
-        {/* Logo */}
         <div
           className={`flex items-center h-16 px-4 border-b border-white/10 ${!sidebarOpen && "lg:justify-center lg:px-2"}`}
         >
@@ -299,8 +298,13 @@ function Layout() {
           >
             Food Store
           </span>
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className={`ml-4 p-2 rounded-lg transition-colors text-white/70 hover:bg-white/10 hover:text-white lg:block mr-1`}
+          >
+            {icons.menu}
+          </button>
         </div>
-
         {/* Nav Links */}
         <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
           {visibleItems.map((item) => {
@@ -384,12 +388,6 @@ function Layout() {
         {/* Top bar */}
         <header className="flex items-center justify-between h-16 px-4 lg:px-6 bg-white dark:bg-[#1c1917] border-b border-stone-200 dark:border-stone-800 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors text-stone-600 dark:text-stone-400"
-            >
-              {icons.menu}
-            </button>
             <nav
               className="hidden sm:flex items-center gap-1.5 text-sm"
               aria-label="Breadcrumb"
