@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { getProductos, deleteProducto, getIngredientes, getUnidadesMedida } from '../../api/endpoints'
 import { useAuth } from '../../context/AuthContext'
+import { useToast } from '../../context/ToastContext'
 import DataTable from '../../components/DataTable'
 import Modal from '../../components/Modal'
 
 function ProductoList() {
   const { user } = useAuth()
+  const toast = useToast()
   const isAdmin = user?.rol === 'ADMIN' || user?.roles?.includes('ADMIN')
 
   const [productos, setProductos] = useState([])
@@ -124,32 +126,62 @@ function ProductoList() {
       await deleteProducto(productoToDelete.id)
       setShowDeleteModal(false)
       setProductoToDelete(null)
+      toast.success('Producto desactivado correctamente')
       fetchProductos()
-    } catch (err) {
-      alert('Error al eliminar producto')
+    } catch {
+      toast.error('Error al desactivar el producto')
     }
   }
 
   return (
     <div>
       <div className="card-header">
-        <h1>Productos</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="card-title">Productos</h1>
+          {!loading && (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400">
+              {filteredProductos.length} de {productos.length}
+            </span>
+          )}
+        </div>
         {isAdmin && (
-          <Link to="/productos/nuevo" className="btn btn-primary">Nuevo Producto</Link>
+          <Link to="/productos/nuevo" className="btn btn-primary">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Nuevo Producto
+          </Link>
         )}
       </div>
 
       <div className="card">
         <div className="filtros">
-          <div className="filtro-group">
+          <div className="filtro-group" style={{ flex: 1, minWidth: '200px' }}>
             <label className="filtro-label">Buscar por nombre</label>
-            <input
-              type="text"
-              className="filtro-input"
-              placeholder="Nombre del producto..."
-              value={filtroNombre}
-              onChange={(e) => setFiltroNombre(e.target.value)}
-            />
+            <div style={{ position: 'relative' }}>
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ position: 'absolute' }}>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                className="filtro-input"
+                placeholder="Nombre del producto..."
+                value={filtroNombre}
+                onChange={(e) => setFiltroNombre(e.target.value)}
+                style={{ paddingLeft: '36px', paddingRight: filtroNombre ? '36px' : '12px' }}
+              />
+              {filtroNombre && (
+                <button
+                  onClick={() => setFiltroNombre('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-400 transition-colors"
+                  style={{ position: 'absolute' }}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="filtro-group">

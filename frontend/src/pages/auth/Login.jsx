@@ -29,7 +29,11 @@ function Login() {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <h1 className="auth-title">Iniciar Sesión</h1>
+        <div style={{ textAlign: 'center', marginBottom: '8px', fontSize: '2.5rem' }}>
+          🍕
+        </div>
+        <h1 className="auth-title">Food Store</h1>
+        <p className="auth-subtitle">Panel de Administración</p>
         
         {error && <div className="alert alert-error">{error}</div>}
 

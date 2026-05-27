@@ -28,6 +28,7 @@ from app.modules.FormaPago.seed import seed_formas_pago
 from app.modules.EstadoPedido.seed import seed_estados_pedido
 from app.modules.unidadMedida.seed import seed_unidades_medida
 from app.modules.usuario.service import hash_password
+from app.seed_data import seed_all_data
 
 def create_app() -> FastAPI:
     app = FastAPI(
@@ -82,6 +83,8 @@ def create_app() -> FastAPI:
                 )
                 session.add(admin_rol)
                 session.commit()
+
+            seed_all_data(session)
 
     app.include_router(producto_router, prefix="/productos", tags=["Productos"])
     app.include_router(categoria_router, prefix="/categorias", tags=["Categorias"])

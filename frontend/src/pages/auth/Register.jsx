@@ -45,7 +45,11 @@ function Register() {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <h1 className="auth-title">Registrarse</h1>
+        <div style={{ textAlign: 'center', marginBottom: '8px', fontSize: '2.5rem' }}>
+          🍕
+        </div>
+        <h1 className="auth-title">Food Store</h1>
+        <p className="auth-subtitle">Crear Cuenta</p>
         
         {error && <div className="alert alert-error">{error}</div>}
 

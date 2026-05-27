@@ -1,5 +1,6 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
+import Layout from './components/Layout'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import Dashboard from './pages/Dashboard'
@@ -15,13 +16,16 @@ import PedidoList from './pages/pedidos/PedidoList'
 import PedidoDetail from './pages/pedidos/PedidoDetail'
 import PedidoCreate from './pages/pedidos/PedidoCreate'
 import Error404 from './pages/Error404'
-import Navbar from './components/Navbar'
 
-function ProtectedRoute({ children, roles }) {
+function RequireAuth({ roles, children }) {
   const { isAuthenticated, user, loading } = useAuth()
 
   if (loading) {
-    return null
+    return (
+      <div className="loading">
+        <span>Cargando...</span>
+      </div>
+    )
   }
 
   if (!isAuthenticated) {
@@ -30,123 +34,64 @@ function ProtectedRoute({ children, roles }) {
 
   if (roles && user) {
     const hasRole = roles.includes(user.rol)
-
     if (!hasRole) {
       return <Navigate to="/" />
     }
   }
 
-  return children
+  return children || <Outlet />
 }
-function App() {
-  const { isAuthenticated } = useAuth()
 
+function App() {
   return (
-    <div className="app">
-      {isAuthenticated && <Navbar />}
-      <div className="container">
-        <Routes>
-          {/* Auth */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          
-          {/* Dashboard — ADMIN + STOCK + PEDIDOS */}
-          <Route path="/" element={
-            <ProtectedRoute roles={['ADMIN', 'STOCK', 'PEDIDOS']}>
-              <Dashboard />
-            </ProtectedRoute>
-          } />
-          
-          {/* Usuarios */}
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+
+      <Route element={<RequireAuth roles={['ADMIN', 'STOCK', 'PEDIDOS']} />}>
+        <Route element={<Layout />}>
+          <Route path="/" element={<Dashboard />} />
           <Route path="/usuarios" element={
-            <ProtectedRoute roles={['ADMIN']}>
-              <UsuarioList />
-            </ProtectedRoute>
-          } />
-          <Route path="/usuarios/nuevo" element={
-            <ProtectedRoute roles={['ADMIN']}>
-              <UsuarioForm />
-            </ProtectedRoute>
-          } />
-          <Route path="/usuarios/:id/editar" element={
-            <ProtectedRoute roles={['ADMIN']}>
-              <UsuarioForm />
-            </ProtectedRoute>
-          } />
-          
-          {/* Productos — list: ADMIN + STOCK, create/edit: ADMIN only */}
-          <Route path="/productos" element={
-            <ProtectedRoute roles={['ADMIN', 'STOCK']}>
-              <ProductoList />
-            </ProtectedRoute>
-          } />
+            <RequireAuth roles={['ADMIN']} />
+          }>
+            <Route index element={<UsuarioList />} />
+            <Route path="nuevo" element={<UsuarioForm />} />
+            <Route path=":id/editar" element={<UsuarioForm />} />
+          </Route>
+          <Route path="/productos" element={<ProductoList />} />
           <Route path="/productos/nuevo" element={
-            <ProtectedRoute roles={['ADMIN']}>
-              <ProductoForm />
-            </ProtectedRoute>
+            <RequireAuth roles={['ADMIN']}><ProductoForm /></RequireAuth>
           } />
           <Route path="/productos/:id/editar" element={
-            <ProtectedRoute roles={['ADMIN', 'STOCK']}>
-              <ProductoForm />
-            </ProtectedRoute>
+            <RequireAuth roles={['ADMIN', 'STOCK']}><ProductoForm /></RequireAuth>
           } />
-          
-          {/* Categorías — ADMIN only */}
           <Route path="/categorias" element={
-            <ProtectedRoute roles={['ADMIN']}>
-              <CategoriaList />
-            </ProtectedRoute>
+            <RequireAuth roles={['ADMIN']}><CategoriaList /></RequireAuth>
           } />
           <Route path="/categorias/nueva" element={
-            <ProtectedRoute roles={['ADMIN']}>
-              <CategoriaForm />
-            </ProtectedRoute>
+            <RequireAuth roles={['ADMIN']}><CategoriaForm /></RequireAuth>
           } />
           <Route path="/categorias/:id/editar" element={
-            <ProtectedRoute roles={['ADMIN']}>
-              <CategoriaForm />
-            </ProtectedRoute>
+            <RequireAuth roles={['ADMIN']}><CategoriaForm /></RequireAuth>
           } />
-          
-          {/* Ingredientes — ADMIN only */}
           <Route path="/ingredientes" element={
-            <ProtectedRoute roles={['ADMIN']}>
-              <IngredienteList />
-            </ProtectedRoute>
+            <RequireAuth roles={['ADMIN']}><IngredienteList /></RequireAuth>
           } />
           <Route path="/ingredientes/nuevo" element={
-            <ProtectedRoute roles={['ADMIN']}>
-              <IngredienteForm />
-            </ProtectedRoute>
+            <RequireAuth roles={['ADMIN']}><IngredienteForm /></RequireAuth>
           } />
           <Route path="/ingredientes/:id/editar" element={
-            <ProtectedRoute roles={['ADMIN']}>
-              <IngredienteForm />
-            </ProtectedRoute>
+            <RequireAuth roles={['ADMIN']}><IngredienteForm /></RequireAuth>
           } />
-          
-          {/* Pedidos — ADMIN + PEDIDOS */}
-          <Route path="/pedidos" element={
-            <ProtectedRoute roles={['ADMIN', 'PEDIDOS']}>
-              <PedidoList />
-            </ProtectedRoute>
-          } />
+          <Route path="/pedidos" element={<PedidoList />} />
           <Route path="/pedidos/nuevo" element={
-            <ProtectedRoute roles={['ADMIN']}>
-              <PedidoCreate />
-            </ProtectedRoute>
+            <RequireAuth roles={['ADMIN']}><PedidoCreate /></RequireAuth>
           } />
-          <Route path="/pedidos/:id" element={
-            <ProtectedRoute roles={['ADMIN', 'PEDIDOS']}>
-              <PedidoDetail />
-            </ProtectedRoute>
-          } />
-          
-          {/* 404 */}
+          <Route path="/pedidos/:id" element={<PedidoDetail />} />
           <Route path="*" element={<Error404 />} />
-        </Routes>
-      </div>
-    </div>
+        </Route>
+      </Route>
+    </Routes>
   )
 }
 
