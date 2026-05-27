@@ -1,26 +1,33 @@
-import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { getProductos, deleteProducto, getIngredientes, getUnidadesMedida } from '../../api/endpoints'
-import { useAuth } from '../../context/AuthContext'
-import { useToast } from '../../context/ToastContext'
-import DataTable from '../../components/DataTable'
-import Modal from '../../components/Modal'
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  getProductos,
+  deleteProducto,
+  getIngredientes,
+  getUnidadesMedida,
+} from "../../api/endpoints";
+import { useAuth } from "../../context/AuthContext";
+import { useToast } from "../../context/ToastContext";
+import DataTable from "../../components/DataTable";
+import Modal from "../../components/Modal";
 
 function ProductoList() {
-  const { user } = useAuth()
-  const toast = useToast()
-  const isAdmin = user?.rol === 'ADMIN' || user?.roles?.includes('ADMIN')
+  const { user } = useAuth();
+  const toast = useToast();
+  const isAdmin = user?.rol === "ADMIN" || user?.roles?.includes("ADMIN");
 
-  const [productos, setProductos] = useState([])
-  const [ingredienteMap, setIngredienteMap] = useState({})
-  const [unidadMap, setUnidadMap] = useState({})
-  const [loading, setLoading] = useState(true)
-  const [filtroNombre, setFiltroNombre] = useState('')
-  const [filtroDisponible, setFiltroDisponible] = useState('')
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [productoToDelete, setProductoToDelete] = useState(null)
-  const [expandedProducto, setExpandedProducto] = useState(null)
-  const navigate = useNavigate()
+  const [productos, setProductos] = useState([]);
+  const [ingredienteMap, setIngredienteMap] = useState({});
+  const [unidadMap, setUnidadMap] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [filtroNombre, setFiltroNombre] = useState("");
+  const [filtroDisponible, setFiltroDisponible] = useState("");
+  const [filtroPrecioMin, setFiltroPrecioMin] = useState("");
+  const [filtroPrecioMax, setFiltroPrecioMax] = useState("");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [productoToDelete, setProductoToDelete] = useState(null);
+  const [expandedProducto, setExpandedProducto] = useState(null);
+  const navigate = useNavigate();
 
   const fetchProductos = async () => {
     try {
@@ -28,110 +35,147 @@ function ProductoList() {
         getProductos({ limit: 100 }),
         getIngredientes({ limit: 100 }),
         getUnidadesMedida({ limit: 100 }),
-      ])
-      setProductos(prodRes.data.data || [])
+      ]);
 
-      const ingMap = {}
-      ;(ingRes.data.data || []).forEach(i => { ingMap[i.id] = i })
-      setIngredienteMap(ingMap)
+      setProductos(prodRes.data.data || []);
 
-      const uniMap = {}
-      ;(uniRes.data.data || []).forEach(u => { uniMap[u.id] = u })
-      setUnidadMap(uniMap)
+      const ingMap = {};
+      (ingRes.data.data || []).forEach((i) => {
+        ingMap[i.id] = i;
+      });
+      setIngredienteMap(ingMap);
+
+      const uniMap = {};
+      (uniRes.data.data || []).forEach((u) => {
+        uniMap[u.id] = u;
+      });
+      setUnidadMap(uniMap);
     } catch (err) {
-      console.error('Error:', err)
+      console.error("Error:", err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchProductos()
-  }, [])
+    fetchProductos();
+  }, []);
 
-  const filteredProductos = productos.filter(p => {
-    const matchNombre = p.nombre?.toLowerCase().includes(filtroNombre.toLowerCase())
-    const matchDisponible = filtroDisponible === ''
-      ? true
-      : filtroDisponible === 'true'
-        ? p.disponible
-        : !p.disponible
-    return matchNombre && matchDisponible
-  })
+  const limpiarNumero = (value) => {
+    return value.replace(/[^0-9.,]/g, "");
+  };
+
+  const normalizarPrecio = (value) => {
+    if (value === null || value === undefined || value === "") return 0;
+
+    return Number(String(value).replace(",", ".")) || 0;
+  };
+
+  const filteredProductos = productos.filter((p) => {
+    const matchNombre = p.nombre
+      ?.toLowerCase()
+      .includes(filtroNombre.toLowerCase());
+
+    const matchDisponible =
+      filtroDisponible === ""
+        ? true
+        : filtroDisponible === "true"
+          ? p.disponible
+          : !p.disponible;
+
+    const precio = normalizarPrecio(p.precio_base);
+    const precioMin = normalizarPrecio(filtroPrecioMin);
+    const precioMax = normalizarPrecio(filtroPrecioMax);
+
+    const matchPrecioMin = filtroPrecioMin === "" ? true : precio >= precioMin;
+    const matchPrecioMax = filtroPrecioMax === "" ? true : precio <= precioMax;
+
+    return matchNombre && matchDisponible && matchPrecioMin && matchPrecioMax;
+  });
 
   const renderIngredientes = (producto) => {
-    if (!producto.producto_ingredientes || producto.producto_ingredientes.length === 0) {
-      return <span style={{ color: '#999' }}>Sin ingredientes</span>
+    if (
+      !producto.producto_ingredientes ||
+      producto.producto_ingredientes.length === 0
+    ) {
+      return <span style={{ color: "#999" }}>Sin ingredientes</span>;
     }
 
-    const preview = producto.producto_ingredientes.slice(0, 2).map(ing => {
-      const nombre = ingredienteMap[ing.ingrediente_id]?.nombre || `ID: ${ing.ingrediente_id}`
-      const uni = unidadMap[ing.unidad_medida_id]
-      const uniStr = uni ? `${uni.simbolo}` : ''
-      return `${nombre} (${ing.cantidad} ${uniStr})`
-    }).join(', ')
+    const preview = producto.producto_ingredientes
+      .slice(0, 2)
+      .map((ing) => {
+        const nombre =
+          ingredienteMap[ing.ingrediente_id]?.nombre ||
+          `ID: ${ing.ingrediente_id}`;
+        const uni = unidadMap[ing.unidad_medida_id];
+        const uniStr = uni ? `${uni.simbolo}` : "";
+        return `${nombre} (${ing.cantidad} ${uniStr})`;
+      })
+      .join(", ");
 
-    const restantes = producto.producto_ingredientes.length - 2
-    const sufijo = restantes > 0 ? ` y ${restantes} más` : ''
+    const restantes = producto.producto_ingredientes.length - 2;
+    const sufijo = restantes > 0 ? ` y ${restantes} más` : "";
 
     return (
       <span
-        style={{ fontSize: '0.9em', cursor: 'pointer' }}
+        style={{ fontSize: "0.9em", cursor: "pointer" }}
         onClick={(e) => {
-          e.stopPropagation()
-          setExpandedProducto(expandedProducto === producto.id ? null : producto.id)
+          e.stopPropagation();
+          setExpandedProducto(
+            expandedProducto === producto.id ? null : producto.id,
+          );
         }}
         title="Click para ver todos"
       >
-        {preview}{sufijo}
+        {preview}
+        {sufijo}
       </span>
-    )
-  }
+    );
+  };
 
   const columns = [
-    { key: 'id', label: 'ID' },
-    { key: 'nombre', label: 'Nombre' },
+    { key: "nombre", label: "Nombre" },
     {
-      key: 'precio_base',
-      label: 'Precio',
-      render: (val) => `$${val}`
+      key: "precio_base",
+      label: "Precio",
+      render: (val) => `$${val}`,
     },
     {
-      key: 'disponible',
-      label: 'Disponible',
+      key: "disponible",
+      label: "Disponible",
       render: (val) => (
-        <span className={`badge ${val ? 'badge-success' : 'badge-warning'}`}>
-          {val ? 'Sí' : 'No'}
+        <span className={`badge ${val ? "badge-success" : "badge-warning"}`}>
+          {val ? "Sí" : "No"}
         </span>
-      )
+      ),
     },
     {
-      key: 'ingredientes',
-      label: 'Ingredientes',
+      key: "ingredientes",
+      label: "Ingredientes",
       render: (_, item) => renderIngredientes(item),
     },
-  ]
+  ];
 
   const handleEdit = (producto) => {
-    navigate(`/productos/${producto.id}/editar`)
-  }
+    navigate(`/productos/${producto.id}/editar`);
+  };
 
   const handleDelete = (producto) => {
-    setProductoToDelete(producto)
-    setShowDeleteModal(true)
-  }
+    setProductoToDelete(producto);
+    setShowDeleteModal(true);
+  };
 
   const confirmDelete = async () => {
     try {
-      await deleteProducto(productoToDelete.id)
-      setShowDeleteModal(false)
-      setProductoToDelete(null)
-      toast.success('Producto desactivado correctamente')
-      fetchProductos()
+      await deleteProducto(productoToDelete.id);
+      setShowDeleteModal(false);
+      setProductoToDelete(null);
+      toast.success("Producto desactivado correctamente");
+      fetchProductos();
     } catch {
-      toast.error('Error al desactivar el producto')
+      toast.error("Error al desactivar el producto");
     }
-  }
+  };
 
   return (
     <div>
@@ -144,10 +188,21 @@ function ProductoList() {
             </span>
           )}
         </div>
+
         {isAdmin && (
           <Link to="/productos/nuevo" className="btn btn-primary">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
             </svg>
             Nuevo Producto
           </Link>
@@ -156,36 +211,92 @@ function ProductoList() {
 
       <div className="card">
         <div className="filtros">
-          <div className="filtro-group" style={{ flex: 1, minWidth: '200px' }}>
+          <div className="filtro-group" style={{ flex: 1, minWidth: "200px" }}>
             <label className="filtro-label">Buscar por nombre</label>
-            <div style={{ position: 'relative' }}>
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ position: 'absolute' }}>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+
+            <div style={{ position: "relative" }}>
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                style={{ position: "absolute" }}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
               </svg>
+
               <input
                 type="text"
                 className="filtro-input"
                 placeholder="Nombre del producto..."
                 value={filtroNombre}
                 onChange={(e) => setFiltroNombre(e.target.value)}
-                style={{ paddingLeft: '36px', paddingRight: filtroNombre ? '36px' : '12px' }}
+                style={{
+                  paddingLeft: "36px",
+                  paddingRight: filtroNombre ? "36px" : "12px",
+                }}
               />
+
               {filtroNombre && (
                 <button
-                  onClick={() => setFiltroNombre('')}
+                  onClick={() => setFiltroNombre("")}
                   className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-400 transition-colors"
-                  style={{ position: 'absolute' }}
+                  style={{ position: "absolute" }}
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               )}
             </div>
           </div>
 
+          <div className="filtro-group" style={{ minWidth: "140px" }}>
+            <label className="filtro-label">Precio mín.</label>
+
+            <input
+              type="text"
+              className="filtro-input"
+              placeholder="0,00"
+              value={filtroPrecioMin}
+              onChange={(e) =>
+                setFiltroPrecioMin(limpiarNumero(e.target.value))
+              }
+            />
+          </div>
+
+          <div className="filtro-group" style={{ minWidth: "140px" }}>
+            <label className="filtro-label">Precio máx.</label>
+
+            <input
+              type="text"
+              className="filtro-input"
+              placeholder="0,00"
+              value={filtroPrecioMax}
+              onChange={(e) =>
+                setFiltroPrecioMax(limpiarNumero(e.target.value))
+              }
+            />
+          </div>
+
           <div className="filtro-group">
             <label className="filtro-label">Disponible</label>
+
             <select
               className="filtro-input"
               value={filtroDisponible}
@@ -210,51 +321,95 @@ function ProductoList() {
 
       {/* Panel expandible de ingredientes */}
       {expandedProducto && (
-        <div className="card" style={{ marginBottom: '20px', backgroundColor: '#f8f9ff', border: '1px solid #cce' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+        <div
+          className="card"
+          style={{
+            marginBottom: "20px",
+            backgroundColor: "#f8f9ff",
+            border: "1px solid #cce",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "10px",
+            }}
+          >
             <h3 style={{ margin: 0 }}>
-              Ingredientes de: <strong>{productos.find(p => p.id === expandedProducto)?.nombre}</strong>
+              Ingredientes de:{" "}
+              <strong>
+                {productos.find((p) => p.id === expandedProducto)?.nombre}
+              </strong>
             </h3>
+
             <button
               className="btn btn-sm btn-secondary"
               onClick={() => setExpandedProducto(null)}
-              style={{ padding: '2px 10px' }}
+              style={{ padding: "2px 10px" }}
             >
               Cerrar ✕
             </button>
           </div>
+
           {(() => {
-            const prod = productos.find(p => p.id === expandedProducto)
-            if (!prod || !prod.producto_ingredientes || prod.producto_ingredientes.length === 0) {
-              return <p style={{ color: '#999' }}>Este producto no tiene ingredientes cargados.</p>
+            const prod = productos.find((p) => p.id === expandedProducto);
+
+            if (
+              !prod ||
+              !prod.producto_ingredientes ||
+              prod.producto_ingredientes.length === 0
+            ) {
+              return (
+                <p style={{ color: "#999" }}>
+                  Este producto no tiene ingredientes cargados.
+                </p>
+              );
             }
+
             return (
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
-                  <tr style={{ borderBottom: '2px solid #ddd', textAlign: 'left' }}>
-                    <th style={{ padding: '8px' }}>Ingrediente</th>
-                    <th style={{ padding: '8px' }}>Cantidad</th>
-                    <th style={{ padding: '8px' }}>Unidad</th>
-                    <th style={{ padding: '8px' }}>Removible</th>
+                  <tr
+                    style={{
+                      borderBottom: "2px solid #ddd",
+                      textAlign: "left",
+                    }}
+                  >
+                    <th style={{ padding: "8px" }}>Ingrediente</th>
+                    <th style={{ padding: "8px" }}>Cantidad</th>
+                    <th style={{ padding: "8px" }}>Unidad</th>
+                    <th style={{ padding: "8px" }}>Removible</th>
                   </tr>
                 </thead>
+
                 <tbody>
                   {prod.producto_ingredientes.map((ing, idx) => {
-                    const nombre = ingredienteMap[ing.ingrediente_id]?.nombre || `ID: ${ing.ingrediente_id}`
-                    const uni = unidadMap[ing.unidad_medida_id]
-                    const uniStr = uni ? `${uni.simbolo} (${uni.nombre})` : `ID: ${ing.unidad_medida_id}`
+                    const nombre =
+                      ingredienteMap[ing.ingrediente_id]?.nombre ||
+                      `ID: ${ing.ingrediente_id}`;
+
+                    const uni = unidadMap[ing.unidad_medida_id];
+
+                    const uniStr = uni
+                      ? `${uni.simbolo} (${uni.nombre})`
+                      : `ID: ${ing.unidad_medida_id}`;
+
                     return (
-                      <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
-                        <td style={{ padding: '8px' }}>{nombre}</td>
-                        <td style={{ padding: '8px' }}>{ing.cantidad}</td>
-                        <td style={{ padding: '8px' }}>{uniStr}</td>
-                        <td style={{ padding: '8px' }}>{ing.es_removible ? 'Sí' : 'No'}</td>
+                      <tr key={idx} style={{ borderBottom: "1px solid #eee" }}>
+                        <td style={{ padding: "8px" }}>{nombre}</td>
+                        <td style={{ padding: "8px" }}>{ing.cantidad}</td>
+                        <td style={{ padding: "8px" }}>{uniStr}</td>
+                        <td style={{ padding: "8px" }}>
+                          {ing.es_removible ? "Sí" : "No"}
+                        </td>
                       </tr>
-                    )
+                    );
                   })}
                 </tbody>
               </table>
-            )
+            );
           })()}
         </div>
       )}
@@ -264,19 +419,38 @@ function ProductoList() {
         onClose={() => setShowDeleteModal(false)}
         title="Desactivar Producto"
       >
-        <p>¿Estás seguro de desactivar el producto <strong>{productoToDelete?.nombre}</strong>?</p>
-        <p style={{ fontSize: '0.9em', color: '#666' }}>El producto quedará como no disponible, pero no se eliminará físicamente.</p>
-        <div style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-          <button className="btn btn-secondary" onClick={() => setShowDeleteModal(false)}>
+        <p>
+          ¿Estás seguro de desactivar el producto{" "}
+          <strong>{productoToDelete?.nombre}</strong>?
+        </p>
+
+        <p style={{ fontSize: "0.9em", color: "#666" }}>
+          El producto quedará como no disponible, pero no se eliminará
+          físicamente.
+        </p>
+
+        <div
+          style={{
+            marginTop: "20px",
+            display: "flex",
+            gap: "10px",
+            justifyContent: "flex-end",
+          }}
+        >
+          <button
+            className="btn btn-secondary"
+            onClick={() => setShowDeleteModal(false)}
+          >
             Cancelar
           </button>
+
           <button className="btn btn-danger" onClick={confirmDelete}>
             Desactivar
           </button>
         </div>
       </Modal>
     </div>
-  )
+  );
 }
 
-export default ProductoList
+export default ProductoList;
