@@ -8,7 +8,7 @@
 
 ## 📋 Descripción
 
-Sistema web integral para la administración de un comercio gastronómico tipo rotisería/pizzería. Permite gestionar productos del menú, pedidos de clientes, usuarios con control de acceso basado en roles, y ofrece tanto un panel de administración como una tienda online para clientes.
+Sistema web integral para la administración de un comercio gastronómico. Permite gestionar productos del menú, pedidos de clientes, usuarios con control de acceso basado en roles, y ofrece tanto un panel de administración como una tienda online para clientes.
 
 ### Arquitectura
 
