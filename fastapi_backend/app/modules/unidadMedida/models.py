@@ -1,6 +1,7 @@
 from typing import Optional, List, TYPE_CHECKING
 from sqlmodel import SQLModel, Field, Relationship
-from sqlalchemy import String, ARRAY, DateTime
+from sqlalchemy import DateTime, Column
+from sqlalchemy.dialects.postgresql import JSON
 from datetime import datetime, timezone
 
 if TYPE_CHECKING:
