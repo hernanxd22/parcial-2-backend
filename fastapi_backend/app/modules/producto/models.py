@@ -1,7 +1,8 @@
 
 from typing import Optional, List, TYPE_CHECKING
 from sqlmodel import SQLModel, Field, Relationship
-from sqlalchemy import String, ARRAY, DateTime
+from sqlalchemy import DateTime, Column
+from sqlalchemy.dialects.postgresql import JSON
 from datetime import datetime, timezone
 
 if TYPE_CHECKING:
@@ -17,7 +18,10 @@ class Producto(SQLModel, table=True):
     nombre: str = Field(max_length=150)
     descripcion: Optional[str] = Field(default=None)
     precio_base: float = Field(gt=0)
-    imagen_url: List[str] = Field(default_factory=list, sa_type=ARRAY(String()))
+    imagen_url: List[str] = Field(
+    default_factory=list,
+    sa_column=Column(JSON)
+)
     disponible: bool = Field(default=True)
 
     created_at: datetime = Field(
