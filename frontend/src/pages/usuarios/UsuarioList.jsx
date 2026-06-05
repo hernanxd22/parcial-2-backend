@@ -3,6 +3,9 @@ import { Link, useNavigate } from 'react-router-dom'
 import { getUsuarios, deleteUsuario } from '../../api/endpoints'
 import DataTable from '../../components/DataTable'
 import Modal from '../../components/Modal'
+import Pagination from '../../components/Pagination'
+
+const PAGE_SIZE = 12
 
 function UsuarioList() {
   const [usuarios, setUsuarios] = useState([])
@@ -10,12 +13,19 @@ function UsuarioList() {
   const [filtro, setFiltro] = useState('')
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [usuarioToDelete, setUsuarioToDelete] = useState(null)
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
   const navigate = useNavigate()
 
-  const fetchUsuarios = async () => {
+  const fetchUsuarios = async (pageNum = 1) => {
     try {
-      const response = await getUsuarios({ limit: 100 })
+      setLoading(true)
+      const offset = (pageNum - 1) * PAGE_SIZE
+      const response = await getUsuarios({ offset, limit: PAGE_SIZE })
       setUsuarios(response.data.data || [])
+      setTotal(response.data.total || 0)
+      setTotalPages(Math.ceil((response.data.total || 0) / PAGE_SIZE))
     } catch (err) {
       console.error('Error:', err)
     } finally {
@@ -24,31 +34,20 @@ function UsuarioList() {
   }
 
   useEffect(() => {
-    fetchUsuarios()
+    fetchUsuarios(page)
   }, [])
 
-  const filteredUsuarios = usuarios.filter(u => 
+  const handlePageChange = (newPage) => {
+    setPage(newPage)
+    fetchUsuarios(newPage)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const filteredUsuarios = usuarios.filter(u =>
     u.nombre?.toLowerCase().includes(filtro.toLowerCase()) ||
     u.apellido?.toLowerCase().includes(filtro.toLowerCase()) ||
     u.email?.toLowerCase().includes(filtro.toLowerCase())
   )
-
-  const columns = [
-    { key: 'id', label: 'ID' },
-    { key: 'nombre', label: 'Nombre' },
-    { key: 'apellido', label: 'Apellido' },
-    { key: 'email', label: 'Email' },
-    { key: 'celular', label: 'Celular' },
-    { 
-      key: 'activo', 
-      label: 'Activo',
-      render: (val) => (
-        <span className={`badge ${val ? 'badge-success' : 'badge-danger'}`}>
-          {val ? 'Sí' : 'No'}
-        </span>
-      )
-    }
-  ]
 
   const handleEdit = (usuario) => {
     navigate(`/usuarios/${usuario.id}/editar`)
@@ -69,6 +68,23 @@ function UsuarioList() {
       alert('Error al eliminar usuario')
     }
   }
+
+  const columns = [
+    { key: 'id', label: 'ID' },
+    { key: 'nombre', label: 'Nombre' },
+    { key: 'apellido', label: 'Apellido' },
+    { key: 'email', label: 'Email' },
+    { key: 'celular', label: 'Celular' },
+    {
+      key: 'activo',
+      label: 'Activo',
+      render: (val) => (
+        <span className={`badge ${val ? 'badge-success' : 'badge-danger'}`}>
+          {val ? 'Sí' : 'No'}
+        </span>
+      )
+    }
+  ]
 
   return (
     <div>
@@ -99,6 +115,8 @@ function UsuarioList() {
           loading={loading}
           emptyMessage="No hay usuarios"
         />
+
+        <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
       </div>
 
       <Modal

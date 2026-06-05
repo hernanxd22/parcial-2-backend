@@ -10,10 +10,9 @@ export interface Producto {
   id: number
   nombre: string
   descripcion: string
-  precio_base: number        // ← era precio_unitario
-  stock_cantidad: number     // ← era stock
+  precio_base: number
   disponible: boolean
-  imagen_url?: string[]      // ← es array en el backend
+  imagen_url: string | null
   categoria_nombre?: string
   ingredientes?: ProductoIngrediente[]
 }
@@ -48,8 +47,6 @@ export interface Direccion {
   ciudad: string
   provincia: string
   codigo_postal: string
-  latitud?: number
-  longitud?: number
   es_principal: boolean
 }
 
@@ -60,7 +57,6 @@ export interface Pedido {
   estado: string
   usuario_id: number
   items: PedidoItem[]
-  historial_estados?: EstadoHistorial[]
 }
 
 export interface PedidoItem {
@@ -70,9 +66,4 @@ export interface PedidoItem {
   cantidad: number
   precio_unitario: number
   subtotal: number
-}
-
-export interface EstadoHistorial {
-  estado: string
-  fecha: string
 }

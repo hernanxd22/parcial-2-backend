@@ -18,10 +18,7 @@ class Producto(SQLModel, table=True):
     nombre: str = Field(max_length=150)
     descripcion: Optional[str] = Field(default=None)
     precio_base: float = Field(gt=0)
-    imagen_url: List[str] = Field(
-    default_factory=list,
-    sa_column=Column(JSON)
-)
+    imagen_url: Optional[str] = Field(default=None)
     disponible: bool = Field(default=True)
 
     created_at: datetime = Field(

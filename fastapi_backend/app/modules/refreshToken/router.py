@@ -49,12 +49,6 @@ def _clear_auth_cookies(response: JSONResponse) -> None:
 
 @router.post("/login")
 def login(data: LoginRequest, session: Session = Depends(get_session)):
-    """
-    Iniciar sesión.
-
-    Setea cookies httponly con access_token (15 min) y refresh_token (7 días).
-    El frontend NO necesita leer estos tokens desde JS — el navegador los envía solo.
-    """
     service = AuthService(session)
     result = service.login(data)
     response = JSONResponse(content={"message": "Inicio de sesión exitoso"})
@@ -64,11 +58,6 @@ def login(data: LoginRequest, session: Session = Depends(get_session)):
 
 @router.post("/refresh")
 def refresh(request: Request, session: Session = Depends(get_session)):
-    """
-    Renovar access token usando refresh token de la cookie httponly.
-
-    El refresh token anterior se invalida (rotation).
-    """
     refresh_token = request.cookies.get("refresh_token")
     if not refresh_token:
         raise HTTPException(

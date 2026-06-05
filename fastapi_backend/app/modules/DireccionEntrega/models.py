@@ -19,8 +19,6 @@ class DireccionEntrega(SQLModel, table=True):
     ciudad: str = Field(max_length=100)
     provincia: Optional[str] = Field(default=None, max_length=100)
     codigo_postal: Optional[str] = Field(default=None, max_length=10)
-    latitud: Optional[float] = Field(default=None, sa_type=Numeric(9, 6))
-    longitud: Optional[float] = Field(default=None, sa_type=Numeric(9, 6))
     es_principal: bool = Field(default=False)
 
     created_at: datetime = Field(

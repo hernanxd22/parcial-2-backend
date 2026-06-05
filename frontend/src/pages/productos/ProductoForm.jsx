@@ -23,7 +23,7 @@ function ProductoForm() {
     descripcion: "",
     precio_base: "",
     disponible: true,
-    imagen_url: [],
+    imagen_url: "",
     categoria_id: "",
     es_principal: false,
   });
@@ -104,7 +104,7 @@ function ProductoForm() {
           descripcion: prod.descripcion || "",
           precio_base: prod.precio_base || "",
           disponible: prod.disponible ?? true,
-          imagen_url: prod.imagen_url || [],
+          imagen_url: prod.imagen_url || "",
           categoria_id: prod.categoria_id || "",
           es_principal: prod.es_principal || false,
         });
@@ -226,7 +226,7 @@ function ProductoForm() {
           parseFloat(String(formData.precio_base).replace(",", ".")) || 0,
 
         disponible: formData.disponible,
-        imagen_url: formData.imagen_url,
+        imagen_url: formData.imagen_url || null,
         categoria_id: parseInt(formData.categoria_id),
         es_principal: formData.es_principal,
 

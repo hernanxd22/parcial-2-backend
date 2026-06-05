@@ -11,6 +11,8 @@ from app.modules.Pedido.schemas import (
     PedidoAvanzarEstado,
     PedidoList,
     CancelarPedidoRequest,
+    PedidoEstadoPedido,
+    PedidoEstadoList,
 )
 from app.modules.Pedido.service import PedidoService
 
@@ -81,6 +83,20 @@ def list_pedidos_by_usuario(
     _: Usuario = Depends(require_roles("ADMIN")),
 ) -> PedidoList:
     return svc.get_by_usuario(usuario_id, offset, limit)
+
+
+@router.get(
+    "/mi-estado",
+    response_model=PedidoEstadoList,
+    summary="Ver estado de mis pedidos (frontend-store)",
+)
+def ver_estado_mis_pedidos(
+    offset: OffsetQuery = 0,
+    limit: LimitQuery = 12,
+    svc: PedidoService = Depends(get_pedido_service),
+    current_user: Usuario = Depends(get_current_user),
+) -> PedidoEstadoList:
+    return svc.get_estado_pedidos(current_user.id, offset=offset, limit=limit)
 
 
 @router.get(

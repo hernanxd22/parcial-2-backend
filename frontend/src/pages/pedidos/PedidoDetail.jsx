@@ -6,8 +6,7 @@ import { useAuth } from '../../context/AuthContext'
 const FSM = {
   'PENDIENTE': ['CONFIRMADO', 'CANCELADO'],
   'CONFIRMADO': ['EN_PREP', 'CANCELADO'],
-  'EN_PREP': ['EN_CAMINO', 'CANCELADO'],
-  'EN_CAMINO': ['ENTREGADO'],
+  'EN_PREP': ['ENTREGADO', 'CANCELADO'],
   'ENTREGADO': [],
   'CANCELADO': []
 }
@@ -68,7 +67,6 @@ function PedidoDetail() {
       'PENDIENTE': 'badge-warning',
       'CONFIRMADO': 'badge-info',
       'EN_PREP': 'badge-info',
-      'EN_CAMINO': 'badge-info',
       'ENTREGADO': 'badge-success',
       'CANCELADO': 'badge-danger'
     }

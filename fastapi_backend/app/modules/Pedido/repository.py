@@ -1,8 +1,9 @@
 from typing import Optional
 from sqlmodel import Session, select
+from sqlalchemy.orm import selectinload
 from app.core.repository import BaseRepository
 from app.modules.Pedido.models import Pedido
-from app.modules.DetallePedido.models import DetallePedido 
+from app.modules.DetallePedido.models import DetallePedido
 from app.modules.HistorialEstadoPedido.models import HistorialEstadoPedido
 
 
@@ -41,6 +42,21 @@ class PedidoRepository(BaseRepository[Pedido]):
                 Pedido.deleted_at == None,
             )
         ).first()
+
+    def get_active_by_usuario(self, usuario_id: int, offset: int = 0, limit: int = 12) -> list[Pedido]:
+        return list(
+            self.session.exec(
+                select(Pedido)
+                .where(
+                    Pedido.usuario_id == usuario_id,
+                    Pedido.deleted_at == None,
+                )
+                .options(selectinload(Pedido.detalles))
+                .order_by(Pedido.created_at.desc())
+                .offset(offset)
+                .limit(limit)
+            ).all()
+        )
 
     def count_by_usuario(self, usuario_id: int) -> int:
         return len(

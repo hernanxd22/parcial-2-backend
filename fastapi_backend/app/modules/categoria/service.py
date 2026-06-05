@@ -152,7 +152,6 @@ class CategoriaService:
             return self._build_tree(uow, parent_id=None)
 
     def _build_tree(self, uow: CategoriaUnitOfWork, parent_id: int | None) -> list[CategoriaTree]:
-        from app.modules.categoria.models import Categoria
         categorias = uow.categorias.session.exec(
             select(Categoria)
             .where(Categoria.parent_id == parent_id)

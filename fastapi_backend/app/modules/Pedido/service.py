@@ -13,6 +13,9 @@ from app.modules.Pedido.schemas import (
     PedidoList,
     DetallePedidoPublic,
     HistorialEstadoPublic,
+    PedidoEstadoPedido,
+    PedidoItemEstado,
+    PedidoEstadoList,
 )
 from app.modules.Pedido.unit_of_work import PedidoUnitOfWork
 from app.modules.producto.models import Producto
@@ -56,8 +59,7 @@ def _now() -> datetime:
 FSM: dict[str, list[str]] = {
     "PENDIENTE":   ["CONFIRMADO", "CANCELADO"],
     "CONFIRMADO":  ["EN_PREP", "CANCELADO"],
-    "EN_PREP":     ["EN_CAMINO", "CANCELADO"],
-    "EN_CAMINO":   ["ENTREGADO"],
+    "EN_PREP":     ["ENTREGADO", "CANCELADO"],
     "ENTREGADO":   [],
     "CANCELADO":   [],
 }
@@ -313,3 +315,30 @@ class PedidoService:
             pedido.deleted_at = _now()
             pedido.updated_at = _now()
             uow.pedidos.add(pedido)
+
+    def get_estado_pedidos(self, usuario_id: int, offset: int = 0, limit: int = 12) -> PedidoEstadoList:
+        """Obtiene pedidos simplificados para la vista de estado en frontend-store."""
+        with PedidoUnitOfWork(self._session) as uow:
+            pedidos = uow.pedidos.get_active_by_usuario(usuario_id, offset=offset, limit=limit)
+            total = uow.pedidos.count_by_usuario(usuario_id)
+            result = []
+            for p in pedidos:
+                items = [
+                    PedidoItemEstado(
+                        producto_id=d.producto_id,
+                        nombre=d.nombre_snapshot,
+                        cantidad=d.cantidad,
+                        precio_unitario=d.precio_snapshot,
+                        subtotal=d.subtotal_snap,
+                    )
+                    for d in p.detalles
+                ]
+                result.append(PedidoEstadoPedido(
+                    id=p.id,
+                    fecha=p.created_at.isoformat(),
+                    total=p.total,
+                    estado=p.estado_codigo,
+                    usuario_id=p.usuario_id,
+                    items=items,
+                ))
+            return PedidoEstadoList(data=result, total=total)

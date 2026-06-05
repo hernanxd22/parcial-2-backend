@@ -3,6 +3,9 @@ import { Link, useNavigate } from 'react-router-dom'
 import { getIngredientes, deleteIngrediente, getUnidadesMedida } from '../../api/endpoints'
 import DataTable from '../../components/DataTable'
 import Modal from '../../components/Modal'
+import Pagination from '../../components/Pagination'
+
+const PAGE_SIZE = 12
 
 function IngredienteList() {
   const [ingredientes, setIngredientes] = useState([])
@@ -12,15 +15,22 @@ function IngredienteList() {
   const [filtroAlergeno, setFiltroAlergeno] = useState('')
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [ingredienteToDelete, setIngredienteToDelete] = useState(null)
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
   const navigate = useNavigate()
 
-  const fetchIngredientes = async () => {
+  const fetchIngredientes = async (pageNum = 1) => {
     try {
+      setLoading(true)
+      const offset = (pageNum - 1) * PAGE_SIZE
       const [ingRes, uniRes] = await Promise.all([
-        getIngredientes({ limit: 100 }),
+        getIngredientes({ offset, limit: PAGE_SIZE }),
         getUnidadesMedida({ limit: 100 })
       ])
       setIngredientes(ingRes.data.data || [])
+      setTotal(ingRes.data.total || 0)
+      setTotalPages(Math.ceil((ingRes.data.total || 0) / PAGE_SIZE))
       const map = {}
       ;(uniRes.data.data || []).forEach(u => { map[u.id] = u })
       setUnidadMap(map)
@@ -32,8 +42,14 @@ function IngredienteList() {
   }
 
   useEffect(() => {
-    fetchIngredientes()
+    fetchIngredientes(page)
   }, [])
+
+  const handlePageChange = (newPage) => {
+    setPage(newPage)
+    fetchIngredientes(newPage)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   const filteredIngredientes = ingredientes.filter(i => {
     const matchNombre = i.nombre?.toLowerCase().includes(filtro.toLowerCase())
@@ -134,6 +150,8 @@ function IngredienteList() {
           loading={loading}
           emptyMessage="No hay ingredientes"
         />
+
+        <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
       </div>
 
       <Modal

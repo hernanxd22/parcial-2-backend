@@ -3,6 +3,9 @@ import { Link, useNavigate } from 'react-router-dom'
 import { getPedidos } from '../../api/endpoints'
 import { useToast } from '../../context/ToastContext'
 import DataTable from '../../components/DataTable'
+import Pagination from '../../components/Pagination'
+
+const PAGE_SIZE = 12
 
 function PedidoList() {
   const toast = useToast()
@@ -10,11 +13,18 @@ function PedidoList() {
   const [loading, setLoading] = useState(true)
   const [filtroEstado, setFiltroEstado] = useState('')
   const [filtroUsuario, setFiltroUsuario] = useState('')
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
 
-  const fetchPedidos = async () => {
+  const fetchPedidos = async (pageNum = 1) => {
     try {
-      const response = await getPedidos({ limit: 100 })
+      setLoading(true)
+      const offset = (pageNum - 1) * PAGE_SIZE
+      const response = await getPedidos({ offset, limit: PAGE_SIZE })
       setPedidos(response.data.data || [])
+      setTotal(response.data.total || 0)
+      setTotalPages(Math.ceil((response.data.total || 0) / PAGE_SIZE))
     } catch (err) {
       console.error('Error:', err)
     } finally {
@@ -23,8 +33,14 @@ function PedidoList() {
   }
 
   useEffect(() => {
-    fetchPedidos()
+    fetchPedidos(page)
   }, [])
+
+  const handlePageChange = (newPage) => {
+    setPage(newPage)
+    fetchPedidos(newPage)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   const filteredPedidos = pedidos.filter(p => {
     const matchEstado = filtroEstado === '' ? true : p.estado_codigo === filtroEstado
@@ -39,18 +55,19 @@ function PedidoList() {
       'PENDIENTE': 'badge-warning',
       'CONFIRMADO': 'badge-info',
       'EN_PREP': 'badge-info',
-      'EN_CAMINO': 'badge-info',
       'ENTREGADO': 'badge-success',
       'CANCELADO': 'badge-danger'
     }
     return colors[estado] || 'badge-info'
   }
+
   const navigate = useNavigate()
+
   const columns = [
     { key: 'id', label: 'ID' },
     { key: 'usuario_id', label: 'Usuario ID' },
-    { 
-      key: 'estado_codigo', 
+    {
+      key: 'estado_codigo',
       label: 'Estado',
       render: (val) => (
         <span className={`badge ${getEstadoBadge(val)}`}>
@@ -59,13 +76,13 @@ function PedidoList() {
       )
     },
     { key: 'forma_pago_codigo', label: 'Forma de Pago' },
-    { 
-      key: 'total', 
+    {
+      key: 'total',
       label: 'Total',
       render: (val) => `$${val}`
     },
-    { 
-      key: 'created_at', 
+    {
+      key: 'created_at',
       label: 'Fecha',
       render: (val) => new Date(val).toLocaleDateString()
     }
@@ -78,7 +95,7 @@ function PedidoList() {
           <h1 className="card-title">Pedidos</h1>
           {!loading && (
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400">
-              {filteredPedidos.length} de {pedidos.length}
+              {filteredPedidos.length} de {total}
             </span>
           )}
         </div>
@@ -103,7 +120,6 @@ function PedidoList() {
               <option value="PENDIENTE">PENDIENTE</option>
               <option value="CONFIRMADO">CONFIRMADO</option>
               <option value="EN_PREP">EN_PREP</option>
-              <option value="EN_CAMINO">EN_CAMINO</option>
               <option value="ENTREGADO">ENTREGADO</option>
               <option value="CANCELADO">CANCELADO</option>
             </select>
@@ -128,6 +144,8 @@ function PedidoList() {
           loading={loading}
           emptyMessage="No hay pedidos"
         />
+
+        <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
       </div>
     </div>
   )

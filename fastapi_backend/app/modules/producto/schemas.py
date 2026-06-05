@@ -14,7 +14,7 @@ class ProductoCreate(SQLModel):
     nombre: str = Field(min_length=2, max_length=150)
     descripcion: Optional[str] = None
     precio_base: float = Field(gt=0)
-    imagen_url: List[str] = Field(default_factory=list)
+    imagen_url: Optional[str] = Field(default=None)
     disponible: bool = True
     categoria_id: int = Field(gt=0)
     es_principal: bool = False
@@ -25,7 +25,7 @@ class ProductoUpdate(SQLModel):
     nombre: Optional[str] = Field(default=None, min_length=2, max_length=150)
     descripcion: Optional[str] = None
     precio_base: Optional[float] = Field(default=None, gt=0)
-    imagen_url: Optional[List[str]] = None
+    imagen_url: Optional[str] = None
     disponible: Optional[bool] = None
     categoria_id: Optional[int] = Field(default=None, gt=0)
     es_principal: Optional[bool] = None
@@ -44,7 +44,7 @@ class ProductoPublic(SQLModel):
     nombre: str
     descripcion: Optional[str] = None
     precio_base: float
-    imagen_url: List[str]
+    imagen_url: Optional[str] = None
     disponible: bool
     categoria_id: Optional[int] = None
     es_principal: bool = False

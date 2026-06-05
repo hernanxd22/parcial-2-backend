@@ -88,3 +88,28 @@ class PedidoList(SQLModel):
 class CancelarPedidoRequest(SQLModel):
     """Request para cancelar un pedido."""
     motivo: str
+
+
+class PedidoItemEstado(SQLModel):
+    """Item simplificado para la vista de estado de pedido del frontend-store."""
+    producto_id: int
+    nombre: str
+    cantidad: int
+    precio_unitario: float
+    subtotal: float
+
+
+class PedidoEstadoPedido(SQLModel):
+    """Schema para la vista de estado de pedido en frontend-store."""
+    id: int
+    fecha: str
+    total: float
+    estado: str
+    usuario_id: int
+    items: List[PedidoItemEstado] = []
+
+
+class PedidoEstadoList(SQLModel):
+    """Respuesta paginada para estado de pedidos."""
+    data: List[PedidoEstadoPedido]
+    total: int

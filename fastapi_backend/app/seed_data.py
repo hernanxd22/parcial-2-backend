@@ -519,7 +519,7 @@ def _seed_pedidos(session: Session):
                 subtotal_snap=prod.precio_base * cant,
             ))
 
-    create_pedido("EN_CAMINO", "EFECTIVO", [
+    create_pedido("ENTREGADO", "EFECTIVO", [
         (productos[0], 2),   # 2x Margherita
         (productos[12], 2),  # 2x Coca-Cola
     ], "Sin cebolla por favor")

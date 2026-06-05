@@ -34,7 +34,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 def _hash_token(token: str) -> str:
     """Hashear token con SHA-256."""
     return hashlib.sha256(token.encode()).hexdigest()
-
+ 
 
 def _create_access_token(
     usuario: Usuario,
@@ -92,7 +92,6 @@ class AuthService:
         return self._session.exec(statement).first()
 
     def login(self, data: LoginRequest) -> LoginResponse:
-        """Iniciar sesión."""
         with RefreshTokenUnitOfWork(self._session) as uow:
             
             usuario = self._get_usuario_by_email(data.email)

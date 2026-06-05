@@ -10,6 +10,9 @@ import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import DataTable from "../../components/DataTable";
 import Modal from "../../components/Modal";
+import Pagination from "../../components/Pagination";
+
+const PAGE_SIZE = 12;
 
 function ProductoList() {
   const { user } = useAuth();
@@ -27,17 +30,24 @@ function ProductoList() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [productoToDelete, setProductoToDelete] = useState(null);
   const [expandedProducto, setExpandedProducto] = useState(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const navigate = useNavigate();
 
-  const fetchProductos = async () => {
+  const fetchProductos = async (pageNum = 1) => {
     try {
+      setLoading(true);
+      const offset = (pageNum - 1) * PAGE_SIZE;
       const [prodRes, ingRes, uniRes] = await Promise.all([
-        getProductos({ limit: 100 }),
+        getProductos({ offset, limit: PAGE_SIZE }),
         getIngredientes({ limit: 100 }),
         getUnidadesMedida({ limit: 100 }),
       ]);
 
       setProductos(prodRes.data.data || []);
+      setTotal(prodRes.data.total || 0);
+      setTotalPages(Math.ceil((prodRes.data.total || 0) / PAGE_SIZE));
 
       const ingMap = {};
       (ingRes.data.data || []).forEach((i) => {
@@ -58,8 +68,14 @@ function ProductoList() {
   };
 
   useEffect(() => {
-    fetchProductos();
+    fetchProductos(page);
   }, []);
+
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+    fetchProductos(newPage);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const limpiarNumero = (value) => {
     return value.replace(/[^0-9.,]/g, "");
@@ -184,7 +200,7 @@ function ProductoList() {
           <h1 className="card-title">Productos</h1>
           {!loading && (
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400">
-              {filteredProductos.length} de {productos.length}
+              {filteredProductos.length} de {total}
             </span>
           )}
         </div>
@@ -317,6 +333,8 @@ function ProductoList() {
           loading={loading}
           emptyMessage="No hay productos"
         />
+
+        <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
       </div>
 
       {/* Panel expandible de ingredientes */}

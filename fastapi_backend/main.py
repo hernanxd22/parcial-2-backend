@@ -13,7 +13,9 @@ from app.modules.EstadoPedido.models import EstadoPedido
 from app.modules.DetallePedido.models import DetallePedido
 from app.modules.DireccionEntrega.models import DireccionEntrega  
 from app.modules.Pedido.models import Pedido
+from app.modules.Pago.models import Pago 
 
+from app.modules.unidadMedida.router import router as unidad_medida_router
 from app.modules.producto.router import router as producto_router
 from app.modules.categoria.router import router as categoria_router
 from app.modules.ingrediente.router import router as ingrediente_router
@@ -21,7 +23,7 @@ from app.modules.usuario.router import router as usuario_router
 from app.modules.DireccionEntrega.router import router as direccion_router
 from app.modules.Pedido.router import router as pedido_router
 from app.modules.refreshToken.router import router as auth_router
-from app.modules.unidadMedida.router import router as unidad_medida_router
+from app.modules.Pago.router import router as pago_router
 
 from app.modules.rol.seed import seed_roles
 from app.modules.FormaPago.seed import seed_formas_pago
@@ -92,9 +94,9 @@ def create_app() -> FastAPI:
     app.include_router(usuario_router, prefix="/usuarios", tags=["Usuarios"])
     app.include_router(direccion_router, prefix="/direcciones", tags=["Direcciones"])
     app.include_router(pedido_router, prefix="/pedidos", tags=["Pedidos"])
-    app.include_router(unidad_medida_router, prefix="/unidad-medida", tags=["Unidad Medida"])
     app.include_router(auth_router, prefix="", tags=["Auth"])
-    
+    app.include_router(pago_router, prefix="/pagos", tags=["Pagos"])
+    app.include_router(unidad_medida_router, prefix="/unidad-medida", tags=["Unidades de Medida"])
     @app.get("/")
     def root():
         return {"message": "Servidor FastAPI funcionando ."}
