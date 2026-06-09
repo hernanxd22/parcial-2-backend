@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 if TYPE_CHECKING:
      from app.modules.rol.models import Rol
-     from app.modules.refreshToken.models import RefreshToken
+     from app.modules.auth.models import RefreshToken
 
 
 class Usuario(SQLModel, table=True):

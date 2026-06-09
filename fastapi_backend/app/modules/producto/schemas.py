@@ -16,6 +16,7 @@ class ProductoCreate(SQLModel):
     precio_base: float = Field(gt=0)
     imagen_url: Optional[str] = Field(default=None)
     disponible: bool = True
+    porcentaje_ganancia: Optional[float] = Field(default=None, ge=0)
     categoria_id: int = Field(gt=0)
     es_principal: bool = False
     ingredientes: list["ProductoIngredienteCreateInline"] = Field(default_factory=list)
@@ -27,6 +28,7 @@ class ProductoUpdate(SQLModel):
     precio_base: Optional[float] = Field(default=None, gt=0)
     imagen_url: Optional[str] = None
     disponible: Optional[bool] = None
+    porcentaje_ganancia: Optional[float] = Field(default=None, ge=0)
     categoria_id: Optional[int] = Field(default=None, gt=0)
     es_principal: Optional[bool] = None
     ingredientes: Optional[List["ProductoIngredienteCreateInline"]] = None
@@ -46,6 +48,8 @@ class ProductoPublic(SQLModel):
     precio_base: float
     imagen_url: Optional[str] = None
     disponible: bool
+    porcentaje_ganancia: Optional[float] = None
+    costo_total: Optional[float] = None
     categoria_id: Optional[int] = None
     es_principal: bool = False
     created_at: datetime
@@ -98,3 +102,21 @@ class ProductoIngredienteList(SQLModel):
 class DisponibilidadUpdate(SQLModel):
     """Request para cambiar disponibilidad de un producto."""
     disponible: bool
+
+
+class CostoDesgloseItem(SQLModel):
+    ingrediente_id: int
+    ingrediente_nombre: str
+    cantidad_receta: float
+    unidad_receta: str
+    costo_unitario: float
+    unidad_base: str
+    costo_total: float
+
+
+class CostoProductoResponse(SQLModel):
+    producto_id: int
+    costo_ingredientes: float
+    porcentaje_ganancia: Optional[float] = None
+    precio_sugerido: Optional[float] = None
+    desglose: list[CostoDesgloseItem] = []

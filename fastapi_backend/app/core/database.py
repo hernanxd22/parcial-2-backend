@@ -6,7 +6,7 @@ load_dotenv()
 
 from app.modules.usuario.models import Usuario, UsuarioRol
 from app.modules.rol.models import Rol
-from app.modules.refreshToken.models import RefreshToken
+from app.modules.auth.models import RefreshToken
 from app.modules.producto.models import Producto, ProductoCategoria, ProductoIngrediente
 from app.modules.categoria.models import Categoria
 from app.modules.ingrediente.models import Ingrediente

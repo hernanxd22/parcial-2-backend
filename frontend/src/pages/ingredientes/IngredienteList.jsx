@@ -25,14 +25,14 @@ function IngredienteList() {
       setLoading(true)
       const offset = (pageNum - 1) * PAGE_SIZE
       const [ingRes, uniRes] = await Promise.all([
-        getIngredientes({ offset, limit: PAGE_SIZE }),
+        getIngredientes({ offset, limit: PAGE_SIZE, nombre: filtro || undefined }),
         getUnidadesMedida({ limit: 100 })
       ])
       setIngredientes(ingRes.data.data || [])
       setTotal(ingRes.data.total || 0)
       setTotalPages(Math.ceil((ingRes.data.total || 0) / PAGE_SIZE))
       const map = {}
-      ;(uniRes.data.data || []).forEach(u => { map[u.id] = u })
+      ;(uniRes.data || []).forEach(u => { map[u.id] = u })
       setUnidadMap(map)
     } catch (err) {
       console.error('Error:', err)
@@ -45,6 +45,11 @@ function IngredienteList() {
     fetchIngredientes(page)
   }, [])
 
+  useEffect(() => {
+    setPage(1)
+    fetchIngredientes(1)
+  }, [filtro])
+
   const handlePageChange = (newPage) => {
     setPage(newPage)
     fetchIngredientes(newPage)
@@ -52,13 +57,12 @@ function IngredienteList() {
   }
 
   const filteredIngredientes = ingredientes.filter(i => {
-    const matchNombre = i.nombre?.toLowerCase().includes(filtro.toLowerCase())
     const matchAlergeno = filtroAlergeno === '' 
       ? true 
       : filtroAlergeno === 'true' 
         ? i.es_alergeno 
         : !i.es_alergeno
-    return matchNombre && matchAlergeno
+    return matchAlergeno
   })
 
   const columns = [

@@ -7,6 +7,7 @@ class IngredienteCreate(SQLModel):
     descripcion: Optional[str] = None
     es_alergeno: bool = False
     stock_cantidad: float = Field(default=0, ge=0)
+    costo: float = Field(default=0, ge=0)
     unidad_medida_id: Optional[int] = None
 
 
@@ -15,6 +16,7 @@ class IngredienteUpdate(SQLModel):
     descripcion: Optional[str] = None
     es_alergeno: Optional[bool] = None
     stock_cantidad: Optional[float] = Field(default=None, ge=0)
+    costo: Optional[float] = Field(default=None, ge=0)
     unidad_medida_id: Optional[int] = None
     activo: Optional[bool] = None
 
@@ -25,6 +27,7 @@ class IngredientePublic(SQLModel):
     descripcion: Optional[str] = None
     es_alergeno: bool
     stock_cantidad: float
+    costo: float
     unidad_medida_id: Optional[int] = None
     activo: bool
     created_at: datetime

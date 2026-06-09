@@ -5,13 +5,14 @@ import os
 
 from app.core.database import get_session
 from app.core.security import get_current_user
-from app.modules.refreshToken.schemas import (
+from app.modules.auth.schemas import (
     LoginRequest,
+    LoginResponse,
     RefreshRequest,
     LogoutResponse,
     MeResponse,
 )
-from app.modules.refreshToken.service import AuthService
+from app.modules.auth.service import AuthService
 from app.modules.usuario.models import Usuario, UsuarioRol
 
 IS_PRODUCTION = os.getenv("ENVIRONMENT") == "production"
@@ -20,7 +21,6 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 def _set_auth_cookies(response: JSONResponse, access_token: str, refresh_token: str) -> None:
-    """Setear cookies httponly con los tokens."""
     response.set_cookie(
         key="access_token",
         value=access_token,
@@ -42,16 +42,20 @@ def _set_auth_cookies(response: JSONResponse, access_token: str, refresh_token: 
 
 
 def _clear_auth_cookies(response: JSONResponse) -> None:
-    """Eliminar cookies de autenticación."""
     response.delete_cookie("access_token", path="/")
     response.delete_cookie("refresh_token", path="/")
 
 
-@router.post("/login")
+@router.post("/login", response_model=LoginResponse)
 def login(data: LoginRequest, session: Session = Depends(get_session)):
     service = AuthService(session)
     result = service.login(data)
-    response = JSONResponse(content={"message": "Inicio de sesión exitoso"})
+    response = JSONResponse(content={
+        "message": "Inicio de sesion exitoso",
+        "access_token": result.access_token,
+        "refresh_token": result.refresh_token,
+        "token_type": "bearer"
+    })
     _set_auth_cookies(response, result.access_token, result.refresh_token)
     return response
 
@@ -76,7 +80,7 @@ def logout(
     request: Request,
     session: Session = Depends(get_session),
 ):
-    
+
     refresh_token = request.cookies.get("refresh_token")
     if refresh_token:
         service = AuthService(session)
@@ -91,9 +95,6 @@ def get_me(
     current_user: Usuario = Depends(get_current_user),
     session: Session = Depends(get_session),
 ):
-    """
-    Obtener datos del usuario autenticado.
-    """
     stmt = select(UsuarioRol).where(
         UsuarioRol.usuario_id == current_user.id
     )

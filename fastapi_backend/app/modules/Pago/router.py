@@ -1,12 +1,15 @@
 from typing import Annotated
-from fastapi import APIRouter, Depends, Path, Request, status
+from fastapi import APIRouter, Depends, Path, Request, status, Query
+from fastapi.responses import RedirectResponse
 from sqlmodel import Session
+import json
 
+from app.core.config import settings
 from app.core.database import get_session
 from app.core.security import get_current_user
 from app.modules.usuario.models import Usuario
 from app.modules.Pago.schemas import (
-    PagoCreate, PagoPreferenciaResponse, PagoPublic, PagoList,
+    PagoCreate, ConfirmarPagoRequest, PagoPreferenciaResponse, PagoPublic, PagoList,
 )
 from app.modules.Pago.service import PagoService
 
@@ -40,8 +43,57 @@ async def webhook(
     request: Request,
     svc: PagoService = Depends(get_pago_service),
 ) -> dict:
-    payload = await request.json()
-    return svc.procesar_webhook(payload)
+    payload = None
+    query_params = dict(request.query_params)
+
+    if request.headers.get("content-type", "").startswith("application/json"):
+        try:
+            payload = await request.json()
+        except Exception:
+            pass
+
+    if payload is None:
+        try:
+            form = await request.form()
+            payload = dict(form)
+        except Exception:
+            pass
+
+    return svc.procesar_webhook(payload, query_params)
+
+
+@router.get(
+    "/redirect/{pedido_id}/{status_pago}",
+    summary="Redireccion post-pago de MercadoPago",
+)
+async def redirect_pago(
+    pedido_id: int,
+    status_pago: str,
+    request: Request,
+):
+    frontend_url = settings.FRONTEND_URL
+
+    if status_pago == "success":
+        redirect_url = f"{frontend_url}/?pedido_creado={pedido_id}"
+    elif status_pago == "failure":
+        redirect_url = f"{frontend_url}/carrito?pago=fallido"
+    else:
+        redirect_url = f"{frontend_url}/mis-pedidos"
+
+    return RedirectResponse(url=redirect_url)
+
+
+@router.post(
+    "/confirm",
+    status_code=status.HTTP_200_OK,
+    summary="Confirmar pago manualmente contra API de MercadoPago",
+)
+def confirmar_pago(
+    data: ConfirmarPagoRequest,
+    svc: PagoService = Depends(get_pago_service),
+    _: Usuario = Depends(get_current_user),
+) -> dict:
+    return svc.confirmar_pago(data)
 
 
 @router.get(

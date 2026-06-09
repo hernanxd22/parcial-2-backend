@@ -86,10 +86,10 @@ class UsuarioService:
         return result
 
 
-    def get_all(self, offset: int = 0, limit: int = 20) -> UsuarioList:
+    def get_all(self, offset: int = 0, limit: int = 20, search: str | None = None) -> UsuarioList:
         with UsuarioUnitOfWork(self._session) as uow:
-            usuarios = uow.usuarios.get_all(offset=offset, limit=limit)
-            total = uow.usuarios.count()
+            usuarios = uow.usuarios.get_active(offset=offset, limit=limit, search=search)
+            total = uow.usuarios.count(search=search)
             result = UsuarioList(
                 data=[UsuarioPublic.model_validate(u) for u in usuarios],
                 total=total,

@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { getPedidos } from '../../api/endpoints'
 import { useToast } from '../../context/ToastContext'
 import DataTable from '../../components/DataTable'
 import Pagination from '../../components/Pagination'
+import { useWebSocket } from '../../hooks/useWebSocket'
 
 const PAGE_SIZE = 12
 
@@ -21,7 +22,9 @@ function PedidoList() {
     try {
       setLoading(true)
       const offset = (pageNum - 1) * PAGE_SIZE
-      const response = await getPedidos({ offset, limit: PAGE_SIZE })
+      const params = { offset, limit: PAGE_SIZE }
+      if (filtroUsuario) params.usuario_id = parseInt(filtroUsuario)
+      const response = await getPedidos(params)
       setPedidos(response.data.data || [])
       setTotal(response.data.total || 0)
       setTotalPages(Math.ceil((response.data.total || 0) / PAGE_SIZE))
@@ -36,6 +39,11 @@ function PedidoList() {
     fetchPedidos(page)
   }, [])
 
+  useEffect(() => {
+    setPage(1)
+    fetchPedidos(1)
+  }, [filtroUsuario])
+
   const handlePageChange = (newPage) => {
     setPage(newPage)
     fetchPedidos(newPage)
@@ -44,10 +52,7 @@ function PedidoList() {
 
   const filteredPedidos = pedidos.filter(p => {
     const matchEstado = filtroEstado === '' ? true : p.estado_codigo === filtroEstado
-    const matchUsuario = filtroUsuario === '' 
-      ? true 
-      : p.usuario_id.toString().includes(filtroUsuario)
-    return matchEstado && matchUsuario
+    return matchEstado
   })
 
   const getEstadoBadge = (estado) => {
@@ -62,6 +67,34 @@ function PedidoList() {
   }
 
   const navigate = useNavigate()
+
+  const fetchPedidosRef = useRef(fetchPedidos)
+  fetchPedidosRef.current = fetchPedidos
+  const pageRef = useRef(page)
+  pageRef.current = page
+
+  const handleWsMessage = useCallback((msg) => {
+    if (msg.event === "WS_CONNECTED") {
+      fetchPedidosRef.current(pageRef.current)
+      return
+    }
+    const d = msg.data
+    if (msg.event === "estado_cambiado") {
+      if (d.estado_anterior === null) {
+        fetchPedidosRef.current(pageRef.current)
+      } else {
+        setPedidos(prev => prev.map(p => p.id === d.pedido_id ? { ...p, estado_codigo: d.estado_nuevo } : p))
+      }
+      return
+    }
+    if (msg.event === "pedido_cancelado") {
+      setPedidos(prev => prev.map(p => p.id === d.pedido_id ? { ...p, estado_codigo: d.estado_nuevo } : p))
+      toast?.info(`Pedido #${d.pedido_id} cancelado`)
+      return
+    }
+  }, [toast])
+
+  const { connected } = useWebSocket({ onMessage: handleWsMessage, enabled: true })
 
   const columns = [
     { key: 'id', label: 'ID' },
@@ -96,6 +129,12 @@ function PedidoList() {
           {!loading && (
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400">
               {filteredPedidos.length} de {total}
+            </span>
+          )}
+          {connected && (
+            <span className="inline-flex items-center gap-1.5 text-xs text-green-600">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              En vivo
             </span>
           )}
         </div>

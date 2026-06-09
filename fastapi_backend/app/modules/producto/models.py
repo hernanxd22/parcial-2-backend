@@ -20,6 +20,7 @@ class Producto(SQLModel, table=True):
     precio_base: float = Field(gt=0)
     imagen_url: Optional[str] = Field(default=None)
     disponible: bool = Field(default=True)
+    porcentaje_ganancia: Optional[float] = Field(default=None, ge=0)
 
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),

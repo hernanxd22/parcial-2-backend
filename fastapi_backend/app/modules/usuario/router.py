@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, Query, Path, status
 from sqlmodel import Session
 
@@ -48,10 +48,11 @@ def create_usuario(
 def list_usuarios(
     offset: OffsetQuery = 0,
     limit: LimitQuery = 20,
+    search: Annotated[Optional[str], Query(description="Buscar por nombre, apellido o email")] = None,
     svc: UsuarioService = Depends(get_usuario_service),
     _: Usuario = Depends(require_roles("ADMIN")),
 ) -> UsuarioList:
-    return svc.get_all(offset, limit)
+    return svc.get_all(offset, limit, search=search)
 
 
 @router.get(

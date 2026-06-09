@@ -12,6 +12,7 @@ function IngredienteForm() {
     descripcion: '',
     es_alergeno: false,
     stock_cantidad: 0,
+    costo: 0,
     unidad_medida_id: ''
   })
   const [unidades, setUnidades] = useState([])
@@ -25,7 +26,7 @@ function IngredienteForm() {
   const fetchData = async () => {
     try {
       const uniRes = await getUnidadesMedida({ limit: 100 })
-      setUnidades(uniRes.data.data || [])
+      setUnidades(uniRes.data || [])
 
       if (isEdit) {
         const response = await getIngredienteById(id)
@@ -34,6 +35,7 @@ function IngredienteForm() {
           descripcion: response.data.descripcion || '',
           es_alergeno: response.data.es_alergeno || false,
           stock_cantidad: response.data.stock_cantidad || 0,
+          costo: response.data.costo ?? 0,
           unidad_medida_id: response.data.unidad_medida_id || ''
         })
       }
@@ -146,10 +148,27 @@ function IngredienteForm() {
               >
                 <option value="">Sin unidad</option>
                 {unidades.map(uni => (
-                  <option key={uni.id} value={uni.id}>{uni.nombre} ({uni.simbolo})</option>
+                  <option key={uni.id} value={String(uni.id)}>{uni.nombre} ({uni.simbolo})</option>
                 ))}
               </select>
             </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Costo (por 1 unidad base)</label>
+            <input
+              type="number"
+              name="costo"
+              className="form-input"
+              value={formData.costo}
+              onChange={handleChange}
+              step="0.01"
+              min="0"
+              placeholder="Ej: 1000 (lo que te sale 1 kg, 1 L o 1 unidad)"
+            />
+            <small style={{ color: '#888' }}>
+              ¿Cuánto te sale 1 {unidades.find(u => u.id == formData.unidad_medida_id)?.simbolo || 'unidad'} de este ingrediente?
+            </small>
           </div>
 
           <div style={{ display: 'flex', gap: '10px' }}>

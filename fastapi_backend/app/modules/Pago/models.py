@@ -1,6 +1,6 @@
 from typing import Optional, TYPE_CHECKING
 from sqlmodel import SQLModel, Field, Relationship
-from sqlalchemy import Numeric, DateTime
+from sqlalchemy import Numeric, DateTime, BigInteger
 from datetime import datetime, timezone
 
 if TYPE_CHECKING:
@@ -12,7 +12,9 @@ class Pago(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
 
     pedido_id: int = Field(foreign_key="pedido.id")
-    mp_payment_id: Optional[int] = Field(default=None, unique=True)
+    mp_payment_id: Optional[int] = Field(default=None, unique=True, sa_type=BigInteger)
+    mp_preference_id: Optional[str] = Field(default=None, max_length=100)
+    mp_init_point: Optional[str] = Field(default=None, max_length=500)
     mp_status: str = Field(max_length=30, default="pending")
     mp_status_detail: Optional[str] = Field(default=None, max_length=100)
     external_reference: str = Field(unique=True, max_length=100)
@@ -29,5 +31,4 @@ class Pago(SQLModel, table=True):
         sa_type=DateTime(timezone=True)
     )
 
-    # Relación
     pedido: Optional["Pedido"] = Relationship(back_populates="pagos")

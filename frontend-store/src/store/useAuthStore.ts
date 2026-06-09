@@ -18,8 +18,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   loading: true,
 
   login: async (email: string, password: string) => {
-    await api.post('/auth/login', { email, password })
-    // La cookie httponly fue seteada por el backend
+    const loginResponse = await api.post('/auth/login', { email, password })
+    localStorage.setItem('access_token', loginResponse.data.access_token)
     const meResponse = await api.get('/auth/me')
     const userData = meResponse.data
 
@@ -42,6 +42,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch {
       // Ignore errors on logout
     } finally {
+      localStorage.removeItem('access_token')
       set({ user: null, isAuthenticated: false })
     }
   },
@@ -53,7 +54,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   checkAuth: async () => {
     try {
-      // La cookie httponly se envía sola con withCredentials
       const response = await api.get('/auth/me')
       const userData = response.data
 
@@ -69,9 +69,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         loading: false,
       })
     } catch {
-      // Token expirado → intentar refresh
       try {
-        await api.post('/auth/refresh')
+        const refreshResponse = await api.post('/auth/refresh')
+        localStorage.setItem('access_token', refreshResponse.data.access_token)
         const response = await api.get('/auth/me')
         const userData = response.data
 

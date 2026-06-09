@@ -76,6 +76,7 @@ export default function Checkout() {
 
       if (formaPago === 'MERCADOPAGO') {
         try {
+          clearCart()
           const { data } = await crearPreferenciaPago(pedidoId)
           window.location.href = data.init_point
         } catch {

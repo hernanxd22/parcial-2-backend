@@ -40,7 +40,7 @@ function ProductoList() {
       setLoading(true);
       const offset = (pageNum - 1) * PAGE_SIZE;
       const [prodRes, ingRes, uniRes] = await Promise.all([
-        getProductos({ offset, limit: PAGE_SIZE }),
+        getProductos({ offset, limit: PAGE_SIZE, nombre: filtroNombre || undefined }),
         getIngredientes({ limit: 100 }),
         getUnidadesMedida({ limit: 100 }),
       ]);
@@ -56,7 +56,7 @@ function ProductoList() {
       setIngredienteMap(ingMap);
 
       const uniMap = {};
-      (uniRes.data.data || []).forEach((u) => {
+      (uniRes.data || []).forEach((u) => {
         uniMap[u.id] = u;
       });
       setUnidadMap(uniMap);
@@ -70,6 +70,11 @@ function ProductoList() {
   useEffect(() => {
     fetchProductos(page);
   }, []);
+
+  useEffect(() => {
+    setPage(1);
+    fetchProductos(1);
+  }, [filtroNombre]);
 
   const handlePageChange = (newPage) => {
     setPage(newPage);
@@ -88,10 +93,6 @@ function ProductoList() {
   };
 
   const filteredProductos = productos.filter((p) => {
-    const matchNombre = p.nombre
-      ?.toLowerCase()
-      .includes(filtroNombre.toLowerCase());
-
     const matchDisponible =
       filtroDisponible === ""
         ? true
@@ -106,7 +107,7 @@ function ProductoList() {
     const matchPrecioMin = filtroPrecioMin === "" ? true : precio >= precioMin;
     const matchPrecioMax = filtroPrecioMax === "" ? true : precio <= precioMax;
 
-    return matchNombre && matchDisponible && matchPrecioMin && matchPrecioMax;
+    return matchDisponible && matchPrecioMin && matchPrecioMax;
   });
 
   const renderIngredientes = (producto) => {

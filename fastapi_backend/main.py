@@ -7,7 +7,7 @@ import os
 from app.modules.unidadMedida.models import UnidadMedida
 from app.modules.rol.models import Rol         
 from app.modules.usuario.models import Usuario, UsuarioRol 
-from app.modules.refreshToken.models import RefreshToken
+from app.modules.auth.models import RefreshToken
 from app.modules.FormaPago.models import FormaPago 
 from app.modules.EstadoPedido.models import EstadoPedido 
 from app.modules.DetallePedido.models import DetallePedido
@@ -22,7 +22,7 @@ from app.modules.ingrediente.router import router as ingrediente_router
 from app.modules.usuario.router import router as usuario_router
 from app.modules.DireccionEntrega.router import router as direccion_router
 from app.modules.Pedido.router import router as pedido_router
-from app.modules.refreshToken.router import router as auth_router
+from app.modules.auth.router import router as auth_router
 from app.modules.Pago.router import router as pago_router
 
 from app.modules.rol.seed import seed_roles
@@ -50,6 +50,12 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST", "PATCH", "DELETE"],
         allow_headers=["Authorization", "Content-Type"],
     )
+
+    @app.middleware("http")
+    async def add_ngrok_header(request, call_next):
+        response = await call_next(request)
+        response.headers["ngrok-skip-browser-warning"] = "true"
+        return response
 
     @app.on_event("startup")
     def on_startup():
@@ -88,15 +94,15 @@ def create_app() -> FastAPI:
 
             seed_all_data(session)
 
-    app.include_router(producto_router, prefix="/productos", tags=["Productos"])
-    app.include_router(categoria_router, prefix="/categorias", tags=["Categorias"])
-    app.include_router(ingrediente_router, prefix="/ingredientes", tags=["Ingredientes"])
-    app.include_router(usuario_router, prefix="/usuarios", tags=["Usuarios"])
-    app.include_router(direccion_router, prefix="/direcciones", tags=["Direcciones"])
-    app.include_router(pedido_router, prefix="/pedidos", tags=["Pedidos"])
-    app.include_router(auth_router, prefix="", tags=["Auth"])
-    app.include_router(pago_router, prefix="/pagos", tags=["Pagos"])
-    app.include_router(unidad_medida_router, prefix="/unidad-medida", tags=["Unidades de Medida"])
+    app.include_router(producto_router, prefix="/api/v1/productos", tags=["Productos"])
+    app.include_router(categoria_router, prefix="/api/v1/categorias", tags=["Categorias"])
+    app.include_router(ingrediente_router, prefix="/api/v1/ingredientes", tags=["Ingredientes"])
+    app.include_router(usuario_router, prefix="/api/v1/usuarios", tags=["Usuarios"])
+    app.include_router(direccion_router, prefix="/api/v1/direcciones", tags=["Direcciones"])
+    app.include_router(pedido_router, prefix="/api/v1/pedidos", tags=["Pedidos"])
+    app.include_router(auth_router, prefix="/api/v1", tags=["Auth"])
+    app.include_router(pago_router, prefix="/api/v1/pagos", tags=["Pagos"])
+    app.include_router(unidad_medida_router, prefix="/api/v1/unidad-medida", tags=["Unidades de Medida"])
     @app.get("/")
     def root():
         return {"message": "Servidor FastAPI funcionando ."}

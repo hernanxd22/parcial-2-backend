@@ -1,14 +1,45 @@
 from fastapi import HTTPException, status
 from sqlmodel import Session
 from datetime import datetime, timezone
+from typing import Optional
+import logging
 
 from app.modules.producto.models import Producto, ProductoCategoria, ProductoIngrediente
 from app.modules.producto.schemas import (
     ProductoCreate, ProductoPublic, ProductoUpdate, ProductoList,
     ProductoCategoriaPublic, ProductoCategoriaList,
     ProductoIngredientePublic, ProductoIngredienteList,
+    CostoDesgloseItem, CostoProductoResponse,
 )
 from app.modules.producto.unit_of_work import ProductoUnitOfWork
+
+
+logger = logging.getLogger("app.modules.producto.service")
+
+
+_UNIT_CONVERSION: dict[tuple[str, str], float] = {
+    ("masa", "g"): 1.0,
+    ("masa", "kg"): 1000.0,
+    ("volumen", "mL"): 1.0,
+    ("volumen", "L"): 1000.0,
+    ("unidad", "u"): 1.0,
+    ("unidad", "doc"): 12.0,
+}
+
+
+def _convertir_unidad(
+    cantidad: float,
+    tipo: str,
+    simbolo_origen: str,
+    simbolo_destino: str,
+) -> float:
+    if simbolo_origen == simbolo_destino:
+        return cantidad
+    f_origen = _UNIT_CONVERSION.get((tipo, simbolo_origen))
+    f_destino = _UNIT_CONVERSION.get((tipo, simbolo_destino))
+    if f_origen is None or f_destino is None:
+        return cantidad
+    return cantidad * f_origen / f_destino
 
 
 def _now() -> datetime:
@@ -28,6 +59,49 @@ class ProductoService:
             )
         return producto
 
+    def _calcular_costo_interno(self, producto: Producto) -> tuple[float, list[CostoDesgloseItem]]:
+        from app.modules.ingrediente.models import Ingrediente
+        from app.modules.unidadMedida.models import UnidadMedida
+
+        total = 0.0
+        desglose: list[CostoDesgloseItem] = []
+
+        for pi in producto.producto_ingredientes:
+            ingrediente = self._session.get(Ingrediente, pi.ingrediente_id)
+            if not ingrediente:
+                continue
+
+            um_ingrediente = self._session.get(UnidadMedida, ingrediente.unidad_medida_id) if ingrediente.unidad_medida_id else None
+            um_receta = self._session.get(UnidadMedida, pi.unidad_medida_id)
+
+            if not um_ingrediente or not um_receta:
+                continue
+
+            if um_ingrediente.tipo == um_receta.tipo:
+                cantidad_convertida = _convertir_unidad(
+                    pi.cantidad,
+                    um_receta.tipo,
+                    um_receta.simbolo,
+                    um_ingrediente.simbolo,
+                )
+            else:
+                cantidad_convertida = pi.cantidad
+
+            costo_item = round(cantidad_convertida * ingrediente.costo, 2)
+            total += costo_item
+
+            desglose.append(CostoDesgloseItem(
+                ingrediente_id=ingrediente.id,
+                ingrediente_nombre=ingrediente.nombre,
+                cantidad_receta=pi.cantidad,
+                unidad_receta=um_receta.simbolo,
+                costo_unitario=ingrediente.costo,
+                unidad_base=um_ingrediente.simbolo,
+                costo_total=costo_item,
+            ))
+
+        return round(total, 2), desglose
+
     def _to_public(self, producto: Producto) -> ProductoPublic:
         result = ProductoPublic.model_validate(producto)
         result.categoria_id = (
@@ -40,6 +114,9 @@ class ProductoService:
             if producto.producto_categorias
             else False
         )
+        if producto.producto_ingredientes:
+            costo_total, _ = self._calcular_costo_interno(producto)
+            result.costo_total = costo_total
         return result
 
     def _get_relacion_categoria_or_404(
@@ -112,13 +189,21 @@ class ProductoService:
                 )
                 uow.producto_ingredientes.add(relacion_ing)
 
+            uow.productos.session.flush()
+            uow.productos.session.refresh(producto)
+
+            if producto.porcentaje_ganancia is not None and producto.porcentaje_ganancia > 0 and producto.producto_ingredientes:
+                costo_total, _ = self._calcular_costo_interno(producto)
+                producto.precio_base = round(costo_total * (1 + producto.porcentaje_ganancia / 100), 2)
+                uow.productos.add(producto)
+
             result = self._to_public(producto)
         return result
 
-    def get_all(self, offset: int = 0, limit: int = 20) -> ProductoList:
+    def get_all(self, offset: int = 0, limit: int = 20, nombre: str | None = None) -> ProductoList:
         with ProductoUnitOfWork(self._session) as uow:
-            productos = uow.productos.get_all_paged(offset=offset, limit=limit)
-            total = uow.productos.count()
+            productos = uow.productos.get_all_paged(offset=offset, limit=limit, nombre=nombre)
+            total = uow.productos.count(nombre=nombre)
             result = ProductoList(
                 data=[self._to_public(p) for p in productos],
                 total=total,
@@ -226,6 +311,17 @@ class ProductoService:
                     uow.producto_ingredientes.add(relacion_ing)
 
             producto.updated_at = _now()
+
+            precio_manual = data.model_dump(exclude_unset=True).get("precio_base") is not None
+
+            if not precio_manual and producto.porcentaje_ganancia is not None and producto.porcentaje_ganancia > 0:
+                uow.productos.session.flush()
+                uow.productos.session.refresh(producto)
+                if producto.producto_ingredientes:
+                    costo_total, _ = self._calcular_costo_interno(producto)
+                    producto.precio_base = round(costo_total * (1 + producto.porcentaje_ganancia / 100), 2)
+                    uow.productos.add(producto)
+
             result = self._to_public(producto)
         return result
 
@@ -264,3 +360,20 @@ class ProductoService:
         with ProductoUnitOfWork(self._session) as uow:
             relacion = self._get_relacion_ingrediente_or_404(uow, producto_id, ingrediente_id)
             uow.producto_ingredientes.delete(relacion)
+
+    def calcular_costo(self, producto_id: int) -> CostoProductoResponse:
+        with ProductoUnitOfWork(self._session) as uow:
+            producto = self._get_or_404(uow, producto_id)
+            costo_total, desglose = self._calcular_costo_interno(producto)
+
+            precio_sugerido = None
+            if producto.porcentaje_ganancia is not None and producto.porcentaje_ganancia > 0:
+                precio_sugerido = round(costo_total * (1 + producto.porcentaje_ganancia / 100), 2)
+
+            return CostoProductoResponse(
+                producto_id=producto_id,
+                costo_ingredientes=costo_total,
+                porcentaje_ganancia=producto.porcentaje_ganancia,
+                precio_sugerido=precio_sugerido,
+                desglose=desglose,
+            )

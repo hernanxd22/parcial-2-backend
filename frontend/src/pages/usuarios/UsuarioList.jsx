@@ -22,7 +22,7 @@ function UsuarioList() {
     try {
       setLoading(true)
       const offset = (pageNum - 1) * PAGE_SIZE
-      const response = await getUsuarios({ offset, limit: PAGE_SIZE })
+      const response = await getUsuarios({ offset, limit: PAGE_SIZE, search: filtro || undefined })
       setUsuarios(response.data.data || [])
       setTotal(response.data.total || 0)
       setTotalPages(Math.ceil((response.data.total || 0) / PAGE_SIZE))
@@ -37,17 +37,16 @@ function UsuarioList() {
     fetchUsuarios(page)
   }, [])
 
+  useEffect(() => {
+    setPage(1)
+    fetchUsuarios(1)
+  }, [filtro])
+
   const handlePageChange = (newPage) => {
     setPage(newPage)
     fetchUsuarios(newPage)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
-
-  const filteredUsuarios = usuarios.filter(u =>
-    u.nombre?.toLowerCase().includes(filtro.toLowerCase()) ||
-    u.apellido?.toLowerCase().includes(filtro.toLowerCase()) ||
-    u.email?.toLowerCase().includes(filtro.toLowerCase())
-  )
 
   const handleEdit = (usuario) => {
     navigate(`/usuarios/${usuario.id}/editar`)
@@ -108,7 +107,7 @@ function UsuarioList() {
         </div>
 
         <DataTable
-          data={filteredUsuarios}
+          data={usuarios}
           columns={columns}
           onEdit={handleEdit}
           onDelete={handleDelete}

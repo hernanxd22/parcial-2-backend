@@ -1,5 +1,5 @@
 
-from typing import Annotated
+from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, Query, Path, status
 from sqlmodel import Session
 
@@ -11,6 +11,7 @@ from app.modules.producto.schemas import (
     ProductoCategoriaList,
     ProductoIngredienteList,
     DisponibilidadUpdate,
+    CostoProductoResponse,
 )
 from app.modules.producto.service import ProductoService
 
@@ -47,9 +48,10 @@ def create_producto(
 def list_productos(
     offset: OffsetQuery = 0,
     limit: LimitQuery = 20,
+    nombre: Annotated[Optional[str], Query(description="Filtrar por nombre (búsqueda parcial)")] = None,
     svc: ProductoService = Depends(get_producto_service),
 ) -> ProductoList:
-    return svc.get_all(offset=offset, limit=limit)
+    return svc.get_all(offset=offset, limit=limit, nombre=nombre)
 
 
 @router.get(
@@ -114,6 +116,19 @@ def list_por_categoria(
     svc: ProductoService = Depends(get_producto_service),
 ) -> ProductoList:
     return svc.get_by_categoria(categoria_id, offset=offset, limit=limit)
+
+
+@router.get(
+    "/{producto_id}/costo",
+    response_model=CostoProductoResponse,
+    summary="Calcular costo de ingredientes y precio sugerido",
+)
+def calcular_costo(
+    producto_id: Annotated[int, Path(gt=0, description="ID del producto")],
+    svc: ProductoService = Depends(get_producto_service),
+    _: Usuario = Depends(require_roles("ADMIN", "STOCK")),
+) -> CostoProductoResponse:
+    return svc.calcular_costo(producto_id)
 
 
 @router.get(

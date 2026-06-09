@@ -3,7 +3,7 @@ from sqlmodel import Session
 from datetime import datetime, timezone
 
 from app.modules.Pedido.models import Pedido
-from app.modules.DetallePedido.models import DetallePedido 
+from app.modules.DetallePedido.models import DetallePedido
 from app.modules.HistorialEstadoPedido.models import HistorialEstadoPedido
 from app.modules.Pedido.schemas import (
     PedidoCreate,
@@ -22,6 +22,23 @@ from app.modules.producto.models import Producto
 from app.modules.ingrediente.models import Ingrediente
 from app.modules.unidadMedida.models import UnidadMedida
 from app.modules.EstadoPedido.models import EstadoPedido
+
+
+EVENTOS_WS = {
+    "PENDIENTE":  "estado_cambiado",
+    "CONFIRMADO": "estado_cambiado",
+    "EN_PREP":    "estado_cambiado",
+    "ENTREGADO":  "estado_cambiado",
+    "CANCELADO":  "pedido_cancelado",
+}
+
+ROLES_POR_TRANSICION = {
+    "PENDIENTE":  ["ADMIN", "PEDIDOS", "CLIENT"],
+    "CONFIRMADO": ["ADMIN", "PEDIDOS", "STOCK", "CLIENT"],
+    "EN_PREP":    ["ADMIN", "PEDIDOS", "STOCK", "CLIENT"],
+    "ENTREGADO":  ["ADMIN", "PEDIDOS", "CLIENT"],
+    "CANCELADO":  ["ADMIN", "PEDIDOS", "STOCK", "CLIENT"],
+}
 
 
 
@@ -124,7 +141,7 @@ class PedidoService:
         )
 
 
-    def create(self, data: PedidoCreate) -> PedidoPublic:
+    async def create(self, data: PedidoCreate) -> PedidoPublic:
         with PedidoUnitOfWork(self._session) as uow:
             subtotal = 0.0
             detalles: list[DetallePedido] = []
@@ -206,6 +223,8 @@ class PedidoService:
             uow._session.refresh(pedido)
             result = self._to_public(pedido)
 
+        await self._emit_ws_events(result.id, None, "PENDIENTE", data.usuario_id)
+
         return result
 
     def get_all(self, offset: int = 0, limit: int = 20, usuario_id: int | None = None) -> PedidoList:
@@ -236,7 +255,7 @@ class PedidoService:
             result = self._to_public(pedido)
         return result
 
-    def avanzar_estado(
+    async def avanzar_estado(
         self, pedido_id: int, data: PedidoAvanzarEstado
     ) -> PedidoPublic:
         with PedidoUnitOfWork(self._session) as uow:
@@ -288,9 +307,45 @@ class PedidoService:
             uow._session.refresh(pedido)
             result = self._to_public(pedido)
 
+        await self._emit_ws_events(result.id, estado_anterior, data.estado_hacia_codigo, data.usuario_id, data.motivo)
+
         return result
 
-    def cancelar(self, pedido_id: int, usuario_id: int, motivo: str) -> PedidoPublic:
+    async def _emit_ws_events(
+        self,
+        pedido_id: int,
+        estado_anterior: str | None,
+        estado_nuevo: str,
+        usuario_id: int | None,
+        motivo: str | None = None,
+    ) -> None:
+        import logging
+        logger = logging.getLogger("app.modules.Pedido.service")
+        from app.core.websocket import manager
+        from datetime import datetime, timezone as tz
+
+        event_type = EVENTOS_WS.get(estado_nuevo)
+        if not event_type:
+            logger.info(f"[WS] Estado {estado_nuevo} no tiene evento, no se emite")
+            return
+
+        payload = {
+            "pedido_id": pedido_id,
+            "estado_anterior": estado_anterior,
+            "estado_nuevo": estado_nuevo,
+            "usuario_id": usuario_id,
+            "motivo": motivo,
+            "timestamp": datetime.now(tz.utc).isoformat(),
+        }
+
+        logger.info(f"[WS] Emitiendo {event_type} para pedido {pedido_id} a roles {ROLES_POR_TRANSICION.get(estado_nuevo, [])}")
+        logger.info(f"[WS] Rooms activas: {manager.get_rooms_info()}")
+        await manager.broadcast_to_order(pedido_id, event_type, payload)
+        roles = ROLES_POR_TRANSICION.get(estado_nuevo, [])
+        if roles:
+            await manager.broadcast_to_roles(roles, event_type, payload)
+
+    async def cancelar(self, pedido_id: int, usuario_id: int, motivo: str) -> PedidoPublic:
         """Cancelar un pedido (CLIENTE dueño del pedido)."""
         with PedidoUnitOfWork(self._session) as uow:
             pedido = self._get_or_404(uow, pedido_id)
@@ -307,7 +362,7 @@ class PedidoService:
                 usuario_id=usuario_id,
             )
 
-            return self.avanzar_estado(pedido_id, data)
+            return await self.avanzar_estado(pedido_id, data)
 
     def soft_delete(self, pedido_id: int) -> None:
         with PedidoUnitOfWork(self._session) as uow:

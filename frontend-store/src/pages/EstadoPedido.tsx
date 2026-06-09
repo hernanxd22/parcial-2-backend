@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../store/useAuthStore'
 import { getEstadoMisPedidos } from '../api/endpoints'
+import { useWebSocket } from '../hooks/useWebSocket'
 import type { Pedido } from '../types'
 
 const ESTADO_COLORS: Record<string, string> = {
@@ -102,8 +103,9 @@ function Pagination({ page, totalPages, onPageChange }: { page: number; totalPag
 
 export default function EstadoPedido() {
   const navigate = useNavigate()
-  const { isAuthenticated, loading } = useAuthStore()
+  const { isAuthenticated, loading, user } = useAuthStore()
   const [page, setPage] = useState(1)
+  const queryClient = useQueryClient()
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -117,6 +119,51 @@ export default function EstadoPedido() {
     queryKey: ['estado-pedidos', page],
     queryFn: () => getEstadoMisPedidos(offset),
   })
+
+  const handleWsMessage = useCallback((msg: { event: string; data?: { pedido_id?: number; estado_anterior?: string | null; estado_nuevo?: string } }) => {
+    if (msg.event === "WS_CONNECTED") {
+      queryClient.invalidateQueries({ queryKey: ['estado-pedidos'] })
+      return
+    }
+    const d = msg.data
+    if (!d) return
+    if (msg.event === "estado_cambiado") {
+      if (d.estado_anterior === null) {
+        queryClient.invalidateQueries({ queryKey: ['estado-pedidos'] })
+      } else {
+        queryClient.setQueryData(['estado-pedidos', page], (old: unknown) => {
+          if (!old || !Array.isArray((old as { data?: { data?: Pedido[] } })?.data?.data)) return old
+          return {
+            ...old,
+            data: {
+              ...(old as { data: { data: Pedido[]; total: number } }).data,
+              data: (old as { data: { data: Pedido[] } }).data.data.map(p =>
+                p.id === d.pedido_id ? { ...p, estado: d.estado_nuevo! } : p
+              )
+            }
+          }
+        })
+      }
+      return
+    }
+    if (msg.event === "pedido_cancelado") {
+      queryClient.setQueryData(['estado-pedidos', page], (old: unknown) => {
+        if (!old || !Array.isArray((old as { data?: { data?: Pedido[] } })?.data?.data)) return old
+        return {
+          ...old,
+          data: {
+            ...(old as { data: { data: Pedido[]; total: number } }).data,
+            data: (old as { data: { data: Pedido[] } }).data.data.map(p =>
+              p.id === d.pedido_id ? { ...p, estado: d.estado_nuevo! } : p
+            )
+          }
+        }
+      })
+      return
+    }
+  }, [queryClient, page])
+
+  useWebSocket({ onMessage: handleWsMessage, enabled: isAuthenticated })
 
   const pedidos: Pedido[] = data?.data?.data ?? []
   const total = data?.data?.total ?? 0

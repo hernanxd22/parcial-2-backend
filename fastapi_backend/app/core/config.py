@@ -5,6 +5,8 @@ class Settings(BaseSettings):
     MP_ACCESS_TOKEN: str = ""
     MP_PUBLIC_KEY: str = ""
     MP_WEBHOOK_SECRET: str = ""
+    MP_WEBHOOK_URL: str = ""
+    NGROK_URL: str = ""
     FRONTEND_URL: str = "http://localhost:5173"
     BACKEND_URL: str = "http://localhost:8000"
 

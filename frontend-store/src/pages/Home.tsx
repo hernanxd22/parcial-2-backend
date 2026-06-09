@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import ProductoCard from '../components/ProductoCard'
 import { getProductos, getCategorias } from '../api/endpoints'
+import { useCartStore } from '../store/useCartStore'
 import type { Producto, Categoria } from '../types'
 
 export default function Home() {
@@ -9,6 +11,21 @@ export default function Home() {
   const [categoriaId, setCategoriaId] = useState<number | ''>('')
   const [page, setPage] = useState(0)
   const limit = 12
+  const [pedidoCreadoMsg, setPedidoCreadoMsg] = useState<string | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const clearCart = useCartStore((s) => s.clearCart)
+
+  useEffect(() => {
+    const pedidoId = searchParams.get('pedido_creado')
+    if (pedidoId) {
+      clearCart()
+      setPedidoCreadoMsg(`Pedido #${pedidoId} creado con exito`)
+      searchParams.delete('pedido_creado')
+      setSearchParams(searchParams, { replace: true })
+      const timer = setTimeout(() => setPedidoCreadoMsg(null), 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [])
 
   const {
     data: productosRes,
@@ -34,6 +51,11 @@ export default function Home() {
 
   return (
     <div className="min-h-screen">
+      {pedidoCreadoMsg && (
+        <div className="bg-green-600 text-white text-center py-3 px-4 font-medium text-sm animate-pulse">
+          {pedidoCreadoMsg}
+        </div>
+      )}
       {/* Hero Section */}
       <div className="relative overflow-hidden bg-gradient-to-br from-stone-900 via-stone-800 to-stone-900">
         {/* Decorative elements */}

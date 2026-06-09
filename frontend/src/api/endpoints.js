@@ -51,3 +51,6 @@ export const updateDireccion = (usuario_id, direccion_id, data) =>
   api.patch(`/direcciones/${usuario_id}/${direccion_id}`, data)
 export const deleteDireccion = (usuario_id, direccion_id) =>
   api.delete(`/direcciones/${usuario_id}/${direccion_id}`)
+
+// ============== COSTOS ==============
+export const getCostoProducto = (id) => api.get(`/productos/${id}/costo`)
