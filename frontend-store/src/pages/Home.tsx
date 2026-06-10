@@ -22,10 +22,14 @@ export default function Home() {
       setPedidoCreadoMsg(`Pedido #${pedidoId} creado con exito`)
       searchParams.delete('pedido_creado')
       setSearchParams(searchParams, { replace: true })
-      const timer = setTimeout(() => setPedidoCreadoMsg(null), 5000)
-      return () => clearTimeout(timer)
     }
   }, [])
+
+  useEffect(() => {
+    if (!pedidoCreadoMsg) return
+    const timer = setTimeout(() => setPedidoCreadoMsg(null), 5000)
+    return () => clearTimeout(timer)
+  }, [pedidoCreadoMsg])
 
   const {
     data: productosRes,
@@ -36,7 +40,7 @@ export default function Home() {
       getProductos({
         offset: page * limit,
         limit,
-        ...(search ? { q: search } : {}),
+        ...(search ? { nombre: search } : {}),
         ...(categoriaId ? { categoria_id: categoriaId } : {}),
       }),
   })

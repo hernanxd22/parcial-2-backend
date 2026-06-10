@@ -105,8 +105,7 @@ export default function Checkout() {
     pedidoMutation.mutate()
   }
 
-  const handleSubmitDireccion = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmitDireccion = () => {
     setError('')
     direccionMutation.mutate()
   }
@@ -173,7 +172,7 @@ export default function Checkout() {
             </div>
 
             {showForm && (
-              <form onSubmit={handleSubmitDireccion} className="mb-6 p-5 bg-amber-50 rounded-xl border border-amber-200 space-y-4">
+              <div className="mb-6 p-5 bg-amber-50 rounded-xl border border-amber-200 space-y-4">
                 <h3 className="font-semibold text-stone-700">Nueva dirección</h3>
                 <input
                   type="text"
@@ -218,13 +217,14 @@ export default function Checkout() {
                   required
                 />
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={handleSubmitDireccion}
                   disabled={direccionMutation.isPending}
                   className="w-full py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 disabled:from-stone-300 disabled:to-stone-300 text-white font-semibold rounded-xl transition-all disabled:cursor-not-allowed"
                 >
                   {direccionMutation.isPending ? 'Guardando...' : 'Guardar dirección'}
                 </button>
-              </form>
+              </div>
             )}
 
             {direcciones.length > 0 ? (

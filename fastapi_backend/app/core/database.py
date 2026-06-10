@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 from sqlmodel import create_engine, Session, SQLModel
+from sqlalchemy import text
 
 load_dotenv()
 
@@ -28,6 +29,22 @@ engine = create_engine(
 
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
+    _apply_migrations()
+
+
+def _apply_migrations():
+    with engine.begin() as conn:
+        conn.execute(text("""
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name='ingrediente' AND column_name='costo'
+                ) THEN
+                    ALTER TABLE ingrediente ADD COLUMN costo FLOAT DEFAULT 0 NOT NULL;
+                END IF;
+            END $$;
+        """))
 
 
 def get_session():
