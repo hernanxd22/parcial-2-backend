@@ -54,3 +54,11 @@ export const deleteDireccion = (usuario_id, direccion_id) =>
 
 // ============== COSTOS ==============
 export const getCostoProducto = (id) => api.get(`/productos/${id}/costo`)
+
+// ============== UPLOADS ==============
+export const uploadImage = (file, folder = "productos") => {
+  const formData = new FormData()
+  formData.append("file", file)
+  formData.append("folder", folder)
+  return api.post("/uploads/", formData)
+}

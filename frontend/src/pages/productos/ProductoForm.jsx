@@ -7,6 +7,7 @@ import {
   getCategorias,
   getIngredientes,
   getUnidadesMedida,
+  uploadImage,
 } from "../../api/endpoints";
 
 import SearchableSelect from "../../components/SearchableSelect";
@@ -24,6 +25,7 @@ function ProductoForm() {
     precio_base: "",
     disponible: true,
     imagen_url: "",
+    stock: "",
     categoria_id: "",
     es_principal: false,
     porcentaje_ganancia: "",
@@ -40,6 +42,7 @@ function ProductoForm() {
   const [error, setError] = useState("");
   const [costoCalculado, setCostoCalculado] = useState(null);
   const [calculandoCosto, setCalculandoCosto] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -108,6 +111,7 @@ function ProductoForm() {
           precio_base: prod.precio_base || "",
           disponible: prod.disponible ?? true,
           imagen_url: prod.imagen_url || "",
+          stock: prod.stock ?? "",
           categoria_id: prod.categoria_id || "",
           es_principal: prod.es_principal || false,
           porcentaje_ganancia: prod.porcentaje_ganancia ?? "",
@@ -138,6 +142,22 @@ function ProductoForm() {
       ...formData,
       [name]: type === "checkbox" ? checked : value,
     });
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    setError("");
+    try {
+      const res = await uploadImage(file);
+      setFormData((prev) => ({ ...prev, imagen_url: res.data.url }));
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error al subir imagen");
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   const handleCategoriaChange = (val) => {
@@ -218,6 +238,16 @@ function ProductoForm() {
       return;
     }
 
+    if (llevaIngredientes && ingredientesSeleccionados.length === 0) {
+      setError("Agregá al menos un ingrediente o destildá 'Lleva ingredientes'");
+      return;
+    }
+
+    if (!formData.imagen_url) {
+      setError("Cargá una imagen para el producto");
+      return;
+    }
+
     setError("");
     setLoading(true);
 
@@ -231,6 +261,7 @@ function ProductoForm() {
 
         disponible: formData.disponible,
         imagen_url: formData.imagen_url || null,
+        stock: llevaIngredientes ? undefined : (parseInt(formData.stock) || 0),
         categoria_id: parseInt(formData.categoria_id),
         es_principal: formData.es_principal,
         porcentaje_ganancia: formData.porcentaje_ganancia
@@ -451,6 +482,45 @@ function ProductoForm() {
           </div>
 
           <div className="form-group">
+            <label className="form-label">Imagen del producto</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              disabled={uploadingImage}
+              className="form-input"
+              style={{ padding: "8px" }}
+            />
+            {uploadingImage && (
+              <small style={{ color: "#888" }}>Subiendo imagen...</small>
+            )}
+            {formData.imagen_url && (
+              <div style={{ marginTop: "8px" }}>
+                <img
+                  src={formData.imagen_url}
+                  alt="Preview"
+                  style={{
+                    maxWidth: "200px",
+                    maxHeight: "200px",
+                    borderRadius: "8px",
+                    border: "1px solid #e5e7eb",
+                  }}
+                />
+                <button
+                  type="button"
+                  className="btn btn-danger btn-sm"
+                  style={{ marginLeft: "8px" }}
+                  onClick={() =>
+                    setFormData((prev) => ({ ...prev, imagen_url: "" }))
+                  }
+                >
+                  Quitar
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="form-group">
             <label className="form-label">
               <input
                 type="checkbox"
@@ -466,6 +536,25 @@ function ProductoForm() {
               Lleva ingredientes
             </label>
           </div>
+
+          {!llevaIngredientes && (
+            <div className="form-group">
+              <label className="form-label">Stock (unidades)</label>
+              <input
+                type="number"
+                name="stock"
+                className="form-input"
+                value={formData.stock}
+                onChange={handleChange}
+                step="1"
+                min="0"
+                placeholder="Ej: 50"
+              />
+              <small style={{ color: "#888" }}>
+                Cantidad de unidades fisicas disponibles para la venta
+              </small>
+            </div>
+          )}
 
           {llevaIngredientes && (
             <div

@@ -18,6 +18,7 @@ class Ingrediente(SQLModel, table=True):
     es_alergeno: bool = Field(default=False)
     stock_cantidad: float = Field(default=0, ge=0)
     costo: float = Field(default=0, ge=0, description="Costo por 1 unidad base (kg/L/u)")
+    imagen_url: Optional[str] = Field(default=None)
     unidad_medida_id: Optional[int] = Field(default=None, foreign_key="unidad_medida.id")
     activo: bool = Field(default=True)
 

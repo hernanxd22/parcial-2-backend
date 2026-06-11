@@ -81,3 +81,27 @@ export const useCartStore = create<CartState>()(
     }
   )
 )
+
+const CART_PREFIX = 'cart-user-'
+
+export function saveCartForUser(userId: number) {
+  const state = useCartStore.getState()
+  localStorage.setItem(
+    `${CART_PREFIX}${userId}`,
+    JSON.stringify({ items: state.items, total: state.total })
+  )
+}
+
+export function loadCartForUser(userId: number) {
+  const data = localStorage.getItem(`${CART_PREFIX}${userId}`)
+  if (data) {
+    try {
+      const parsed = JSON.parse(data)
+      useCartStore.setState({ items: parsed.items || [], total: parsed.total || 0 })
+    } catch {
+      useCartStore.setState({ items: [], total: 0 })
+    }
+  } else {
+    useCartStore.setState({ items: [], total: 0 })
+  }
+}

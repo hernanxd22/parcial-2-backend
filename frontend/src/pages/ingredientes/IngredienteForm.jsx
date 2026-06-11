@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { getIngredienteById, createIngrediente, updateIngrediente, getUnidadesMedida } from '../../api/endpoints'
+import { getIngredienteById, createIngrediente, updateIngrediente, getUnidadesMedida, uploadImage } from '../../api/endpoints'
 
 function IngredienteForm() {
   const { id } = useParams()
@@ -13,11 +13,13 @@ function IngredienteForm() {
     es_alergeno: false,
     stock_cantidad: 0,
     costo: 0,
+    imagen_url: '',
     unidad_medida_id: ''
   })
   const [unidades, setUnidades] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [uploadingImage, setUploadingImage] = useState(false)
 
   useEffect(() => {
     fetchData()
@@ -36,6 +38,7 @@ function IngredienteForm() {
           es_alergeno: response.data.es_alergeno || false,
           stock_cantidad: response.data.stock_cantidad || 0,
           costo: response.data.costo ?? 0,
+          imagen_url: response.data.imagen_url || '',
           unidad_medida_id: response.data.unidad_medida_id || ''
         })
       }
@@ -51,6 +54,22 @@ function IngredienteForm() {
       ...formData,
       [name]: type === 'checkbox' ? checked : type === 'number' ? parseFloat(value) || 0 : value
     })
+  }
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploadingImage(true)
+    setError('')
+    try {
+      const res = await uploadImage(file, 'ingredientes')
+      setFormData((prev) => ({ ...prev, imagen_url: res.data.url }))
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Error al subir imagen')
+    } finally {
+      setUploadingImage(false)
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -122,6 +141,46 @@ function IngredienteForm() {
               />{' '}
               Es alérgeno
             </label>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Imagen</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              disabled={uploadingImage}
+              className="form-input"
+              style={{ padding: '8px' }}
+            />
+            {uploadingImage && (
+              <small style={{ color: '#888' }}>Subiendo imagen...</small>
+            )}
+            {formData.imagen_url && (
+              <div style={{ marginTop: '8px' }}>
+                <img
+                  src={formData.imagen_url}
+                  alt="Preview"
+                  style={{
+                    maxWidth: '150px',
+                    maxHeight: '150px',
+                    borderRadius: '8px',
+                    border: '1px solid #e5e7eb',
+                    objectFit: 'cover',
+                  }}
+                />
+                <button
+                  type="button"
+                  className="btn btn-danger btn-sm"
+                  style={{ marginLeft: '8px' }}
+                  onClick={() =>
+                    setFormData((prev) => ({ ...prev, imagen_url: '' }))
+                  }
+                >
+                  Quitar
+                </button>
+              </div>
+            )}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>

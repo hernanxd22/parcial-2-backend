@@ -17,6 +17,7 @@ class ProductoCreate(SQLModel):
     imagen_url: Optional[str] = Field(default=None)
     disponible: bool = True
     porcentaje_ganancia: Optional[float] = Field(default=None, ge=0)
+    stock: float = Field(default=0, ge=0)
     categoria_id: int = Field(gt=0)
     es_principal: bool = False
     ingredientes: list["ProductoIngredienteCreateInline"] = Field(default_factory=list)
@@ -29,6 +30,7 @@ class ProductoUpdate(SQLModel):
     imagen_url: Optional[str] = None
     disponible: Optional[bool] = None
     porcentaje_ganancia: Optional[float] = Field(default=None, ge=0)
+    stock: Optional[float] = Field(default=None, ge=0)
     categoria_id: Optional[int] = Field(default=None, gt=0)
     es_principal: Optional[bool] = None
     ingredientes: Optional[List["ProductoIngredienteCreateInline"]] = None
@@ -49,6 +51,7 @@ class ProductoPublic(SQLModel):
     imagen_url: Optional[str] = None
     disponible: bool
     porcentaje_ganancia: Optional[float] = None
+    stock: float = 0
     costo_total: Optional[float] = None
     categoria_id: Optional[int] = None
     es_principal: bool = False

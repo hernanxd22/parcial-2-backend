@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
+import { useWebSocketStore } from '../store/useWebSocketStore'
 
-const WS_URL = "ws://localhost:8000/api/v1/pedidos/ws"
+const WS_URL = import.meta.env.VITE_WS_URL || "ws://localhost:8000/api/v1/pedidos/ws"
 
 interface WsMessage {
   event: string
@@ -11,6 +12,9 @@ export function useWebSocket({ onMessage, enabled = true }: { onMessage?: (msg: 
   const wsRef = useRef<WebSocket | null>(null)
   const onMessageRef = useRef(onMessage)
   const [connected, setConnected] = useState(false)
+  const wsStoreSetConnected = useWebSocketStore((s) => s.setConnected)
+  const wsStoreAddSub = useWebSocketStore((s) => s.addSubscription)
+  const wsStoreRemoveSub = useWebSocketStore((s) => s.removeSubscription)
 
   useEffect(() => {
     onMessageRef.current = onMessage
@@ -49,6 +53,7 @@ export function useWebSocket({ onMessage, enabled = true }: { onMessage?: (msg: 
         }
         retryCount = 0
         setConnected(true)
+        wsStoreSetConnected(true)
         onMessageRef.current?.({ event: "WS_CONNECTED", data: null })
       }
 
@@ -70,6 +75,7 @@ export function useWebSocket({ onMessage, enabled = true }: { onMessage?: (msg: 
         if (wsRef.current === ws) wsRef.current = null
         currentWs = null
         setConnected(false)
+        wsStoreSetConnected(false)
 
         const wasNormal = e.code === 1000
         const wasAuthRejected = e.code === 1008
@@ -90,20 +96,23 @@ export function useWebSocket({ onMessage, enabled = true }: { onMessage?: (msg: 
       if (currentWs) closeCleanly(currentWs)
       wsRef.current = null
       setConnected(false)
+      wsStoreSetConnected(false)
     }
-  }, [enabled])
+  }, [enabled, wsStoreSetConnected])
 
   const subscribeToOrder = useCallback((orderId: number) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ action: "subscribe-order", order_id: orderId }))
+      wsStoreAddSub(orderId)
     }
-  }, [])
+  }, [wsStoreAddSub])
 
   const unsubscribeFromOrder = useCallback((orderId: number) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ action: "unsubscribe-order", order_id: orderId }))
+      wsStoreRemoveSub(orderId)
     }
-  }, [])
+  }, [wsStoreRemoveSub])
 
   return { subscribeToOrder, unsubscribeFromOrder, connected }
 }

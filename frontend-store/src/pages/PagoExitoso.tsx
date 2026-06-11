@@ -1,6 +1,19 @@
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { useCartStore, saveCartForUser } from '../store/useCartStore'
+import { useAuthStore } from '../store/useAuthStore'
 
 export default function PagoExitoso() {
+  const clearCart = useCartStore((s) => s.clearCart)
+  const userId = useAuthStore((s) => s.user?.id)
+
+  useEffect(() => {
+    clearCart()
+    if (userId) {
+      saveCartForUser(userId)
+    }
+  }, [])
+
   return (
     <div className="min-h-[60vh] flex items-center justify-center px-4">
       <div className="text-center animate-scale-in">

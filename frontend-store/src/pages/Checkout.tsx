@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../store/useAuthStore'
-import { useCartStore } from '../store/useCartStore'
+import { useCartStore, saveCartForUser } from '../store/useCartStore'
 import { createPedido, getDirecciones, createDireccion, crearPreferenciaPago } from '../api/endpoints'
 import type { Direccion } from '../types'
 
@@ -76,7 +76,6 @@ export default function Checkout() {
 
       if (formaPago === 'MERCADOPAGO') {
         try {
-          clearCart()
           const { data } = await crearPreferenciaPago(pedidoId)
           window.location.href = data.init_point
         } catch {
@@ -86,12 +85,13 @@ export default function Checkout() {
       }
 
       clearCart()
+      if (user?.id) saveCartForUser(user.id)
       queryClient.invalidateQueries({ queryKey: ['mis-pedidos'] })
       navigate('/mis-pedidos')
     },
     onError: (error: { response?: { status?: number; data?: { detail?: string } } }) => {
       if (error.response?.status === 409) {
-        setError('Stock insuficiente de algunos productos')
+        setError(error.response?.data?.detail || 'Stock insuficiente')
       } else {
         setError('Error al crear el pedido. Intente nuevamente.')
       }

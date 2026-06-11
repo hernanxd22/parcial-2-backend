@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import api from '../api/axios'
 import type { User } from '../types'
+import { saveCartForUser, loadCartForUser, useCartStore } from './useCartStore'
 
 interface AuthState {
   user: User | null
@@ -34,6 +35,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       isAuthenticated: true,
       loading: false,
     })
+    loadCartForUser(userData.id)
   },
 
   logout: async () => {
@@ -44,6 +46,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } finally {
       localStorage.removeItem('access_token')
       set({ user: null, isAuthenticated: false })
+      useCartStore.getState().clearCart()
     }
   },
 
@@ -92,3 +95,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 }))
+
+useCartStore.subscribe(() => {
+  const userId = useAuthStore.getState().user?.id
+  if (userId) {
+    saveCartForUser(userId)
+  }
+})

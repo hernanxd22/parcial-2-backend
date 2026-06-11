@@ -162,36 +162,37 @@ class PedidoService:
                     personalizacion=item.personalizacion,
                 ))
 
-              
-                for pi in producto.producto_ingredientes:
-                    ingrediente = pi.ingrediente
-                    stock_unidad = ingrediente.unidad_medida
-                    receta_unidad = pi.unidad_medida
+                if producto.producto_ingredientes:
+                    for pi in producto.producto_ingredientes:
+                        ingrediente = pi.ingrediente
+                        stock_unidad = ingrediente.unidad_medida
+                        receta_unidad = pi.unidad_medida
 
-                    if stock_unidad and receta_unidad and stock_unidad.tipo == receta_unidad.tipo:
-                        cantidad_por_item = _convertir_unidad(
-                            pi.cantidad,
-                            receta_unidad.tipo,
-                            receta_unidad.simbolo,
-                            stock_unidad.simbolo,
-                        )
-                    else:
-                        cantidad_por_item = pi.cantidad
+                        if stock_unidad and receta_unidad and stock_unidad.tipo == receta_unidad.tipo:
+                            cantidad_por_item = _convertir_unidad(
+                                pi.cantidad,
+                                receta_unidad.tipo,
+                                receta_unidad.simbolo,
+                                stock_unidad.simbolo,
+                            )
+                        else:
+                            cantidad_por_item = pi.cantidad
 
-                    cantidad_necesaria = cantidad_por_item * item.cantidad
-                    if ingrediente.stock_cantidad < cantidad_necesaria:
-                        simb = stock_unidad.simbolo if stock_unidad else ""
+                        cantidad_necesaria = cantidad_por_item * item.cantidad
+                        if ingrediente.stock_cantidad < cantidad_necesaria:
+                            raise HTTPException(
+                                status_code=status.HTTP_409_CONFLICT,
+                                detail=f"El producto '{producto.nombre}' no tiene stock suficiente",
+                            )
+                else:
+                    if producto.stock < item.cantidad:
                         raise HTTPException(
                             status_code=status.HTTP_409_CONFLICT,
-                            detail=f"Stock insuficiente del ingrediente '{ingrediente.nombre}' "
-                                   f"(disponible: {ingrediente.stock_cantidad:.2f} {simb}, "
-                                   f"necesario: {cantidad_necesaria:.2f} {simb})",
+                            detail=f"El producto '{producto.nombre}' no tiene stock suficiente",
                         )
-                    ingrediente.stock_cantidad -= cantidad_necesaria
-                    self._session.add(ingrediente)
 
             descuento = 0.00
-            costo_envio = 0.00 if data.direccion_id is None else 50.00
+            costo_envio = 0.00 if (data.direccion_id is None or subtotal >= 100) else 9.99
             total = round(subtotal - descuento + costo_envio, 2)
 
             pedido = Pedido(
@@ -281,11 +282,13 @@ class PedidoService:
             )
             uow.historial.add(historial)
 
-           
-            if data.estado_hacia_codigo == "CANCELADO" and estado_anterior in ("PENDIENTE", "CONFIRMADO"):
+            if data.estado_hacia_codigo == "CONFIRMADO":
                 for detalle in pedido.detalles:
                     producto = self._session.get(Producto, detalle.producto_id)
-                    if producto:
+                    if not producto:
+                        continue
+
+                    if producto.producto_ingredientes:
                         for pi in producto.producto_ingredientes:
                             ingrediente = pi.ingrediente
                             stock_unidad = ingrediente.unidad_medida
@@ -301,8 +304,52 @@ class PedidoService:
                             else:
                                 cantidad_por_item = pi.cantidad
 
-                            ingrediente.stock_cantidad += cantidad_por_item * detalle.cantidad
+                            cantidad_necesaria = cantidad_por_item * detalle.cantidad
+                            if ingrediente.stock_cantidad < cantidad_necesaria:
+                                simb = stock_unidad.simbolo if stock_unidad else ""
+                                raise HTTPException(
+                                    status_code=status.HTTP_409_CONFLICT,
+                                    detail=f"Stock insuficiente del ingrediente '{ingrediente.nombre}' "
+                                           f"(disponible: {ingrediente.stock_cantidad:.2f} {simb}, "
+                                           f"necesario: {cantidad_necesaria:.2f} {simb})",
+                                )
+                            ingrediente.stock_cantidad -= cantidad_necesaria
                             self._session.add(ingrediente)
+                    else:
+                        if producto.stock < detalle.cantidad:
+                            raise HTTPException(
+                                status_code=status.HTTP_409_CONFLICT,
+                                detail=f"Stock insuficiente del producto '{producto.nombre}' "
+                                       f"(disponible: {producto.stock:.0f}, solicitado: {detalle.cantidad})",
+                            )
+                        producto.stock -= detalle.cantidad
+                        self._session.add(producto)
+           
+            if data.estado_hacia_codigo == "CANCELADO" and estado_anterior == "CONFIRMADO":
+                for detalle in pedido.detalles:
+                    producto = self._session.get(Producto, detalle.producto_id)
+                    if producto:
+                        if producto.producto_ingredientes:
+                            for pi in producto.producto_ingredientes:
+                                ingrediente = pi.ingrediente
+                                stock_unidad = ingrediente.unidad_medida
+                                receta_unidad = pi.unidad_medida
+
+                                if stock_unidad and receta_unidad and stock_unidad.tipo == receta_unidad.tipo:
+                                    cantidad_por_item = _convertir_unidad(
+                                        pi.cantidad,
+                                        receta_unidad.tipo,
+                                        receta_unidad.simbolo,
+                                        stock_unidad.simbolo,
+                                    )
+                                else:
+                                    cantidad_por_item = pi.cantidad
+
+                                ingrediente.stock_cantidad += cantidad_por_item * detalle.cantidad
+                                self._session.add(ingrediente)
+                        else:
+                            producto.stock += detalle.cantidad
+                            self._session.add(producto)
 
             uow._session.refresh(pedido)
             result = self._to_public(pedido)

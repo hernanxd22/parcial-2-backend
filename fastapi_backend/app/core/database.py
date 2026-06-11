@@ -43,6 +43,18 @@ def _apply_migrations():
                 ) THEN
                     ALTER TABLE ingrediente ADD COLUMN costo FLOAT DEFAULT 0 NOT NULL;
                 END IF;
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name='ingrediente' AND column_name='imagen_url'
+                ) THEN
+                    ALTER TABLE ingrediente ADD COLUMN imagen_url VARCHAR;
+                END IF;
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name='producto' AND column_name='stock'
+                ) THEN
+                    ALTER TABLE producto ADD COLUMN stock FLOAT DEFAULT 0 NOT NULL;
+                END IF;
             END $$;
         """))
 

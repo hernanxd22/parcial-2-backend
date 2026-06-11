@@ -24,6 +24,7 @@ from app.modules.DireccionEntrega.router import router as direccion_router
 from app.modules.Pedido.router import router as pedido_router
 from app.modules.auth.router import router as auth_router
 from app.modules.Pago.router import router as pago_router
+from app.modules.uploads.router import router as uploads_router
 
 from app.modules.rol.seed import seed_roles
 from app.modules.FormaPago.seed import seed_formas_pago
@@ -103,6 +104,7 @@ def create_app() -> FastAPI:
     app.include_router(auth_router, prefix="/api/v1", tags=["Auth"])
     app.include_router(pago_router, prefix="/api/v1/pagos", tags=["Pagos"])
     app.include_router(unidad_medida_router, prefix="/api/v1/unidad-medida", tags=["Unidades de Medida"])
+    app.include_router(uploads_router, prefix="/api/v1/uploads", tags=["Uploads"])
     @app.get("/")
     def root():
         return {"message": "Servidor FastAPI funcionando ."}

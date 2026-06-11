@@ -25,7 +25,7 @@ class ProductoRepository(BaseRepository[Producto]):
         stmt = select(Producto).where(Producto.deleted_at == None)
         if nombre:
             stmt = stmt.where(Producto.nombre.ilike(f"%{nombre}%"))
-        stmt = self._load_relations(stmt.offset(offset).limit(limit))
+        stmt = self._load_relations(stmt.order_by(Producto.created_at.desc()).offset(offset).limit(limit))
         return list(self.session.exec(stmt).all())
 
     def get_by_categoria(self, categoria_id: int, offset: int = 0, limit: int = 20) -> list[Producto]:

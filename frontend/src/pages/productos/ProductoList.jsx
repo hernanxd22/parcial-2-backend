@@ -92,6 +92,59 @@ function ProductoList() {
     return Number(String(value).replace(",", ".")) || 0;
   };
 
+  const UNIT_CONVERSION = {
+    masa: { g: 1, kg: 1000 },
+    volumen: { mL: 1, L: 1000 },
+    unidad: { u: 1, doc: 12 },
+  };
+
+  const convertirUnidad = (cantidad, tipo, simboloOrigen, simboloDestino) => {
+    if (simboloOrigen === simboloDestino) return cantidad;
+    const fOrigen = UNIT_CONVERSION[tipo]?.[simboloOrigen];
+    const fDestino = UNIT_CONVERSION[tipo]?.[simboloDestino];
+    if (!fOrigen || !fDestino) return cantidad;
+    return (cantidad * fOrigen) / fDestino;
+  };
+
+  const calcularStockMaximo = (producto) => {
+    if (
+      !producto.producto_ingredientes ||
+      producto.producto_ingredientes.length === 0
+    ) {
+      return producto.stock != null ? Number(producto.stock) : null;
+    }
+
+    let minUnidades = Infinity;
+
+    for (const pi of producto.producto_ingredientes) {
+      const ing = ingredienteMap[pi.ingrediente_id];
+      if (!ing || ing.stock_cantidad == null) continue;
+
+      const umReceta = unidadMap[pi.unidad_medida_id];
+      const umIngrediente = unidadMap[ing.unidad_medida_id];
+      if (!umReceta || !umIngrediente) continue;
+
+      const stockDisponible = Number(ing.stock_cantidad);
+      let cantidadNecesaria = Number(pi.cantidad);
+
+      if (umReceta.tipo === umIngrediente.tipo) {
+        cantidadNecesaria = convertirUnidad(
+          cantidadNecesaria,
+          umReceta.tipo,
+          umReceta.simbolo,
+          umIngrediente.simbolo
+        );
+      }
+
+      if (cantidadNecesaria <= 0) continue;
+
+      const producibles = stockDisponible / cantidadNecesaria;
+      if (producibles < minUnidades) minUnidades = producibles;
+    }
+
+    return minUnidades === Infinity ? null : Math.floor(minUnidades);
+  };
+
   const filteredProductos = productos.filter((p) => {
     const matchDisponible =
       filtroDisponible === ""
@@ -158,11 +211,36 @@ function ProductoList() {
       render: (val) => `$${val}`,
     },
     {
+      key: "stock_max",
+      label: "Stock max.",
+      render: (_, item) => {
+        const stock = calcularStockMaximo(item);
+        if (stock === null) {
+          return (
+            <span style={{ color: "#999", fontSize: "0.85em" }}>-</span>
+          );
+        }
+        if (stock === 0) {
+          return (
+            <span className="badge badge-error">0</span>
+          );
+        }
+        if (stock <= 5) {
+          return (
+            <span className="badge badge-warning">{stock} u</span>
+          );
+        }
+        return (
+          <span className="badge badge-success">{stock} u</span>
+        );
+      },
+    },
+    {
       key: "disponible",
       label: "Disponible",
       render: (val) => (
         <span className={`badge ${val ? "badge-success" : "badge-warning"}`}>
-          {val ? "Sí" : "No"}
+          {val ? "Si" : "No"}
         </span>
       ),
     },
