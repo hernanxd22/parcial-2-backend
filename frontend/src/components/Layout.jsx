@@ -270,7 +270,6 @@ function Layout() {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      {/* Overlay for mobile */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-20 bg-black/40 backdrop-blur-sm lg:hidden"
@@ -278,7 +277,6 @@ function Layout() {
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={`
           fixed lg:static inset-y-0 left-0 z-30
@@ -305,7 +303,6 @@ function Layout() {
             {icons.menu}
           </button>
         </div>
-        {/* Nav Links */}
         <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
           {visibleItems.map((item) => {
             const isActive =
@@ -341,7 +338,6 @@ function Layout() {
           })}
         </nav>
 
-        {/* Bottom section */}
         <div
           className={`border-t border-white/10 p-3 space-y-2 ${!sidebarOpen && "lg:p-2"}`}
         >
@@ -383,10 +379,8 @@ function Layout() {
         </div>
       </aside>
 
-      {/* Main area */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top bar */}
-        <header className="flex items-center justify-between h-16 px-4 lg:px-6 bg-white dark:bg-[#1c1917] border-b border-stone-200 dark:border-stone-800 flex-shrink-0">
+        <header className="flex items-center justify-between h-16 px-8 lg:px-10 bg-white dark:bg-[#1c1917] border-b border-stone-200 dark:border-stone-800 flex-shrink-0">
           <div className="flex items-center gap-3">
             <nav
               className="hidden sm:flex items-center gap-1.5 text-sm"
@@ -438,8 +432,7 @@ function Layout() {
           </div>
         </header>
 
-        {/* Main content */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6 bg-stone-50 dark:bg-[#171210]">
+        <main className="flex-1 overflow-y-auto p-8 lg:py-10 lg:px-12 ml-4 bg-stone-50 dark:bg-[#171210]">
           <Outlet />
         </main>
       </div>

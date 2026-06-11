@@ -22,21 +22,15 @@ def seed_estados_pedido(session: Session) -> None:
             es_terminal=False,
         ),
         EstadoPedido(
-            codigo="EN_CAMINO",
-            descripcion="Pedido en camino",
-            orden=4,
-            es_terminal=False,
-        ),
-        EstadoPedido(
             codigo="ENTREGADO",
             descripcion="Pedido entregado",
-            orden=5,
+            orden=4,
             es_terminal=True,
         ),
         EstadoPedido(
             codigo="CANCELADO",
             descripcion="Pedido cancelado",
-            orden=6,
+            orden=5,
             es_terminal=True,
         ),
     ]

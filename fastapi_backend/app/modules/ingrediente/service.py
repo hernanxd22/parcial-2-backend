@@ -73,10 +73,10 @@ class IngredienteService:
 
         return result
 
-    def get_all(self, offset: int = 0, limit: int = 20) -> IngredienteList:
+    def get_all(self, offset: int = 0, limit: int = 20, nombre: str | None = None) -> IngredienteList:
         with IngredienteUnitOfWork(self._session) as uow:
-            ingredientes = uow.ingredientes.get_all_paged(offset=offset, limit=limit)
-            total = uow.ingredientes.count()
+            ingredientes = uow.ingredientes.get_all_paged(offset=offset, limit=limit, nombre=nombre)
+            total = uow.ingredientes.count(nombre=nombre)
 
             result = IngredienteList(
                 data=[IngredientePublic.model_validate(i) for i in ingredientes],

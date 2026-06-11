@@ -25,7 +25,6 @@ function NodoArbol({ nodo, onEdit, onDelete, depth = 0 }) {
         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#eef2ff'}
         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = depth % 2 === 0 ? '#fff' : '#f8f9fa'}
       >
-        {/* Botón expandir/colapsar */}
         <button
           type="button"
           onClick={() => setExpandido(!expandido)}
@@ -43,24 +42,20 @@ function NodoArbol({ nodo, onEdit, onDelete, depth = 0 }) {
           {expandido ? '▼' : '▶'}
         </button>
 
-        {/* Icono de carpeta/folder */}
         <span style={{ fontSize: '16px', color: tieneHijos ? '#f0ad4e' : '#999' }}>
           {tieneHijos ? '📁' : '📄'}
         </span>
 
-        {/* Nombre */}
         <span style={{ flex: 1, fontWeight: depth === 0 ? 600 : 400 }}>
           {nodo.nombre}
         </span>
 
-        {/* Descripción (solo si hay) */}
         {nodo.descripcion && (
           <span style={{ color: '#999', fontSize: '0.85em', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {nodo.descripcion}
           </span>
         )}
 
-        {/* Acciones */}
         <div style={{ display: 'flex', gap: '4px' }}>
           <button
             type="button"
@@ -83,7 +78,6 @@ function NodoArbol({ nodo, onEdit, onDelete, depth = 0 }) {
         </div>
       </div>
 
-      {/* Hijos recursivos */}
       {expandido && tieneHijos && (
         <div>
           {nodo.children.map((hijo) => (
@@ -144,7 +138,6 @@ function CategoriaList() {
     }
   }
 
-  // Filtro por nombre (búsqueda simple sobre el árbol plano)
   const aplanarArbol = (nodos, profundidad = 0) => {
     let resultado = []
     for (const nodo of nodos) {
@@ -195,7 +188,6 @@ function CategoriaList() {
           </div>
         </div>
 
-        {/* Vista de árbol */}
         {filtro ? (
           <div>
             {filtradas.length === 0 ? (

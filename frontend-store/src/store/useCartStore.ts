@@ -5,10 +5,12 @@ import type { CartItem } from '../types'
 interface CartState {
   items: CartItem[]
   total: number
+  lastAddedProduct: string | null
   addItem: (producto: { id: number; nombre: string; precio_unitario: number }, cantidad: number) => void
   removeItem: (productoId: number) => void
   updateQuantity: (productoId: number, cantidad: number) => void
   clearCart: () => void
+  clearLastAdded: () => void
 }
 
 export const useCartStore = create<CartState>()(
@@ -16,6 +18,7 @@ export const useCartStore = create<CartState>()(
     (set, get) => ({
       items: [],
       total: 0,
+      lastAddedProduct: null,
 
       addItem: (producto, cantidad) => {
         const items = get().items
@@ -30,7 +33,7 @@ export const useCartStore = create<CartState>()(
             subtotal: newCantidad * producto.precio_unitario,
           }
           const total = updated.reduce((sum, item) => sum + item.subtotal, 0)
-          set({ items: updated, total })
+          set({ items: updated, total, lastAddedProduct: producto.nombre })
         } else {
           const newItem: CartItem = {
             producto_id: producto.id,
@@ -41,7 +44,7 @@ export const useCartStore = create<CartState>()(
           }
           const updated = [...items, newItem]
           const total = updated.reduce((sum, item) => sum + item.subtotal, 0)
-          set({ items: updated, total })
+          set({ items: updated, total, lastAddedProduct: producto.nombre })
         }
       },
 
@@ -68,9 +71,37 @@ export const useCartStore = create<CartState>()(
       clearCart: () => {
         set({ items: [], total: 0 })
       },
+
+      clearLastAdded: () => {
+        set({ lastAddedProduct: null })
+      },
     }),
     {
       name: 'cart-store',
     }
   )
 )
+
+const CART_PREFIX = 'cart-user-'
+
+export function saveCartForUser(userId: number) {
+  const state = useCartStore.getState()
+  localStorage.setItem(
+    `${CART_PREFIX}${userId}`,
+    JSON.stringify({ items: state.items, total: state.total })
+  )
+}
+
+export function loadCartForUser(userId: number) {
+  const data = localStorage.getItem(`${CART_PREFIX}${userId}`)
+  if (data) {
+    try {
+      const parsed = JSON.parse(data)
+      useCartStore.setState({ items: parsed.items || [], total: parsed.total || 0 })
+    } catch {
+      useCartStore.setState({ items: [], total: 0 })
+    }
+  } else {
+    useCartStore.setState({ items: [], total: 0 })
+  }
+}

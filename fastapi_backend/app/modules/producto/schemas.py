@@ -14,8 +14,11 @@ class ProductoCreate(SQLModel):
     nombre: str = Field(min_length=2, max_length=150)
     descripcion: Optional[str] = None
     precio_base: float = Field(gt=0)
-    imagen_url: List[str] = Field(default_factory=list)
+    imagenes_url: Optional[List[str]] = Field(default=None)
     disponible: bool = True
+    porcentaje_ganancia: Optional[float] = Field(default=None, ge=0)
+    stock_cantidad: int = Field(default=0, ge=0)
+    unidad_venta_id: Optional[int] = Field(default=None, gt=0)
     categoria_id: int = Field(gt=0)
     es_principal: bool = False
     ingredientes: list["ProductoIngredienteCreateInline"] = Field(default_factory=list)
@@ -25,8 +28,11 @@ class ProductoUpdate(SQLModel):
     nombre: Optional[str] = Field(default=None, min_length=2, max_length=150)
     descripcion: Optional[str] = None
     precio_base: Optional[float] = Field(default=None, gt=0)
-    imagen_url: Optional[List[str]] = None
+    imagenes_url: Optional[List[str]] = None
     disponible: Optional[bool] = None
+    porcentaje_ganancia: Optional[float] = Field(default=None, ge=0)
+    stock_cantidad: Optional[int] = Field(default=None, ge=0)
+    unidad_venta_id: Optional[int] = Field(default=None, gt=0)
     categoria_id: Optional[int] = Field(default=None, gt=0)
     es_principal: Optional[bool] = None
     ingredientes: Optional[List["ProductoIngredienteCreateInline"]] = None
@@ -44,8 +50,12 @@ class ProductoPublic(SQLModel):
     nombre: str
     descripcion: Optional[str] = None
     precio_base: float
-    imagen_url: List[str]
+    imagenes_url: Optional[List[str]] = None
     disponible: bool
+    porcentaje_ganancia: Optional[float] = None
+    stock_cantidad: int = 0
+    unidad_venta_id: Optional[int] = None
+    costo_total: Optional[float] = None
     categoria_id: Optional[int] = None
     es_principal: bool = False
     created_at: datetime
@@ -98,3 +108,21 @@ class ProductoIngredienteList(SQLModel):
 class DisponibilidadUpdate(SQLModel):
     """Request para cambiar disponibilidad de un producto."""
     disponible: bool
+
+
+class CostoDesgloseItem(SQLModel):
+    ingrediente_id: int
+    ingrediente_nombre: str
+    cantidad_receta: float
+    unidad_receta: str
+    costo_unitario: float
+    unidad_base: str
+    costo_total: float
+
+
+class CostoProductoResponse(SQLModel):
+    producto_id: int
+    costo_ingredientes: float
+    porcentaje_ganancia: Optional[float] = None
+    precio_sugerido: Optional[float] = None
+    desglose: list[CostoDesgloseItem] = []

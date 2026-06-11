@@ -29,8 +29,7 @@ class HistorialEstadoPedido(SQLModel, table=True):
         default_factory=lambda: datetime.now(timezone.utc),
         sa_type=DateTime(timezone=True)
     )
- 
-    # Relaciones
+
     pedido: Optional["Pedido"] = Relationship(back_populates="historial")
     estado_desde: Optional["EstadoPedido"] = Relationship(
         back_populates="historial_desde",

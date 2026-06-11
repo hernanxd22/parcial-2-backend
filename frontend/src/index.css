@@ -70,6 +70,8 @@ aside::-webkit-scrollbar-thumb:hover {
   margin-bottom: 24px;
   flex-wrap: wrap;
   gap: 12px;
+  padding: 0 8px;
+  margin-left: 20px;
 }
 
 .card-title {
@@ -77,6 +79,7 @@ aside::-webkit-scrollbar-thumb:hover {
   font-weight: 700;
   color: #1c1917;
   letter-spacing: -0.01em;
+  margin-left: 20px;
 }
 .dark .card-title {
   color: #fafaf9;

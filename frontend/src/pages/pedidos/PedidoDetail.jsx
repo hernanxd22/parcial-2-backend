@@ -6,8 +6,7 @@ import { useAuth } from '../../context/AuthContext'
 const FSM = {
   'PENDIENTE': ['CONFIRMADO', 'CANCELADO'],
   'CONFIRMADO': ['EN_PREP', 'CANCELADO'],
-  'EN_PREP': ['EN_CAMINO', 'CANCELADO'],
-  'EN_CAMINO': ['ENTREGADO'],
+  'EN_PREP': ['ENTREGADO', 'CANCELADO'],
   'ENTREGADO': [],
   'CANCELADO': []
 }
@@ -68,7 +67,6 @@ function PedidoDetail() {
       'PENDIENTE': 'badge-warning',
       'CONFIRMADO': 'badge-info',
       'EN_PREP': 'badge-info',
-      'EN_CAMINO': 'badge-info',
       'ENTREGADO': 'badge-success',
       'CANCELADO': 'badge-danger'
     }
@@ -139,7 +137,6 @@ function PedidoDetail() {
 
       {isAdmin && (
         <>
-          {/* Detalles del pedido */}
           <div className="card">
             <h2 className="card-title">Items del Pedido</h2>
             
@@ -169,7 +166,6 @@ function PedidoDetail() {
             )}
           </div>
 
-          {/* Historial de estados */}
           <div className="card">
             <h2 className="card-title">Historial de Estados</h2>
             
@@ -203,7 +199,6 @@ function PedidoDetail() {
         </>
       )}
 
-      {/* Modal para avanzar estado */}
       {showAvanzarModal && (
         <div className="modal-overlay" onClick={() => setShowAvanzarModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>

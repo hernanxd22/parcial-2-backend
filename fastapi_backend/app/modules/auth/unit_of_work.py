@@ -1,6 +1,6 @@
 from sqlmodel import Session
 from app.core.unit_of_work import UnitOfWork
-from app.modules.refreshToken.repository import RefreshTokenRepository
+from app.modules.auth.repository import RefreshTokenRepository
 
 
 class RefreshTokenUnitOfWork(UnitOfWork):

@@ -1,11 +1,10 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: 'http://localhost:8000',
+  baseURL: '/api/v1',
   withCredentials: true,
 })
 
-// Response interceptor - refresh automático con cookie httponly
 let isRefreshing = false
 let failedQueue = []
 

@@ -7,14 +7,16 @@ class UsuarioRepository(BaseRepository[Usuario]):
     def __init__(self, session: Session):
         super().__init__(session, Usuario)
 
-    def get_active(self,offset: int = 0,limit: int = 20) -> list[Usuario]:
+    def get_active(self, offset: int = 0, limit: int = 20, search: str | None = None) -> list[Usuario]:
+        stmt = select(Usuario).where(Usuario.activo == True)
+        if search:
+            stmt = stmt.where(
+                Usuario.nombre.ilike(f"%{search}%") |
+                Usuario.apellido.ilike(f"%{search}%") |
+                Usuario.email.ilike(f"%{search}%")
+            )
         return list(
-            self.session.exec(
-                select(Usuario)
-                .where(Usuario.activo == True)
-                .offset(offset)
-                .limit(limit)
-            ).all()
+            self.session.exec(stmt.offset(offset).limit(limit)).all()
         )
 
     def get_by_email(self, email: str) -> Usuario | None:
@@ -23,13 +25,15 @@ class UsuarioRepository(BaseRepository[Usuario]):
             .where(Usuario.email == email)
         ).first()
 
-    def count(self) -> int:
-        return len(
-            self.session.exec(
-                select(Usuario)
-                .where(Usuario.activo == True)
-            ).all()
-        )
+    def count(self, search: str | None = None) -> int:
+        stmt = select(Usuario).where(Usuario.activo == True)
+        if search:
+            stmt = stmt.where(
+                Usuario.nombre.ilike(f"%{search}%") |
+                Usuario.apellido.ilike(f"%{search}%") |
+                Usuario.email.ilike(f"%{search}%")
+            )
+        return len(self.session.exec(stmt).all())
 
 
 class UsuarioRolRepository(BaseRepository[UsuarioRol]):

@@ -15,18 +15,19 @@ class IngredienteRepository(BaseRepository[Ingrediente]):
             select(Ingrediente).where(Ingrediente.nombre == nombre)
         ).first()
 
-    def get_all_paged(self, offset: int = 0, limit: int = 20) -> list[Ingrediente]:
+    def get_all_paged(self, offset: int = 0, limit: int = 20, nombre: str | None = None) -> list[Ingrediente]:
+        stmt = select(Ingrediente).where(Ingrediente.activo == True)
+        if nombre:
+            stmt = stmt.where(Ingrediente.nombre.ilike(f"%{nombre}%"))
         return list(
-            self.session.exec(
-                select(Ingrediente)
-                .where(Ingrediente.activo == True)
-                .offset(offset)
-                .limit(limit)
-            ).all()
+            self.session.exec(stmt.order_by(Ingrediente.created_at.desc()).offset(offset).limit(limit)).all()
         )
 
-    def count(self) -> int:
-        return len(self.session.exec(select(Ingrediente)).all())
+    def count(self, nombre: str | None = None) -> int:
+        stmt = select(Ingrediente).where(Ingrediente.activo == True)
+        if nombre:
+            stmt = stmt.where(Ingrediente.nombre.ilike(f"%{nombre}%"))
+        return len(self.session.exec(stmt).all())
 
 
 class ProductoIngredienteRepository(BaseRepository[ProductoIngrediente]):

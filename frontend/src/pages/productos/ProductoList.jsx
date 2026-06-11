@@ -10,6 +10,9 @@ import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import DataTable from "../../components/DataTable";
 import Modal from "../../components/Modal";
+import Pagination from "../../components/Pagination";
+
+const PAGE_SIZE = 12;
 
 function ProductoList() {
   const { user } = useAuth();
@@ -27,17 +30,24 @@ function ProductoList() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [productoToDelete, setProductoToDelete] = useState(null);
   const [expandedProducto, setExpandedProducto] = useState(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const navigate = useNavigate();
 
-  const fetchProductos = async () => {
+  const fetchProductos = async (pageNum = 1) => {
     try {
+      setLoading(true);
+      const offset = (pageNum - 1) * PAGE_SIZE;
       const [prodRes, ingRes, uniRes] = await Promise.all([
-        getProductos({ limit: 100 }),
+        getProductos({ offset, limit: PAGE_SIZE, nombre: filtroNombre || undefined }),
         getIngredientes({ limit: 100 }),
         getUnidadesMedida({ limit: 100 }),
       ]);
 
       setProductos(prodRes.data.data || []);
+      setTotal(prodRes.data.total || 0);
+      setTotalPages(Math.ceil((prodRes.data.total || 0) / PAGE_SIZE));
 
       const ingMap = {};
       (ingRes.data.data || []).forEach((i) => {
@@ -46,7 +56,7 @@ function ProductoList() {
       setIngredienteMap(ingMap);
 
       const uniMap = {};
-      (uniRes.data.data || []).forEach((u) => {
+      (uniRes.data || []).forEach((u) => {
         uniMap[u.id] = u;
       });
       setUnidadMap(uniMap);
@@ -58,8 +68,19 @@ function ProductoList() {
   };
 
   useEffect(() => {
-    fetchProductos();
+    fetchProductos(page);
   }, []);
+
+  useEffect(() => {
+    setPage(1);
+    fetchProductos(1);
+  }, [filtroNombre]);
+
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+    fetchProductos(newPage);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const limpiarNumero = (value) => {
     return value.replace(/[^0-9.,]/g, "");
@@ -71,11 +92,60 @@ function ProductoList() {
     return Number(String(value).replace(",", ".")) || 0;
   };
 
-  const filteredProductos = productos.filter((p) => {
-    const matchNombre = p.nombre
-      ?.toLowerCase()
-      .includes(filtroNombre.toLowerCase());
+  const UNIT_CONVERSION = {
+    masa: { g: 1, kg: 1000 },
+    volumen: { mL: 1, L: 1000 },
+    unidad: { u: 1, doc: 12 },
+  };
 
+  const convertirUnidad = (cantidad, tipo, simboloOrigen, simboloDestino) => {
+    if (simboloOrigen === simboloDestino) return cantidad;
+    const fOrigen = UNIT_CONVERSION[tipo]?.[simboloOrigen];
+    const fDestino = UNIT_CONVERSION[tipo]?.[simboloDestino];
+    if (!fOrigen || !fDestino) return cantidad;
+    return (cantidad * fOrigen) / fDestino;
+  };
+
+  const calcularStockMaximo = (producto) => {
+    if (
+      !producto.producto_ingredientes ||
+      producto.producto_ingredientes.length === 0
+    ) {
+      return producto.stock_cantidad != null ? Number(producto.stock_cantidad) : null;
+    }
+
+    let minUnidades = Infinity;
+
+    for (const pi of producto.producto_ingredientes) {
+      const ing = ingredienteMap[pi.ingrediente_id];
+      if (!ing || ing.stock_cantidad == null) continue;
+
+      const umReceta = unidadMap[pi.unidad_medida_id];
+      const umIngrediente = unidadMap[ing.unidad_medida_id];
+      if (!umReceta || !umIngrediente) continue;
+
+      const stockDisponible = Number(ing.stock_cantidad);
+      let cantidadNecesaria = Number(pi.cantidad);
+
+      if (umReceta.tipo === umIngrediente.tipo) {
+        cantidadNecesaria = convertirUnidad(
+          cantidadNecesaria,
+          umReceta.tipo,
+          umReceta.simbolo,
+          umIngrediente.simbolo
+        );
+      }
+
+      if (cantidadNecesaria <= 0) continue;
+
+      const producibles = stockDisponible / cantidadNecesaria;
+      if (producibles < minUnidades) minUnidades = producibles;
+    }
+
+    return minUnidades === Infinity ? null : Math.floor(minUnidades);
+  };
+
+  const filteredProductos = productos.filter((p) => {
     const matchDisponible =
       filtroDisponible === ""
         ? true
@@ -90,7 +160,7 @@ function ProductoList() {
     const matchPrecioMin = filtroPrecioMin === "" ? true : precio >= precioMin;
     const matchPrecioMax = filtroPrecioMax === "" ? true : precio <= precioMax;
 
-    return matchNombre && matchDisponible && matchPrecioMin && matchPrecioMax;
+    return matchDisponible && matchPrecioMin && matchPrecioMax;
   });
 
   const renderIngredientes = (producto) => {
@@ -141,11 +211,36 @@ function ProductoList() {
       render: (val) => `$${val}`,
     },
     {
+      key: "stock_max",
+      label: "Stock max.",
+      render: (_, item) => {
+        const stock = calcularStockMaximo(item);
+        if (stock === null) {
+          return (
+            <span style={{ color: "#999", fontSize: "0.85em" }}>-</span>
+          );
+        }
+        if (stock === 0) {
+          return (
+            <span className="badge badge-error">0</span>
+          );
+        }
+        if (stock <= 5) {
+          return (
+            <span className="badge badge-warning">{stock} u</span>
+          );
+        }
+        return (
+          <span className="badge badge-success">{stock} u</span>
+        );
+      },
+    },
+    {
       key: "disponible",
       label: "Disponible",
       render: (val) => (
         <span className={`badge ${val ? "badge-success" : "badge-warning"}`}>
-          {val ? "Sí" : "No"}
+          {val ? "Si" : "No"}
         </span>
       ),
     },
@@ -184,7 +279,7 @@ function ProductoList() {
           <h1 className="card-title">Productos</h1>
           {!loading && (
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400">
-              {filteredProductos.length} de {productos.length}
+              {filteredProductos.length} de {total}
             </span>
           )}
         </div>
@@ -317,9 +412,10 @@ function ProductoList() {
           loading={loading}
           emptyMessage="No hay productos"
         />
+
+        <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
       </div>
 
-      {/* Panel expandible de ingredientes */}
       {expandedProducto && (
         <div
           className="card"

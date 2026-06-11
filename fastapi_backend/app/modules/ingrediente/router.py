@@ -1,5 +1,5 @@
 
-from typing import Annotated
+from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, Query, Path, status
 from sqlmodel import Session
 
@@ -43,10 +43,11 @@ def create_ingrediente(
 def list_ingredientes(
     offset: OffsetQuery = 0,
     limit: LimitQuery = 20,
+    nombre: Annotated[Optional[str], Query(description="Filtrar por nombre (búsqueda parcial)")] = None,
     svc: IngredienteService = Depends(get_ingrediente_service),
     _: Usuario = Depends(get_current_user),
 ) -> IngredienteList:
-    return svc.get_all(offset=offset, limit=limit)
+    return svc.get_all(offset=offset, limit=limit, nombre=nombre)
 
 @router.get(
     "/{ingrediente_id}",

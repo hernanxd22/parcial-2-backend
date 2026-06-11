@@ -9,14 +9,13 @@ from sqlmodel import Session, select
 from app.core.database import get_session
 from app.modules.usuario.models import Usuario, UsuarioRol
 
-
-security_scheme = HTTPBearer(auto_error=False)
-
-
 JWT_SECRET = os.getenv("JWT_SECRET")
 if not JWT_SECRET:
     raise ValueError("JWT_SECRET no está definida en el .env")
 JWT_ALGORITHM = "HS256"
+
+
+security_scheme = HTTPBearer(auto_error=False)
 
 
 def get_current_user(
@@ -86,3 +85,11 @@ def require_roles(*roles: str):
         return current_user
 
     return role_checker
+
+
+def decode_access_token(token: str) -> dict | None:
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        return payload
+    except jwt.JWTError:
+        return None

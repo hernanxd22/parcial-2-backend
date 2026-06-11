@@ -2,6 +2,8 @@
 node_modules/
 frontend/node_modules/
 frontend-store/node_modules/
+package-lock.json
+pnpm-workspace.yaml
 
 # Python
 .venv/
@@ -10,6 +12,9 @@ __pycache__/
 
 # Env
 .env
+
+# IDE
+.atl/
 
 # Build output
 frontend/dist/

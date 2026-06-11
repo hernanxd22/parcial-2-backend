@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { getIngredienteById, createIngrediente, updateIngrediente, getUnidadesMedida } from '../../api/endpoints'
+import { getIngredienteById, createIngrediente, updateIngrediente, getUnidadesMedida, uploadImage } from '../../api/endpoints'
 
 function IngredienteForm() {
   const { id } = useParams()
@@ -12,11 +12,14 @@ function IngredienteForm() {
     descripcion: '',
     es_alergeno: false,
     stock_cantidad: 0,
+    costo: 0,
+    imagen_url: '',
     unidad_medida_id: ''
   })
   const [unidades, setUnidades] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [uploadingImage, setUploadingImage] = useState(false)
 
   useEffect(() => {
     fetchData()
@@ -25,7 +28,7 @@ function IngredienteForm() {
   const fetchData = async () => {
     try {
       const uniRes = await getUnidadesMedida({ limit: 100 })
-      setUnidades(uniRes.data.data || [])
+      setUnidades(uniRes.data || [])
 
       if (isEdit) {
         const response = await getIngredienteById(id)
@@ -34,6 +37,8 @@ function IngredienteForm() {
           descripcion: response.data.descripcion || '',
           es_alergeno: response.data.es_alergeno || false,
           stock_cantidad: response.data.stock_cantidad || 0,
+          costo: response.data.costo ?? 0,
+          imagen_url: response.data.imagen_url || '',
           unidad_medida_id: response.data.unidad_medida_id || ''
         })
       }
@@ -51,8 +56,35 @@ function IngredienteForm() {
     })
   }
 
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploadingImage(true)
+    setError('')
+    try {
+      const res = await uploadImage(file, 'ingredientes')
+      setFormData((prev) => ({ ...prev, imagen_url: res.data.url }))
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Error al subir imagen')
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
+
+    if (!formData.nombre.trim()) {
+      setError("El nombre del ingrediente es obligatorio")
+      return
+    }
+
+    if (!formData.unidad_medida_id) {
+      setError("Seleccioná una unidad de medida")
+      return
+    }
+
     setError('')
     setLoading(true)
 
@@ -122,6 +154,46 @@ function IngredienteForm() {
             </label>
           </div>
 
+          <div className="form-group">
+            <label className="form-label">Imagen</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              disabled={uploadingImage}
+              className="form-input"
+              style={{ padding: '8px' }}
+            />
+            {uploadingImage && (
+              <small style={{ color: '#888' }}>Subiendo imagen...</small>
+            )}
+            {formData.imagen_url && (
+              <div style={{ marginTop: '8px' }}>
+                <img
+                  src={formData.imagen_url}
+                  alt="Preview"
+                  style={{
+                    maxWidth: '150px',
+                    maxHeight: '150px',
+                    borderRadius: '8px',
+                    border: '1px solid #e5e7eb',
+                    objectFit: 'cover',
+                  }}
+                />
+                <button
+                  type="button"
+                  className="btn btn-danger btn-sm"
+                  style={{ marginLeft: '8px' }}
+                  onClick={() =>
+                    setFormData((prev) => ({ ...prev, imagen_url: '' }))
+                  }
+                >
+                  Quitar
+                </button>
+              </div>
+            )}
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
             <div className="form-group">
               <label className="form-label">Stock / Cantidad</label>
@@ -146,10 +218,27 @@ function IngredienteForm() {
               >
                 <option value="">Sin unidad</option>
                 {unidades.map(uni => (
-                  <option key={uni.id} value={uni.id}>{uni.nombre} ({uni.simbolo})</option>
+                  <option key={uni.id} value={String(uni.id)}>{uni.nombre} ({uni.simbolo})</option>
                 ))}
               </select>
             </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Costo (por 1 unidad base)</label>
+            <input
+              type="number"
+              name="costo"
+              className="form-input"
+              value={formData.costo}
+              onChange={handleChange}
+              step="0.01"
+              min="0"
+              placeholder="Ej: 1000 (lo que te sale 1 kg, 1 L o 1 unidad)"
+            />
+            <small style={{ color: '#888' }}>
+              ¿Cuánto te sale 1 {unidades.find(u => u.id == formData.unidad_medida_id)?.simbolo || 'unidad'} de este ingrediente?
+            </small>
           </div>
 
           <div style={{ display: 'flex', gap: '10px' }}>

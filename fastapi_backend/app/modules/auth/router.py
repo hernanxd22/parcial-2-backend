@@ -1,26 +1,40 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlmodel import Session, select
 import os
 
 from app.core.database import get_session
 from app.core.security import get_current_user
-from app.modules.refreshToken.schemas import (
+from app.modules.auth.schemas import (
+    RegisterRequest,
     LoginRequest,
+    LoginResponse,
     RefreshRequest,
     LogoutResponse,
     MeResponse,
 )
-from app.modules.refreshToken.service import AuthService
+from app.modules.auth.service import AuthService
 from app.modules.usuario.models import Usuario, UsuarioRol
+from app.modules.usuario.service import UsuarioService, hash_password
+from app.modules.usuario.schemas import UsuarioCreate, UsuarioPublic
 
 IS_PRODUCTION = os.getenv("ENVIRONMENT") == "production"
+IS_TEST = os.getenv("ENVIRONMENT") == "test"
+
+limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
+def _maybe_limit(limit_value: str):
+    if IS_TEST:
+        return lambda f: f
+    return limiter.limit(limit_value)
+
+
 def _set_auth_cookies(response: JSONResponse, access_token: str, refresh_token: str) -> None:
-    """Setear cookies httponly con los tokens."""
     response.set_cookie(
         key="access_token",
         value=access_token,
@@ -28,7 +42,7 @@ def _set_auth_cookies(response: JSONResponse, access_token: str, refresh_token: 
         secure=IS_PRODUCTION,
         samesite="lax",
         path="/",
-        max_age=900,
+        max_age=1800,
     )
     response.set_cookie(
         key="refresh_token",
@@ -42,33 +56,55 @@ def _set_auth_cookies(response: JSONResponse, access_token: str, refresh_token: 
 
 
 def _clear_auth_cookies(response: JSONResponse) -> None:
-    """Eliminar cookies de autenticación."""
     response.delete_cookie("access_token", path="/")
     response.delete_cookie("refresh_token", path="/")
 
 
-@router.post("/login")
-def login(data: LoginRequest, session: Session = Depends(get_session)):
-    """
-    Iniciar sesión.
+@router.post(
+    "/register",
+    response_model=UsuarioPublic,
+    status_code=status.HTTP_201_CREATED,
+    summary="Registrar nuevo usuario",
+)
+@_maybe_limit("5/15minutes")
+def register(
+    data: RegisterRequest,
+    request: Request,
+    session: Session = Depends(get_session),
+):
+    svc = UsuarioService(session)
+    return svc.create(
+        UsuarioCreate(
+            nombre=data.nombre,
+            apellido=data.apellido,
+            email=data.email,
+            password=data.password,
+            celular=data.celular,
+        )
+    )
 
-    Setea cookies httponly con access_token (15 min) y refresh_token (7 días).
-    El frontend NO necesita leer estos tokens desde JS — el navegador los envía solo.
-    """
+
+@router.post("/login", response_model=LoginResponse)
+@_maybe_limit("5/15minutes")
+def login(
+    data: LoginRequest,
+    request: Request,
+    session: Session = Depends(get_session),
+):
     service = AuthService(session)
     result = service.login(data)
-    response = JSONResponse(content={"message": "Inicio de sesión exitoso"})
+    response = JSONResponse(content={
+        "message": "Inicio de sesion exitoso",
+        "access_token": result.access_token,
+        "refresh_token": result.refresh_token,
+        "token_type": "bearer"
+    })
     _set_auth_cookies(response, result.access_token, result.refresh_token)
     return response
 
 
 @router.post("/refresh")
 def refresh(request: Request, session: Session = Depends(get_session)):
-    """
-    Renovar access token usando refresh token de la cookie httponly.
-
-    El refresh token anterior se invalida (rotation).
-    """
     refresh_token = request.cookies.get("refresh_token")
     if not refresh_token:
         raise HTTPException(
@@ -87,7 +123,7 @@ def logout(
     request: Request,
     session: Session = Depends(get_session),
 ):
-    
+
     refresh_token = request.cookies.get("refresh_token")
     if refresh_token:
         service = AuthService(session)
@@ -102,9 +138,6 @@ def get_me(
     current_user: Usuario = Depends(get_current_user),
     session: Session = Depends(get_session),
 ):
-    """
-    Obtener datos del usuario autenticado.
-    """
     stmt = select(UsuarioRol).where(
         UsuarioRol.usuario_id == current_user.id
     )

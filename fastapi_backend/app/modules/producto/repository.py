@@ -21,10 +21,11 @@ class ProductoRepository(BaseRepository[Producto]):
         )
         return self.session.exec(stmt).first()
 
-    def get_all_paged(self, offset: int = 0, limit: int = 20) -> list[Producto]:
-        stmt = self._load_relations(
-            select(Producto).offset(offset).limit(limit)
-        )
+    def get_all_paged(self, offset: int = 0, limit: int = 20, nombre: str | None = None) -> list[Producto]:
+        stmt = select(Producto).where(Producto.deleted_at == None)
+        if nombre:
+            stmt = stmt.where(Producto.nombre.ilike(f"%{nombre}%"))
+        stmt = self._load_relations(stmt.order_by(Producto.created_at.desc()).offset(offset).limit(limit))
         return list(self.session.exec(stmt).all())
 
     def get_by_categoria(self, categoria_id: int, offset: int = 0, limit: int = 20) -> list[Producto]:
@@ -37,8 +38,11 @@ class ProductoRepository(BaseRepository[Producto]):
         )
         return list(self.session.exec(stmt).all())
 
-    def count(self) -> int:
-        return len(self.session.exec(select(Producto)).all())
+    def count(self, nombre: str | None = None) -> int:
+        stmt = select(Producto).where(Producto.deleted_at == None)
+        if nombre:
+            stmt = stmt.where(Producto.nombre.ilike(f"%{nombre}%"))
+        return len(self.session.exec(stmt).all())
 
 
 class ProductoCategoriaRepository(BaseRepository[ProductoCategoria]):

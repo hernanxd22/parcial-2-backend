@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from app.modules.FormaPago.models import FormaPago
     from app.modules.DetallePedido.models import DetallePedido 
     from app.modules.HistorialEstadoPedido.models import HistorialEstadoPedido
+    from app.modules.Pago.models import Pago
 
 class Pedido(SQLModel, table=True):
     __tablename__ = "pedido"
@@ -42,10 +43,10 @@ class Pedido(SQLModel, table=True):
         sa_type=DateTime(timezone=True)
     )
 
-    # Relaciones
     usuario: Optional["Usuario"] = Relationship(back_populates="pedidos")
     direccion: Optional["DireccionEntrega"] = Relationship(back_populates="pedidos")
     estado_pedido: Optional["EstadoPedido"] = Relationship(back_populates="pedidos")
     forma_pago: Optional["FormaPago"] = Relationship(back_populates="pedidos")
     detalles: List["DetallePedido"] = Relationship(back_populates="pedido")
     historial: List["HistorialEstadoPedido"] = Relationship(back_populates="pedido")
+    pagos: List["Pago"] = Relationship(back_populates="pedido")

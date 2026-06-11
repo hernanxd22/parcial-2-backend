@@ -3,7 +3,7 @@ from sqlmodel import Session
 from datetime import datetime, timezone
 
 from app.modules.Pedido.models import Pedido
-from app.modules.DetallePedido.models import DetallePedido 
+from app.modules.DetallePedido.models import DetallePedido
 from app.modules.HistorialEstadoPedido.models import HistorialEstadoPedido
 from app.modules.Pedido.schemas import (
     PedidoCreate,
@@ -13,12 +13,32 @@ from app.modules.Pedido.schemas import (
     PedidoList,
     DetallePedidoPublic,
     HistorialEstadoPublic,
+    PedidoEstadoPedido,
+    PedidoItemEstado,
+    PedidoEstadoList,
 )
 from app.modules.Pedido.unit_of_work import PedidoUnitOfWork
 from app.modules.producto.models import Producto
 from app.modules.ingrediente.models import Ingrediente
 from app.modules.unidadMedida.models import UnidadMedida
 from app.modules.EstadoPedido.models import EstadoPedido
+
+
+EVENTOS_WS = {
+    "PENDIENTE":  "estado_cambiado",
+    "CONFIRMADO": "estado_cambiado",
+    "EN_PREP":    "estado_cambiado",
+    "ENTREGADO":  "estado_cambiado",
+    "CANCELADO":  "pedido_cancelado",
+}
+
+ROLES_POR_TRANSICION = {
+    "PENDIENTE":  ["ADMIN", "PEDIDOS", "CLIENTE"],
+    "CONFIRMADO": ["ADMIN", "PEDIDOS", "STOCK", "CLIENTE"],
+    "EN_PREP":    ["ADMIN", "PEDIDOS", "STOCK", "CLIENTE"],
+    "ENTREGADO":  ["ADMIN", "PEDIDOS", "CLIENTE"],
+    "CANCELADO":  ["ADMIN", "PEDIDOS", "STOCK", "CLIENTE"],
+}
 
 
 
@@ -56,8 +76,7 @@ def _now() -> datetime:
 FSM: dict[str, list[str]] = {
     "PENDIENTE":   ["CONFIRMADO", "CANCELADO"],
     "CONFIRMADO":  ["EN_PREP", "CANCELADO"],
-    "EN_PREP":     ["EN_CAMINO", "CANCELADO"],
-    "EN_CAMINO":   ["ENTREGADO"],
+    "EN_PREP":     ["ENTREGADO", "CANCELADO"],
     "ENTREGADO":   [],
     "CANCELADO":   [],
 }
@@ -122,7 +141,7 @@ class PedidoService:
         )
 
 
-    def create(self, data: PedidoCreate) -> PedidoPublic:
+    async def create(self, data: PedidoCreate) -> PedidoPublic:
         with PedidoUnitOfWork(self._session) as uow:
             subtotal = 0.0
             detalles: list[DetallePedido] = []
@@ -143,36 +162,37 @@ class PedidoService:
                     personalizacion=item.personalizacion,
                 ))
 
-              
-                for pi in producto.producto_ingredientes:
-                    ingrediente = pi.ingrediente
-                    stock_unidad = ingrediente.unidad_medida
-                    receta_unidad = pi.unidad_medida
+                if producto.producto_ingredientes:
+                    for pi in producto.producto_ingredientes:
+                        ingrediente = pi.ingrediente
+                        stock_unidad = ingrediente.unidad_medida
+                        receta_unidad = pi.unidad_medida
 
-                    if stock_unidad and receta_unidad and stock_unidad.tipo == receta_unidad.tipo:
-                        cantidad_por_item = _convertir_unidad(
-                            pi.cantidad,
-                            receta_unidad.tipo,
-                            receta_unidad.simbolo,
-                            stock_unidad.simbolo,
-                        )
-                    else:
-                        cantidad_por_item = pi.cantidad
+                        if stock_unidad and receta_unidad and stock_unidad.tipo == receta_unidad.tipo:
+                            cantidad_por_item = _convertir_unidad(
+                                pi.cantidad,
+                                receta_unidad.tipo,
+                                receta_unidad.simbolo,
+                                stock_unidad.simbolo,
+                            )
+                        else:
+                            cantidad_por_item = pi.cantidad
 
-                    cantidad_necesaria = cantidad_por_item * item.cantidad
-                    if ingrediente.stock_cantidad < cantidad_necesaria:
-                        simb = stock_unidad.simbolo if stock_unidad else ""
+                        cantidad_necesaria = cantidad_por_item * item.cantidad
+                        if ingrediente.stock_cantidad < cantidad_necesaria:
+                            raise HTTPException(
+                                status_code=status.HTTP_409_CONFLICT,
+                                detail=f"El producto '{producto.nombre}' no tiene stock suficiente",
+                            )
+                else:
+                    if producto.stock_cantidad < item.cantidad:
                         raise HTTPException(
                             status_code=status.HTTP_409_CONFLICT,
-                            detail=f"Stock insuficiente del ingrediente '{ingrediente.nombre}' "
-                                   f"(disponible: {ingrediente.stock_cantidad:.2f} {simb}, "
-                                   f"necesario: {cantidad_necesaria:.2f} {simb})",
+                            detail=f"El producto '{producto.nombre}' no tiene stock suficiente",
                         )
-                    ingrediente.stock_cantidad -= cantidad_necesaria
-                    self._session.add(ingrediente)
 
             descuento = 0.00
-            costo_envio = 0.00 if data.direccion_id is None else 50.00
+            costo_envio = 0.00 if (data.direccion_id is None or subtotal >= 100) else 9.99
             total = round(subtotal - descuento + costo_envio, 2)
 
             pedido = Pedido(
@@ -204,6 +224,8 @@ class PedidoService:
             uow._session.refresh(pedido)
             result = self._to_public(pedido)
 
+        await self._emit_ws_events(result.id, None, "PENDIENTE", data.usuario_id)
+
         return result
 
     def get_all(self, offset: int = 0, limit: int = 20, usuario_id: int | None = None) -> PedidoList:
@@ -211,7 +233,13 @@ class PedidoService:
             pedidos = uow.pedidos.get_all(offset=offset, limit=limit, usuario_id=usuario_id)
             total = uow.pedidos.count()
             result = PedidoList(
-                data=[PedidoPublicSimple.model_validate(p) for p in pedidos],
+                data=[
+                    PedidoPublicSimple(
+                        **p.model_dump(),
+                        usuario_nombre=f"{p.usuario.nombre} {p.usuario.apellido}" if p.usuario else None,
+                    )
+                    for p in pedidos
+                ],
                 total=total,
             )
         return result
@@ -223,7 +251,13 @@ class PedidoService:
             pedidos = uow.pedidos.get_by_usuario(usuario_id, offset=offset, limit=limit)
             total = uow.pedidos.count_by_usuario(usuario_id)
             result = PedidoList(
-                data=[PedidoPublicSimple.model_validate(p) for p in pedidos],
+                data=[
+                    PedidoPublicSimple(
+                        **p.model_dump(),
+                        usuario_nombre=f"{p.usuario.nombre} {p.usuario.apellido}" if p.usuario else None,
+                    )
+                    for p in pedidos
+                ],
                 total=total,
             )
         return result
@@ -234,7 +268,7 @@ class PedidoService:
             result = self._to_public(pedido)
         return result
 
-    def avanzar_estado(
+    async def avanzar_estado(
         self, pedido_id: int, data: PedidoAvanzarEstado
     ) -> PedidoPublic:
         with PedidoUnitOfWork(self._session) as uow:
@@ -260,11 +294,13 @@ class PedidoService:
             )
             uow.historial.add(historial)
 
-           
-            if data.estado_hacia_codigo == "CANCELADO" and estado_anterior in ("PENDIENTE", "CONFIRMADO"):
+            if data.estado_hacia_codigo == "CONFIRMADO":
                 for detalle in pedido.detalles:
                     producto = self._session.get(Producto, detalle.producto_id)
-                    if producto:
+                    if not producto:
+                        continue
+
+                    if producto.producto_ingredientes:
                         for pi in producto.producto_ingredientes:
                             ingrediente = pi.ingrediente
                             stock_unidad = ingrediente.unidad_medida
@@ -280,15 +316,95 @@ class PedidoService:
                             else:
                                 cantidad_por_item = pi.cantidad
 
-                            ingrediente.stock_cantidad += cantidad_por_item * detalle.cantidad
+                            cantidad_necesaria = cantidad_por_item * detalle.cantidad
+                            if ingrediente.stock_cantidad < cantidad_necesaria:
+                                simb = stock_unidad.simbolo if stock_unidad else ""
+                                raise HTTPException(
+                                    status_code=status.HTTP_409_CONFLICT,
+                                    detail=f"Stock insuficiente del ingrediente '{ingrediente.nombre}' "
+                                        f"(disponible: {ingrediente.stock_cantidad} {simb}, "
+                                               f"necesario: {cantidad_necesaria:.2f} {simb})",
+                                )
+                            ingrediente.stock_cantidad -= cantidad_necesaria
                             self._session.add(ingrediente)
+                    else:
+                            if producto.stock_cantidad < detalle.cantidad:
+                                raise HTTPException(
+                                    status_code=status.HTTP_409_CONFLICT,
+                                    detail=f"Stock insuficiente del producto '{producto.nombre}' "
+                                           f"(disponible: {producto.stock_cantidad}, solicitado: {detalle.cantidad})",
+                                )
+                            producto.stock_cantidad -= detalle.cantidad
+                            self._session.add(producto)
+           
+            if data.estado_hacia_codigo == "CANCELADO" and estado_anterior == "CONFIRMADO":
+                for detalle in pedido.detalles:
+                    producto = self._session.get(Producto, detalle.producto_id)
+                    if producto:
+                        if producto.producto_ingredientes:
+                            for pi in producto.producto_ingredientes:
+                                ingrediente = pi.ingrediente
+                                stock_unidad = ingrediente.unidad_medida
+                                receta_unidad = pi.unidad_medida
+
+                                if stock_unidad and receta_unidad and stock_unidad.tipo == receta_unidad.tipo:
+                                    cantidad_por_item = _convertir_unidad(
+                                        pi.cantidad,
+                                        receta_unidad.tipo,
+                                        receta_unidad.simbolo,
+                                        stock_unidad.simbolo,
+                                    )
+                                else:
+                                    cantidad_por_item = pi.cantidad
+
+                                ingrediente.stock_cantidad += cantidad_por_item * detalle.cantidad
+                                self._session.add(ingrediente)
+                        else:
+                            producto.stock_cantidad += detalle.cantidad
+                            self._session.add(producto)
 
             uow._session.refresh(pedido)
             result = self._to_public(pedido)
 
+        await self._emit_ws_events(result.id, estado_anterior, data.estado_hacia_codigo, data.usuario_id, data.motivo)
+
         return result
 
-    def cancelar(self, pedido_id: int, usuario_id: int, motivo: str) -> PedidoPublic:
+    async def _emit_ws_events(
+        self,
+        pedido_id: int,
+        estado_anterior: str | None,
+        estado_nuevo: str,
+        usuario_id: int | None,
+        motivo: str | None = None,
+    ) -> None:
+        import logging
+        logger = logging.getLogger("app.modules.Pedido.service")
+        from app.core.websocket import manager
+        from datetime import datetime, timezone as tz
+
+        event_type = EVENTOS_WS.get(estado_nuevo)
+        if not event_type:
+            logger.info(f"[WS] Estado {estado_nuevo} no tiene evento, no se emite")
+            return
+
+        payload = {
+            "pedido_id": pedido_id,
+            "estado_anterior": estado_anterior,
+            "estado_nuevo": estado_nuevo,
+            "usuario_id": usuario_id,
+            "motivo": motivo,
+            "timestamp": datetime.now(tz.utc).isoformat(),
+        }
+
+        logger.info(f"[WS] Emitiendo {event_type} para pedido {pedido_id} a roles {ROLES_POR_TRANSICION.get(estado_nuevo, [])}")
+        logger.info(f"[WS] Rooms activas: {manager.get_rooms_info()}")
+        await manager.broadcast_to_order(pedido_id, event_type, payload)
+        roles = ROLES_POR_TRANSICION.get(estado_nuevo, [])
+        if roles:
+            await manager.broadcast_to_roles(roles, event_type, payload)
+
+    async def cancelar(self, pedido_id: int, usuario_id: int, motivo: str) -> PedidoPublic:
         """Cancelar un pedido (CLIENTE dueño del pedido)."""
         with PedidoUnitOfWork(self._session) as uow:
             pedido = self._get_or_404(uow, pedido_id)
@@ -305,7 +421,7 @@ class PedidoService:
                 usuario_id=usuario_id,
             )
 
-            return self.avanzar_estado(pedido_id, data)
+            return await self.avanzar_estado(pedido_id, data)
 
     def soft_delete(self, pedido_id: int) -> None:
         with PedidoUnitOfWork(self._session) as uow:
@@ -313,3 +429,30 @@ class PedidoService:
             pedido.deleted_at = _now()
             pedido.updated_at = _now()
             uow.pedidos.add(pedido)
+
+    def get_estado_pedidos(self, usuario_id: int, offset: int = 0, limit: int = 12) -> PedidoEstadoList:
+        """Obtiene pedidos simplificados para la vista de estado en frontend-store."""
+        with PedidoUnitOfWork(self._session) as uow:
+            pedidos = uow.pedidos.get_active_by_usuario(usuario_id, offset=offset, limit=limit)
+            total = uow.pedidos.count_by_usuario(usuario_id)
+            result = []
+            for p in pedidos:
+                items = [
+                    PedidoItemEstado(
+                        producto_id=d.producto_id,
+                        nombre=d.nombre_snapshot,
+                        cantidad=d.cantidad,
+                        precio_unitario=d.precio_snapshot,
+                        subtotal=d.subtotal_snap,
+                    )
+                    for d in p.detalles
+                ]
+                result.append(PedidoEstadoPedido(
+                    id=p.id,
+                    fecha=p.created_at.isoformat(),
+                    total=p.total,
+                    estado=p.estado_codigo,
+                    usuario_id=p.usuario_id,
+                    items=items,
+                ))
+            return PedidoEstadoList(data=result, total=total)

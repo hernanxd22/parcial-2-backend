@@ -4,8 +4,6 @@ import api from '../api/axios'
 const AuthContext = createContext(null)
 
 function normalizeUser(data) {
-  // /auth/me devuelve roles como array ["ADMIN"]
-  // Compatibilidad hacia atrás con código que espera user.rol (string)
   return {
     ...data,
     rol: data.roles?.[0] || '',
@@ -23,7 +21,8 @@ export function AuthProvider({ children }) {
         setUser(normalizeUser(response.data))
       } catch {
         try {
-          await api.post('/auth/refresh')
+          const refreshResponse = await api.post('/auth/refresh')
+          localStorage.setItem('access_token', refreshResponse.data.access_token)
           const response = await api.get('/auth/me')
           setUser(normalizeUser(response.data))
         } catch {
@@ -37,7 +36,8 @@ export function AuthProvider({ children }) {
   }, [])
 
   const login = async (email, password) => {
-    await api.post('/auth/login', { email, password })
+    const loginResponse = await api.post('/auth/login', { email, password })
+    localStorage.setItem('access_token', loginResponse.data.access_token)
     const response = await api.get('/auth/me')
     const userData = normalizeUser(response.data)
     setUser(userData)
@@ -53,8 +53,8 @@ export function AuthProvider({ children }) {
     try {
       await api.post('/auth/logout')
     } catch {
-      // Ignorar errores de logout
     } finally {
+      localStorage.removeItem('access_token')
       setUser(null)
     }
   }
