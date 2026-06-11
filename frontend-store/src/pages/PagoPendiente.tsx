@@ -4,20 +4,17 @@ export default function PagoPendiente() {
   return (
     <div className="min-h-[60vh] flex items-center justify-center px-4">
       <div className="text-center animate-scale-in">
-        {/* Icon */}
         <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-xl">
           <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
 
-        {/* Text */}
         <h2 className="text-3xl font-extrabold text-stone-800">Pago pendiente</h2>
         <p className="text-stone-500 mt-3 text-lg max-w-sm mx-auto">
           Tu pago está siendo procesado. Esto puede tomar unos minutos. Te notificaremos cuando se confirme.
         </p>
 
-        {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-3 mt-8 justify-center">
           <Link
             to="/mis-pedidos"

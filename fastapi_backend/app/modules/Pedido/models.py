@@ -43,7 +43,6 @@ class Pedido(SQLModel, table=True):
         sa_type=DateTime(timezone=True)
     )
 
-    # Relaciones
     usuario: Optional["Usuario"] = Relationship(back_populates="pedidos")
     direccion: Optional["DireccionEntrega"] = Relationship(back_populates="pedidos")
     estado_pedido: Optional["EstadoPedido"] = Relationship(back_populates="pedidos")

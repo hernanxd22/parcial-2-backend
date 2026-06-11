@@ -171,8 +171,6 @@ function ProductoForm() {
     }
   };
 
-  // --- Manejo de ingredientes ---
-
   const agregarIngrediente = (ingredienteId) => {
     const ingrediente = ingredientesDisponibles.find(
       (i) => i.id === ingredienteId,
@@ -180,7 +178,6 @@ function ProductoForm() {
 
     if (!ingrediente) return;
 
-    // No duplicar
     if (
       ingredientesSeleccionados.some((i) => i.ingrediente_id === ingredienteId)
     ) {
@@ -294,7 +291,6 @@ function ProductoForm() {
     }
   };
 
-  // Omitir ingredientes ya seleccionados de las opciones
   const ingredientesFiltrados = ingredientesDisponibles.filter(
     (ing) =>
       !ingredientesSeleccionados.some((s) => s.ingrediente_id === ing.id),

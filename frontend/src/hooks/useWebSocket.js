@@ -53,12 +53,10 @@ export function useWebSocket({ onMessage, enabled = true }) {
           const msg = JSON.parse(event.data)
           onMessageRef.current?.(msg)
         } catch {
-          // ignore malformed
         }
       }
 
       ws.onerror = () => {
-        // onclose handles reconnect logic
       }
 
       ws.onclose = (e) => {

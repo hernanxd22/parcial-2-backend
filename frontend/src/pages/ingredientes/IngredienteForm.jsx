@@ -74,6 +74,17 @@ function IngredienteForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+
+    if (!formData.nombre.trim()) {
+      setError("El nombre del ingrediente es obligatorio")
+      return
+    }
+
+    if (!formData.unidad_medida_id) {
+      setError("Seleccioná una unidad de medida")
+      return
+    }
+
     setError('')
     setLoading(true)
 

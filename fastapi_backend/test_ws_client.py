@@ -7,19 +7,15 @@ import jwt
 import os
 
 async def test_ws():
-    # Get JWT_SECRET
     from app.core.security import JWT_SECRET, JWT_ALGORITHM, decode_access_token
 
-    # Create a test token for user_id=1 (admin)
     payload = {'sub': '1'}
     token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
     print(f'Token: {token[:50]}...')
 
-    # Try to decode it
     decoded = decode_access_token(token)
     print(f'Decoded: {decoded}')
 
-    # Now test WebSocket connection
     import websockets
 
     ws_url = f'ws://localhost:8000/pedidos/ws?token={token}'
@@ -29,15 +25,12 @@ async def test_ws():
         async with websockets.connect(ws_url) as ws:
             print('Connected!')
 
-            # Receive message
             msg = await ws.recv()
             print(f'Received: {msg}')
 
-            # Send subscribe order
             await ws.send(json.dumps({'action': 'subscribe-order', 'order_id': 1}))
             print('Sent subscribe-order')
 
-            # Wait for response
             msg = await ws.recv()
             print(f'Received: {msg}')
 

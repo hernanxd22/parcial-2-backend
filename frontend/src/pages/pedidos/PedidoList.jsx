@@ -97,8 +97,7 @@ function PedidoList() {
   const { connected } = useWebSocket({ onMessage: handleWsMessage, enabled: true })
 
   const columns = [
-    { key: 'id', label: 'ID' },
-    { key: 'usuario_id', label: 'Usuario ID' },
+    { key: 'usuario_nombre', label: 'Cliente' },
     {
       key: 'estado_codigo',
       label: 'Estado',

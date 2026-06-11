@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { getCategoriaById, createCategoria, updateCategoria, getCategorias } from '../../api/endpoints'
+import { getCategoriaById, createCategoria, updateCategoria, getCategorias, uploadImage } from '../../api/endpoints'
 
 function CategoriaForm() {
   const { id } = useParams()
@@ -16,6 +16,7 @@ function CategoriaForm() {
   const [categorias, setCategorias] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [uploadingImage, setUploadingImage] = useState(false)
 
   useEffect(() => {
     fetchData()
@@ -48,6 +49,22 @@ function CategoriaForm() {
     })
   }
 
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploadingImage(true)
+    setError('')
+    try {
+      const res = await uploadImage(file, 'categorias')
+      setFormData((prev) => ({ ...prev, imagen_url: res.data.url }))
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Error al subir imagen')
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
@@ -67,7 +84,6 @@ function CategoriaForm() {
     }
   }
 
-  // Filtrar categorías para evitar ciclos (no permitir que una categoría sea padre de sí misma o sus hijos)
   const categoriasOptions = categorias.filter(c => c.id !== parseInt(id || 0))
 
   return (
@@ -120,15 +136,43 @@ function CategoriaForm() {
           </div>
 
           <div className="form-group">
-            <label className="form-label">URL de Imagen</label>
+            <label className="form-label">Imagen</label>
             <input
-              type="text"
-              name="imagen_url"
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              disabled={uploadingImage}
               className="form-input"
-              value={formData.imagen_url}
-              onChange={handleChange}
-              placeholder="https://..."
+              style={{ padding: '8px' }}
             />
+            {uploadingImage && (
+              <small style={{ color: '#888' }}>Subiendo imagen...</small>
+            )}
+            {formData.imagen_url && (
+              <div style={{ marginTop: '8px' }}>
+                <img
+                  src={formData.imagen_url}
+                  alt="Preview"
+                  style={{
+                    maxWidth: '150px',
+                    maxHeight: '150px',
+                    borderRadius: '8px',
+                    border: '1px solid #e5e7eb',
+                    objectFit: 'cover',
+                  }}
+                />
+                <button
+                  type="button"
+                  className="btn btn-danger btn-sm"
+                  style={{ marginLeft: '8px' }}
+                  onClick={() =>
+                    setFormData((prev) => ({ ...prev, imagen_url: '' }))
+                  }
+                >
+                  Quitar
+                </button>
+              </div>
+            )}
           </div>
 
           <div style={{ display: 'flex', gap: '10px' }}>

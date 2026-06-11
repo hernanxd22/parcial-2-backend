@@ -66,7 +66,6 @@ export default function MisPedidos() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-stone-800 flex items-center gap-3">
           <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white">
@@ -108,7 +107,6 @@ export default function MisPedidos() {
               key={pedido.id}
               className="bg-white rounded-2xl shadow-sm border border-stone-200 p-6 card-hover"
             >
-              {/* Header */}
               <div className="flex justify-between items-start mb-6">
                 <div>
                   <div className="flex items-center gap-3">
@@ -136,7 +134,6 @@ export default function MisPedidos() {
                 </div>
               </div>
 
-              {/* Timeline */}
               {pedidos.length > 0 && (
                 <div className="mb-6 p-4 bg-stone-50 rounded-xl">
                   <div className="flex items-center gap-1">
@@ -177,7 +174,6 @@ export default function MisPedidos() {
                 </div>
               )}
 
-              {/* Items */}
               <div className="border-t border-stone-100 pt-4">
                 <table className="w-full text-sm">
                   <thead>

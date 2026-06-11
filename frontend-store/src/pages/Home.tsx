@@ -60,9 +60,7 @@ export default function Home() {
           {pedidoCreadoMsg}
         </div>
       )}
-      {/* Hero Section */}
       <div className="relative overflow-hidden bg-gradient-to-br from-stone-900 via-stone-800 to-stone-900">
-        {/* Decorative elements */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-10 left-10 w-72 h-72 bg-orange-500 rounded-full blur-3xl"></div>
           <div className="absolute bottom-10 right-10 w-96 h-96 bg-amber-500 rounded-full blur-3xl"></div>
@@ -88,7 +86,6 @@ export default function Home() {
               Hacé tu pedido y disfrutalo en tu casa.
             </p>
 
-            {/* Stats */}
             <div className="flex gap-8 mt-10">
               <div>
                 <p className="text-3xl font-bold text-white">4.9+</p>
@@ -109,9 +106,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Products Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-4 mb-10">
           <div className="relative flex-1">
             <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -145,7 +140,6 @@ export default function Home() {
           </select>
         </div>
 
-        {/* Products Grid */}
         {loadingProductos ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {[...Array(8)].map((_, i) => (
@@ -175,7 +169,6 @@ export default function Home() {
               ))}
             </div>
 
-            {/* Pagination */}
             <div className="flex justify-center items-center gap-4 mt-12">
               <button
                 onClick={() => setPage((p) => Math.max(0, p - 1))}

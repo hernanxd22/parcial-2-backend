@@ -57,7 +57,6 @@ export default function ProductoDetalle() {
 
   const sinStock = !producto.disponible
 
-  // Handle both string and array formats for imagen_url
   const getImageSrc = () => {
     if (!producto.imagen_url) return null
     if (typeof producto.imagen_url === 'string') return producto.imagen_url
@@ -69,7 +68,6 @@ export default function ProductoDetalle() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      {/* Back link */}
       <Link
         to="/"
         className="inline-flex items-center gap-2 text-stone-500 hover:text-orange-600 font-medium mb-8 transition-colors"
@@ -81,7 +79,6 @@ export default function ProductoDetalle() {
       </Link>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-        {/* Image */}
         <div className="relative">
           <div className="aspect-square bg-gradient-to-br from-stone-100 to-stone-200 rounded-3xl flex items-center justify-center overflow-hidden shadow-lg">
             {imagenSrc ? (
@@ -110,7 +107,6 @@ export default function ProductoDetalle() {
           )}
         </div>
 
-        {/* Info */}
         <div className="flex flex-col">
           <h1 className="text-3xl md:text-4xl font-extrabold text-stone-800 leading-tight">
             {producto.nombre}
@@ -136,7 +132,6 @@ export default function ProductoDetalle() {
             </p>
           )}
 
-          {/* Ingredientes */}
           {producto.ingredientes && producto.ingredientes.length > 0 && (
             <div className="mt-8 p-5 bg-stone-50 rounded-2xl border border-stone-200">
               <h3 className="font-bold text-stone-700 mb-3 flex items-center gap-2">
@@ -157,7 +152,6 @@ export default function ProductoDetalle() {
             </div>
           )}
 
-          {/* Add to cart */}
           {!sinStock && (
             <div className="mt-auto pt-8">
               <div className="flex items-center gap-4">

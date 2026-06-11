@@ -17,20 +17,17 @@ export default function PagoExitoso() {
   return (
     <div className="min-h-[60vh] flex items-center justify-center px-4">
       <div className="text-center animate-scale-in">
-        {/* Icon */}
         <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-xl">
           <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
           </svg>
         </div>
 
-        {/* Text */}
         <h2 className="text-3xl font-extrabold text-stone-800">¡Pago exitoso!</h2>
         <p className="text-stone-500 mt-3 text-lg max-w-sm mx-auto">
           Tu pedido fue confirmado y está siendo preparado. Te avisaremos cuando esté listo.
         </p>
 
-        {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-3 mt-8 justify-center">
           <Link
             to="/mis-pedidos"

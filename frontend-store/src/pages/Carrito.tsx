@@ -42,7 +42,6 @@ export default function Carrito() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-stone-800 flex items-center gap-3">
           <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white">
@@ -56,7 +55,6 @@ export default function Carrito() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Items */}
         <div className="lg:col-span-2">
           <div className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
             <div className="p-6 border-b border-stone-100">
@@ -70,7 +68,6 @@ export default function Carrito() {
           </div>
         </div>
 
-        {/* Summary */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-6 sticky top-24">
             <h2 className="text-lg font-bold text-stone-800 mb-5">Resumen del pedido</h2>

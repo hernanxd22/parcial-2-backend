@@ -25,7 +25,6 @@ export default function ProductoCard({ producto }: ProductoCardProps) {
     )
   }
 
-  // Handle both string and array formats for imagen_url
   const getImageSrc = () => {
     if (!producto.imagen_url) return null
     if (typeof producto.imagen_url === 'string') return producto.imagen_url
@@ -37,7 +36,6 @@ export default function ProductoCard({ producto }: ProductoCardProps) {
 
   return (
     <div className="group bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden card-hover flex flex-col h-full">
-      {/* Image container */}
       <Link to={`/productos/${producto.id}`} className="block relative">
         <div className="h-52 bg-gradient-to-br from-stone-100 to-stone-200 flex items-center justify-center overflow-hidden">
           {imagenSrc ? (
@@ -51,7 +49,6 @@ export default function ProductoCard({ producto }: ProductoCardProps) {
           )}
         </div>
 
-        {/* Category badge */}
         {producto.categoria_nombre && (
           <div className="absolute top-3 left-3">
             <span className="badge badge-primary bg-white/90 backdrop-blur-sm shadow-sm">
@@ -60,7 +57,6 @@ export default function ProductoCard({ producto }: ProductoCardProps) {
           </div>
         )}
 
-        {/* Out of stock overlay */}
         {sinStock && (
           <div className="absolute inset-0 bg-stone-900/60 flex items-center justify-center">
             <span className="badge badge-error text-sm px-4 py-1.5">Sin stock</span>
@@ -68,7 +64,6 @@ export default function ProductoCard({ producto }: ProductoCardProps) {
         )}
       </Link>
 
-      {/* Content */}
       <div className="p-5 flex flex-col flex-1">
         <Link to={`/productos/${producto.id}`} className="block">
           <h3 className="font-bold text-lg text-stone-800 group-hover:text-orange-600 transition-colors line-clamp-1">
@@ -82,7 +77,6 @@ export default function ProductoCard({ producto }: ProductoCardProps) {
           </p>
         )}
 
-        {/* Price and action */}
         <div className="mt-4 pt-4 border-t border-stone-100">
           <div className="flex items-center justify-between">
             <div>

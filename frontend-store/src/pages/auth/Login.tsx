@@ -32,7 +32,6 @@ export default function Login() {
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md animate-scale-in">
-        {/* Header */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center shadow-lg">
             <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -43,7 +42,6 @@ export default function Login() {
           <p className="text-stone-500 mt-2">Ingresá tus datos para continuar</p>
         </div>
 
-        {/* Form */}
         <div className="bg-white rounded-2xl shadow-xl border border-stone-100 p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>

@@ -55,6 +55,12 @@ def _apply_migrations():
                 ) THEN
                     ALTER TABLE producto ADD COLUMN stock FLOAT DEFAULT 0 NOT NULL;
                 END IF;
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name='categoria' AND column_name='imagen_url'
+                ) THEN
+                    ALTER TABLE categoria ADD COLUMN imagen_url VARCHAR;
+                END IF;
             END $$;
         """))
 

@@ -151,7 +151,6 @@ function Dashboard() {
 
   return (
     <div>
-      {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50 mb-1">
           Bienvenido, {user?.nombre || "Admin"}
@@ -161,7 +160,6 @@ function Dashboard() {
         </p>
       </div>
 
-      {/* Stats */}
       <div className="dashboard-stats">
         {[
           {
@@ -214,7 +212,6 @@ function Dashboard() {
         ))}
       </div>
 
-      {/* Quick actions */}
       <div className="mb-6">
         <h2 className="section-title">Acciones rápidas</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
@@ -240,7 +237,6 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* Welcome info */}
       <div className="card">
         <div className="flex items-start gap-4">
           <div className="p-3 rounded-xl bg-orange-50 dark:bg-orange-500/10 flex-shrink-0">

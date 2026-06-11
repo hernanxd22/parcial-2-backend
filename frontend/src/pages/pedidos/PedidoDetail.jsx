@@ -137,7 +137,6 @@ function PedidoDetail() {
 
       {isAdmin && (
         <>
-          {/* Detalles del pedido */}
           <div className="card">
             <h2 className="card-title">Items del Pedido</h2>
             
@@ -167,7 +166,6 @@ function PedidoDetail() {
             )}
           </div>
 
-          {/* Historial de estados */}
           <div className="card">
             <h2 className="card-title">Historial de Estados</h2>
             
@@ -201,7 +199,6 @@ function PedidoDetail() {
         </>
       )}
 
-      {/* Modal para avanzar estado */}
       {showAvanzarModal && (
         <div className="modal-overlay" onClick={() => setShowAvanzarModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>

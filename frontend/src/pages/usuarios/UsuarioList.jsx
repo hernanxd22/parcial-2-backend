@@ -69,7 +69,6 @@ function UsuarioList() {
   }
 
   const columns = [
-    { key: 'id', label: 'ID' },
     { key: 'nombre', label: 'Nombre' },
     { key: 'apellido', label: 'Apellido' },
     { key: 'email', label: 'Email' },

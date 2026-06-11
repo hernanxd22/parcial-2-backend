@@ -10,12 +10,10 @@ import time
 async def test_ws():
     from app.core.security import JWT_SECRET, JWT_ALGORITHM
 
-    # Create token manually
     payload = {'sub': '8', 'email': 'cliente@test.com', 'role': 'CLIENTE'}
     token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
     print(f'Token: {token}')
 
-    # Test with websockets
     import websockets
 
     ws_url = f'ws://localhost:8000/pedidos/ws?token={token}'
@@ -25,15 +23,12 @@ async def test_ws():
         ws = await asyncio.wait_for(websockets.connect(ws_url), timeout=5)
         print('Connected!')
 
-        # Receive
         msg = await asyncio.wait_for(ws.recv(), timeout=5)
         print(f'Received: {msg}')
 
-        # Send subscribe
         await ws.send(json.dumps({'action': 'subscribe-order', 'order_id': 19}))
         print('Sent subscribe')
 
-        # Receive
         msg = await asyncio.wait_for(ws.recv(), timeout=5)
         print(f'Received: {msg}')
 

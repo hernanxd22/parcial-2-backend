@@ -66,9 +66,9 @@ function IngredienteList() {
   })
 
   const columns = [
-    { key: 'id', label: 'ID' },
     { key: 'nombre', label: 'Nombre' },
     { key: 'descripcion', label: 'Descripción' },
+    { key: 'costo', label: 'Costo', render: (val) => `$${val?.toFixed(2)}` },
     { 
       key: 'es_alergeno', 
       label: 'Alérgeno',

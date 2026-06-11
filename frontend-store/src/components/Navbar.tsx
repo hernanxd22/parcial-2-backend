@@ -18,7 +18,6 @@ export default function Navbar() {
     <nav className="sticky top-0 z-50 glass border-b border-white/20 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all">
               <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -30,7 +29,6 @@ export default function Navbar() {
             </span>
           </Link>
 
-          {/* Nav Links */}
           <div className="hidden md:flex items-center gap-1">
             <Link
               to="/"
@@ -71,7 +69,6 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Auth Section */}
           <div className="flex items-center gap-3">
             {isAuthenticated ? (
               <div className="flex items-center gap-3">

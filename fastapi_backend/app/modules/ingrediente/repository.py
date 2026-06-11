@@ -20,7 +20,7 @@ class IngredienteRepository(BaseRepository[Ingrediente]):
         if nombre:
             stmt = stmt.where(Ingrediente.nombre.ilike(f"%{nombre}%"))
         return list(
-            self.session.exec(stmt.offset(offset).limit(limit)).all()
+            self.session.exec(stmt.order_by(Ingrediente.created_at.desc()).offset(offset).limit(limit)).all()
         )
 
     def count(self, nombre: str | None = None) -> int:

@@ -229,12 +229,10 @@ class ProductoService:
         with ProductoUnitOfWork(self._session) as uow:
             producto = self._get_or_404(uow, producto_id)
 
-            # --- Campos directos del producto ---
             patch = data.model_dump(exclude_unset=True, exclude={"categoria_id", "es_principal", "ingredientes"})
             for field, value in patch.items():
                 setattr(producto, field, value)
 
-            # --- Categoria ---
             if data.categoria_id is not None or data.es_principal is not None:
                 from app.modules.producto.models import ProductoCategoria
 
@@ -246,12 +244,11 @@ class ProductoService:
                 if cat_id is None:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="El producto no tiene categoría asignada. Especificá categoria_id.",
+                        detail="El producto no tiene categoria asignada. Especificá categoria_id.",
                     )
 
                 if relacion and relacion.categoria_id != cat_id:
                     uow.producto_categorias.delete(relacion)
-                    # ✅ flush para ejecutar el DELETE antes del INSERT
                     uow.productos.session.flush()
                     relacion = None
 
@@ -273,18 +270,13 @@ class ProductoService:
                     relacion.es_principal = data.es_principal
                     uow.producto_categorias.add(relacion)
 
-            # --- Ingredientes ---
             if data.ingredientes is not None:
                 from app.modules.producto.models import ProductoIngrediente
 
-                # Eliminar ingredientes existentes
                 for ing in uow.producto_ingredientes.get_by_producto(producto_id):
                     uow.producto_ingredientes.delete(ing)
 
-                # ✅ flush para ejecutar los DELETEs antes de los INSERTs
                 uow.productos.session.flush()
-
-                # Crear los nuevos
                 for ing_data in data.ingredientes:
                     from app.modules.ingrediente.models import Ingrediente
                     ingrediente = uow.productos.session.get(Ingrediente, ing_data.ingrediente_id)

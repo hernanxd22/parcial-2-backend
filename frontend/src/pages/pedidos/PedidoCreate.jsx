@@ -91,7 +91,7 @@ function PedidoCreate() {
     return items.reduce((total, item) => {
       const precio = getProductoPrecio(item.producto_id)
       return total + (precio * item.cantidad)
-    }, 0) + 50 // costo_envio
+    }, 0) + 50
   }
 
   const handleSubmit = async (e) => {

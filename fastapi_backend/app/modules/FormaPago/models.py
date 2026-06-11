@@ -12,5 +12,4 @@ class FormaPago(SQLModel, table=True):
     descripcion: str = Field(max_length=80)
     habilitado: bool = Field(default=True)
 
-    # relaciones
     pedidos: List["Pedido"] = Relationship(back_populates="forma_pago")

@@ -5,7 +5,6 @@ const api = axios.create({
   withCredentials: true,
 })
 
-// Response interceptor - refresh automático con cookie httponly
 let isRefreshing = false
 let failedQueue: Array<{ resolve: () => void; reject: (error: unknown) => void }> = []
 

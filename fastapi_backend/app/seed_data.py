@@ -520,26 +520,26 @@ def _seed_pedidos(session: Session):
             ))
 
     create_pedido("ENTREGADO", "EFECTIVO", [
-        (productos[0], 2),   # 2x Margherita
-        (productos[12], 2),  # 2x Coca-Cola
+        (productos[0], 2),
+        (productos[12], 2),
     ], "Sin cebolla por favor")
 
     create_pedido("ENTREGADO", "MERCADOPAGO", [
-        (productos[3], 1),   # 1x Hawaiana
-        (productos[19], 1),  # 1x Pan de Ajo
-        (productos[13], 1),  # 1x Agua Mineral
+        (productos[3], 1),
+        (productos[19], 1),
+        (productos[13], 1),
     ], "Dejar en la puerta")
 
     create_pedido("PENDIENTE", "TRANSFERENCIA", [
-        (productos[4], 1),   # 1x Cuatro Quesos
-        (productos[16], 1),  # 1x Tiramisú
+        (productos[4], 1),
+        (productos[16], 1),
     ])
 
     create_pedido("EN_PREP", "MERCADOPAGO", [
-        (productos[1], 1),   # 1x Pepperoni
-        (productos[5], 1),   # 1x Supreme
-        (productos[12], 1),  # 1x Coca-Cola
-        (productos[14], 1),  # 1x Cerveza Artesanal
+        (productos[1], 1),
+        (productos[5], 1),
+        (productos[12], 1),
+        (productos[14], 1),
     ], "Masa fina si es posible")
 
     session.commit()

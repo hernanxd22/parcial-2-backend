@@ -4,8 +4,6 @@ import api from '../api/axios'
 const AuthContext = createContext(null)
 
 function normalizeUser(data) {
-  // /auth/me devuelve roles como array ["ADMIN"]
-  // Compatibilidad hacia atrás con código que espera user.rol (string)
   return {
     ...data,
     rol: data.roles?.[0] || '',
@@ -55,7 +53,6 @@ export function AuthProvider({ children }) {
     try {
       await api.post('/auth/logout')
     } catch {
-      // Ignorar errores de logout
     } finally {
       localStorage.removeItem('access_token')
       setUser(null)

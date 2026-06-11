@@ -17,7 +17,6 @@ export default function CarritoItem({ item }: CarritoItemProps) {
 
   return (
     <div className="p-5 flex items-center gap-4 hover:bg-stone-50 transition-colors">
-      {/* Product info */}
       <div className="flex-1 min-w-0">
         <h3 className="font-semibold text-stone-800 truncate">{item.nombre}</h3>
         <p className="text-sm text-stone-500 mt-0.5">
@@ -25,7 +24,6 @@ export default function CarritoItem({ item }: CarritoItemProps) {
         </p>
       </div>
 
-      {/* Quantity controls */}
       <div className="flex items-center gap-1">
         <button
           onClick={() => updateQuantity(item.producto_id, item.cantidad - 1)}
@@ -52,14 +50,12 @@ export default function CarritoItem({ item }: CarritoItemProps) {
         </button>
       </div>
 
-      {/* Subtotal */}
       <div className="w-28 text-right">
         <p className="font-bold text-lg text-stone-800">
           ${item.subtotal.toFixed(2)}
         </p>
       </div>
 
-      {/* Remove button */}
       <button
         onClick={() => removeItem(item.producto_id)}
         className="p-2 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"

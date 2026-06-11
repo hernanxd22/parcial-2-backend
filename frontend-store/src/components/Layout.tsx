@@ -20,7 +20,6 @@ export default function Layout() {
     <div className="min-h-screen bg-stone-50 flex flex-col">
       <Navbar />
 
-      {/* Toast notification */}
       {lastAddedProduct && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 animate-fade-in-down">
           <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-6 py-3 rounded-2xl shadow-xl flex items-center gap-3 border border-emerald-400/30">
@@ -38,7 +37,6 @@ export default function Layout() {
         <Outlet />
       </main>
 
-      {/* Footer */}
       <footer className="bg-stone-900 text-stone-400 py-8 mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">

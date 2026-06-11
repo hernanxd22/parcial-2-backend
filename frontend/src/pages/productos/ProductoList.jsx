@@ -416,7 +416,6 @@ function ProductoList() {
         <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
       </div>
 
-      {/* Panel expandible de ingredientes */}
       {expandedProducto && (
         <div
           className="card"

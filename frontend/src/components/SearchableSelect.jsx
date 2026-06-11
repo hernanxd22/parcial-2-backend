@@ -26,7 +26,6 @@ export default function SearchableSelect({
     setOpen(false)
   }
 
-  // Cerrar dropdown al hacer clic fuera
   useEffect(() => {
     const handler = (e) => {
       if (ref.current && !ref.current.contains(e.target)) {

@@ -68,6 +68,7 @@ class PedidoPublicSimple(SQLModel):
     """Para listados sin detalles ni historial."""
     id: int
     usuario_id: int
+    usuario_nombre: Optional[str] = None
     direccion_id: Optional[int]
     estado_codigo: str
     forma_pago_codigo: str

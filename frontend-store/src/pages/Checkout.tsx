@@ -16,7 +16,6 @@ export default function Checkout() {
   const [showForm, setShowForm] = useState(false)
   const [formaPago, setFormaPago] = useState('EFECTIVO')
 
-  // Form state para nueva dirección
   const [alias, setAlias] = useState('')
   const [linea1, setLinea1] = useState('')
   const [ciudad, setCiudad] = useState('')
@@ -131,7 +130,6 @@ export default function Checkout() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-stone-800">Finalizar pedido</h1>
         <p className="text-stone-500 mt-2">Completá los datos para confirmar tu compra</p>
@@ -139,7 +137,6 @@ export default function Checkout() {
 
       <form onSubmit={handleSubmitPedido} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
-          {/* Dirección */}
           <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-6">
             <div className="flex justify-between items-center mb-5">
               <h2 className="text-lg font-bold text-stone-800 flex items-center gap-2">
@@ -257,7 +254,6 @@ export default function Checkout() {
             )}
           </div>
 
-          {/* Forma de pago */}
           <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-6">
             <h2 className="text-lg font-bold text-stone-800 flex items-center gap-2 mb-5">
               <span className="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center text-sm">
@@ -297,7 +293,6 @@ export default function Checkout() {
             </div>
           </div>
 
-          {/* Productos */}
           <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-6">
             <h2 className="text-lg font-bold text-stone-800 flex items-center gap-2 mb-5">
               <span className="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center text-sm">
@@ -319,7 +314,6 @@ export default function Checkout() {
           </div>
         </div>
 
-        {/* Resumen */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-6 sticky top-24">
             <h2 className="text-lg font-bold text-stone-800 mb-5">Resumen</h2>

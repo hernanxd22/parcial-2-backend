@@ -233,7 +233,13 @@ class PedidoService:
             pedidos = uow.pedidos.get_all(offset=offset, limit=limit, usuario_id=usuario_id)
             total = uow.pedidos.count()
             result = PedidoList(
-                data=[PedidoPublicSimple.model_validate(p) for p in pedidos],
+                data=[
+                    PedidoPublicSimple(
+                        **p.model_dump(),
+                        usuario_nombre=f"{p.usuario.nombre} {p.usuario.apellido}" if p.usuario else None,
+                    )
+                    for p in pedidos
+                ],
                 total=total,
             )
         return result
@@ -245,7 +251,13 @@ class PedidoService:
             pedidos = uow.pedidos.get_by_usuario(usuario_id, offset=offset, limit=limit)
             total = uow.pedidos.count_by_usuario(usuario_id)
             result = PedidoList(
-                data=[PedidoPublicSimple.model_validate(p) for p in pedidos],
+                data=[
+                    PedidoPublicSimple(
+                        **p.model_dump(),
+                        usuario_nombre=f"{p.usuario.nombre} {p.usuario.apellido}" if p.usuario else None,
+                    )
+                    for p in pedidos
+                ],
                 total=total,
             )
         return result
