@@ -137,7 +137,7 @@ function Dashboard() {
           <div className="h-8 w-36 bg-stone-200 dark:bg-stone-700/50 rounded-lg animate-pulse mb-2" />
           <div className="h-4 w-64 bg-stone-100 dark:bg-stone-700/30 rounded animate-pulse" />
         </div>
-        <div className="dashboard-stats">
+        <div className="dashboard-stats max-w-3xl mx-auto">
           <StatSkeleton />
           <StatSkeleton />
           <StatSkeleton />
@@ -160,7 +160,7 @@ function Dashboard() {
         </p>
       </div>
 
-      <div className="dashboard-stats">
+      <div className="dashboard-stats max-w-3xl mx-auto">
         {[
           {
             key: "pedidos",
@@ -214,7 +214,7 @@ function Dashboard() {
 
       <div className="mb-6">
         <h2 className="section-title">Acciones rápidas</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
           {visibleShortcuts.map((sc) => (
             <Link
               key={sc.to}
@@ -237,7 +237,7 @@ function Dashboard() {
         </div>
       </div>
 
-      <div className="card">
+      <div className="card max-w-2xl mx-auto">
         <div className="flex items-start gap-4">
           <div className="p-3 rounded-xl bg-orange-50 dark:bg-orange-500/10 flex-shrink-0">
             <svg
