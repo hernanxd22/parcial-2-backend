@@ -1,430 +1,402 @@
-# 🍕 Food Store — Sistema de Gestión para Comercio Gastronómico
+# Food Store — Sistema de Gestión Gastronómica
 
-**Trabajo Práctico — Parcial 2**  
+**Trabajo Práctico Integrador — Parcial 2**  
 **Universidad Tecnológica Nacional — Facultad Regional Mendoza**  
-**Tecnicatura Universitaria en Programación**
+**Tecnicatura Universitaria en Programación — 2026**
 
 ---
 
-## 📋 Descripción
+## Índice
 
-Sistema web integral para la administración de un comercio gastronómico. Permite gestionar productos del menú, pedidos de clientes, usuarios con control de acceso basado en roles, y ofrece tanto un panel de administración como una tienda online para clientes.
+1. [Requisitos previos](#1-requisitos-previos)
+2. [Clonar el proyecto](#2-clonar-el-proyecto)
+3. [Backend — FastAPI](#3-backend--fastapi)
+4. [Ejecutar tests](#4-ejecutar-tests)
+5. [Frontend Admin — Panel](#5-frontend-admin--panel-de-administración)
+6. [Frontend Store — Tienda](#6-frontend-store--tienda-online)
+7. [Usuarios de prueba](#7-usuarios-de-prueba)
+8. [API Endpoints](#8-api-endpoints)
+9. [Máquina de Estados (FSM)](#9-máquina-de-estados-fsm)
+10. [Tecnologías y arquitectura](#10-tecnologías-y-arquitectura)
 
-### Arquitectura
+---
 
-El proyecto sigue una arquitectura **cliente-servidor** con tres componentes independientes:
+## 1. Requisitos previos
 
+Instalar en este orden si no tenés nada:
+
+| Herramienta | Versión | Link de descarga |
+|---|---|---|
+| **Python** | 3.10 o superior | https://www.python.org/downloads/ |
+| **PostgreSQL** | 15 o superior | https://www.postgresql.org/download/ |
+| **Node.js** | 18 o superior | https://nodejs.org/ (incluye npm) |
+| **pnpm** | último | `npm install -g pnpm` |
+
+Verificar que todo quede instalado:
+
+```powershell
+python --version
+node --version
+pnpm --version
+psql --version
 ```
-┌──────────────────────────────────────────────────────┐
-│                    PostgreSQL                         │
-│                  Base de datos                        │
-└──────────────┬───────────────────────────────────────┘
-               │
-┌──────────────▼───────────────────────────────────────┐
-│              FastAPI Backend (:8000)                  │
-│  ┌─────────┐ ┌──────────┐ ┌────────────────────┐    │
-│  │ Auth    │ │ CRUD     │ │ Pedidos / Estados  │    │
-│  │ JWT     │ │ APIs     │ │ FSM                │    │
-│  └─────────┘ └──────────┘ └────────────────────┘    │
-└──────┬────────────────────────────┬──────────────────┘
-       │                            │
-┌──────▼──────────────┐  ┌─────────▼──────────────────┐
-│  Frontend Admin     │  │  Frontend Store            │
-│  (:3000)            │  │  (:5173)                   │
-│                     │  │                            │
-│  Panel de           │  │  Tienda online para        │
-│  administración     │  │  clientes finales          │
-│  (ADMIN/STOCK/      │  │  (carrito, checkout,       │
-│   PEDIDOS)          │  │   pedidos)                 │
-└─────────────────────┘  └────────────────────────────┘
-```
 
 ---
 
-## 🛠 Tecnologías
+## 2. Clonar el proyecto
 
-### Backend
-| Tecnología | Uso |
-|---|---|
-| **Python 3.14** | Lenguaje base |
-| **FastAPI** | Framework REST asíncrono |
-| **SQLModel** | ORM (SQLAlchemy + Pydantic) |
-| **PostgreSQL** | Base de datos relacional |
-| **PyJWT** | Autenticación con JSON Web Tokens |
-| **Passlib + bcrypt** | Hashing de contraseñas |
-| **Alembic** | Migraciones de base de datos |
-| **Python-dotenv** | Variables de entorno |
-| **MercadoPago SDK** | Integración de pagos |
-| **Cloudinary** | Almacenamiento de imágenes |
-
-### Frontend Admin (Panel)
-| Tecnología | Uso |
-|---|---|
-| **React 18** | Biblioteca de UI |
-| **Vite 5** | Bundler y dev server |
-| **TailwindCSS v4** | Estilos utilitarios |
-| **React Router v6** | Enrutamiento SPA |
-| **Axios** | Cliente HTTP |
-
-### Frontend Store (Tienda)
-| Tecnología | Uso |
-|---|---|
-| **React 19** | Biblioteca de UI |
-| **TypeScript** | Tipado estático |
-| **Vite 8** | Bundler y dev server |
-| **Zustand** | Estado global (carrito, auth) |
-| **TanStack React Query v5** | Fetching y caché de datos |
-| **TailwindCSS v4** | Estilos utilitarios |
-
----
-
-## 🚀 Instalación y ejecución
-
-### 1. Requisitos previos
-
-- **Python 3.10+**  
-- **Node.js 18+**  
-- **PostgreSQL 14+** (corriendo localmente o en un servidor accesible)
-
-### 2. Clonar el repositorio
-
-```bash
-git clone <url-del-repo>
+```powershell
+git clone https://github.com/farfan-hernan/parcial-2-backend.git
 cd parcial-2-backend
+git checkout correciones
 ```
 
-### 3. Configurar la base de datos
+El proyecto tiene 3 carpetas independientes:
 
-Crear una base de datos PostgreSQL:
+```
+parcial-2-backend/
+├── fastapi_backend/     ← API REST (Python)
+├── frontend/            ← Panel admin (React)
+└── frontend-store/      ← Tienda online (React + TypeScript)
+```
+
+---
+
+## 3. Backend — FastAPI
+
+### 3.1 Crear la base de datos
+
+Abrí **pgAdmin** o la terminal y ejecutá:
 
 ```sql
 CREATE DATABASE parcial2;
 ```
 
-> Las tablas se crean automáticamente al iniciar el backend por primera vez.
+> Si usás **psql** desde terminal: `psql -U postgres -c "CREATE DATABASE parcial2;"`
 
-### 4. Backend — FastAPI
+### 3.2 Configurar variables de entorno
 
-```bash
+```powershell
 cd fastapi_backend
+copy .env.example .env
+```
 
-# Crear y activar entorno virtual (Windows PowerShell)
+Editá el archivo `.env` con tus datos. Lo único **obligatorio** es:
+
+```env
+DATABASE_URL=postgresql://postgres:TU_CONTRASEÑA@localhost:5432/parcial2
+JWT_SECRET=una_clave_segura_de_al_menos_32_caracteres_cambiar_esto
+ADMIN_EMAIL=admin@foodstore.com
+ADMIN_PASSWORD=Admin1234!
+```
+
+Las variables de MercadoPago, Cloudinary y WebSocket son opcionales para desarrollo local. Las funcionalidades básicas (catálogo, pedidos, auth) funcionan sin ellas.
+
+### 3.3 Instalar dependencias
+
+```powershell
+# Crear entorno virtual
 python -m venv .venv
+
+# Activar (Windows PowerShell)
 .\.venv\Scripts\Activate.ps1
+
+# Si estás en Linux/Mac:
+# source .venv/bin/activate
 
 # Instalar dependencias
 pip install -r requirements.txt
-
-# Crear archivo .env (copiar y editar según tu configuración)
 ```
 
-**Archivo `.env` requerido:**
+### 3.4 Iniciar el servidor
 
-Copiá `.env.example` y renombralo a `.env`:
-
-```bash
-cp .env.example .env
-```
-
-Luego editá las variables según tu entorno:
-
-```env
-# Base de datos
-DATABASE_URL=postgresql://postgres:tu_password@localhost:5432/parcial2
-
-# JWT
-JWT_SECRET=cambiar_esto_por_una_clave_segura
-
-# Admin seed
-ADMIN_EMAIL=admin@admin.com
-ADMIN_PASSWORD=admin123
-
-# Entorno
-ENVIRONMENT=development
-
-# URLs
-FRONTEND_URL=http://localhost:3000
-BACKEND_URL=http://localhost:8000
-
-# MercadoPago (Sandbox)
-MP_ACCESS_TOKEN=TEST-0000000000000000-000000-00000000000000000000000000000000-000000000
-MP_PUBLIC_KEY=TEST-00000000-0000-0000-0000-000000000000
-MP_WEBHOOK_SECRET=tu_webhook_secret
-NGROK_URL=https://tu-ngrok.ngrok-free.app
-
-# Cloudinary
-CLOUDINARY_CLOUD_NAME=tu_cloud_name
-CLOUDINARY_API_KEY=000000000000000
-CLOUDINARY_API_SECRET=tu_api_secret
-
-# WebSocket (usado por el frontend)
-VITE_WS_URL=ws://localhost:8000/api/v1/pedidos/ws
-```
-
-> **Importante:** Las variables de MercadoPago usan credenciales de prueba (sandbox). Para producción, reemplazar por las credenciales productivas.
-
-**Iniciar el servidor:**
-
-```bash
-# Con FastAPI CLI (recomendado para desarrollo)
-fastapi dev main.py
-
-# O con Uvicorn directamente
+```powershell
 uvicorn main:app --reload
-# Tambien disponible como modulo
-uvicorn app.main:app --reload
 ```
 
-El backend estará disponible en **http://localhost:8000**  
-Documentación Swagger: **http://localhost:8000/docs**
+El backend arranca en **http://localhost:8000**. Al iniciar por primera vez:
 
-> Al iniciar, se crean automáticamente las tablas y se siembran datos de prueba (categorías, productos, ingredientes, usuarios y pedidos de ejemplo).
+- Crea automáticamente todas las tablas
+- Siembra datos de prueba: 4 roles, 5 estados, 3 formas de pago, 7 unidades de medida, 6 categorías, 39 ingredientes, 20 productos, 4 usuarios y 4 pedidos de ejemplo
 
-### Seed manual
+Documentación Swagger: **http://localhost:8000/docs**  
+Documentación ReDoc: **http://localhost:8000/redoc**
 
-También podés ejecutar el seed manualmente sin levantar el servidor:
+---
 
-```bash
-python -m app.db.seed
+## 4. Ejecutar tests
+
+Los tests usan **SQLite** — no necesitan PostgreSQL ni ninguna configuración extra.
+
+```powershell
+cd fastapi_backend
+
+# Activar el entorno virtual si no lo está
+.\.venv\Scripts\Activate.ps1
+
+# Ejecutar todos los tests (15)
+python -m pytest tests/ -v
+
+# O por archivo individual
+python -m pytest tests/test_auth.py -v
+python -m pytest tests/test_pedidos.py -v
+python -m pytest tests/test_estadisticas.py -v
 ```
 
-### 5. Frontend Admin — Panel de Administración
+**15 tests** que cubren:
 
-```bash
-cd ../frontend
+| Archivo | Qué prueba |
+|---|---|
+| `test_auth.py` | Registro, login (OK e inválido), /me con y sin token, email duplicado |
+| `test_pedidos.py` | Crear pedido, avanzar estado (FSM válido e inválido), cancelar, historial |
+| `test_estadisticas.py` | Resumen KPIs, pedidos por estado, ventas, exclusión de cancelados |
+
+El test crea un archivo `tests/test_pizza.db` que se borra automáticamente al terminar.
+
+---
+
+## 5. Frontend Admin — Panel de Administración
+
+```powershell
+cd frontend
 pnpm install
 pnpm dev
 ```
 
 Disponible en **http://localhost:3001**
 
-### 6. Frontend Store — Tienda Online
+**Login:** `admin@foodstore.com` / `Admin1234!` (o el que configuraste en `.env`)
 
-```bash
-cd ../frontend-store
+Secciones: Dashboard con gráficos, Productos, Categorías, Ingredientes, Pedidos, Usuarios.
+
+---
+
+## 6. Frontend Store — Tienda Online
+
+```powershell
+cd frontend-store
 pnpm install
 pnpm dev
 ```
 
 Disponible en **http://localhost:5173**
 
----
-
-## 👥 Roles y Permisos
-
-El sistema implementa control de acceso basado en roles (RBAC):
-
-| Rol | Descripción | Permisos |
-|---|---|---|
-| **ADMIN** | Administrador total | Acceso completo a todas las secciones |
-| **STOCK** | Gestor de inventario | Dashboard, Productos (lectura/edición) |
-| **PEDIDOS** | Gestor de pedidos | Dashboard, Pedidos (lectura/gestión de estado) |
-| **CLIENTE** | Usuario final | Tienda online: carrito, checkout, historial de pedidos |
-
-### Usuarios de prueba (creados automáticamente)
-
-| Email | Password | Rol |
-|---|---|---|
-| `admin@admin.com` | `admin123` | ADMIN |
-| `cliente@test.com` | `password123` | CLIENTE |
-| `stock@test.com` | `password123` | STOCK |
-| `pedidos@test.com` | `password123` | PEDIDOS |
+Flujo del cliente: Catálogo → Producto → Carrito → Checkout → Pago (MercadoPago) → Estado del pedido en tiempo real (WebSocket).
 
 ---
 
-## 📦 API REST — Endpoints
+## 7. Usuarios de prueba
 
-### Autenticación
-| Método | Ruta | Descripción | Auth |
+El seed crea automáticamente estos usuarios:
+
+| Email | Password | Rol | Acceso |
 |---|---|---|---|
-| `POST` | `/auth/login` | Iniciar sesión (devuelve cookies HttpOnly) | No |
-| `POST` | `/auth/logout` | Cerrar sesión | No |
-| `POST` | `/auth/refresh` | Refrescar access token | No |
-| `GET` | `/auth/me` | Obtener perfil del usuario autenticado | JWT |
+| `admin@foodstore.com` | La de tu `.env` (`ADMIN_PASSWORD`) | ADMIN | Admin panel completo |
+| `cliente@test.com` | `password123` | CLIENTE | Tienda online |
+| `stock@test.com` | `password123` | STOCK | Productos y stock |
+| `pedidos@test.com` | `password123` | PEDIDOS | Gestión de pedidos |
+
+---
+
+## 8. API Endpoints
+
+Todos los endpoints usan el prefijo `/api/v1`. Los públicos no requieren autenticación.
+
+### Auth
+
+| Método | Ruta | Auth | Descripción |
+|---|---|---|---|
+| `POST` | `/api/v1/auth/register` | No | Registrar nuevo usuario (rate limited: 5/15 min) |
+| `POST` | `/api/v1/auth/login` | No | Login, devuelve tokens JWT (rate limited: 5/15 min) |
+| `POST` | `/api/v1/auth/refresh` | No | Refrescar access token (rotación) |
+| `POST` | `/api/v1/auth/logout` | JWT | Invalidar refresh token |
+| `GET` | `/api/v1/auth/me` | JWT | Perfil del usuario autenticado |
 
 ### Productos
-| Método | Ruta | Descripción | Auth |
+
+| Método | Ruta | Auth | Descripción |
 |---|---|---|---|
-| `GET` | `/productos/` | Listar productos | No |
-| `GET` | `/productos/{id}` | Obtener producto por ID | No |
-| `POST` | `/productos/` | Crear producto | ADMIN |
-| `PATCH` | `/productos/{id}` | Actualizar producto | ADMIN, STOCK |
-| `DELETE` | `/productos/{id}/desactivar` | Desactivar (soft delete) | ADMIN |
-| `POST` | `/productos/categorias` | Asignar categoría | ADMIN |
-| `POST` | `/productos/ingredientes` | Asignar ingrediente | ADMIN |
+| `GET` | `/api/v1/productos/` | No | Listar (paginado, busca por nombre) |
+| `GET` | `/api/v1/productos/{id}` | No | Detalle completo |
+| `POST` | `/api/v1/productos/` | ADMIN, STOCK | Crear producto |
+| `PUT` | `/api/v1/productos/{id}` | ADMIN | Actualización completa |
+| `PATCH` | `/api/v1/productos/{id}` | ADMIN, STOCK | Actualización parcial |
+| `PATCH` | `/api/v1/productos/{id}/disponibilidad` | ADMIN, STOCK | Toggle disponible |
+| `PATCH` | `/api/v1/productos/{id}/imagenes` | ADMIN | Actualizar array `imagenes_url[]` |
+| `POST` | `/api/v1/productos/{id}/ingredientes` | ADMIN | Asociar ingrediente al producto |
+| `GET` | `/api/v1/productos/{id}/costo` | ADMIN, STOCK | Desglose de costo + precio sugerido |
+| `DELETE` | `/api/v1/productos/{id}/desactivar` | ADMIN | Soft delete |
 
 ### Categorías
-| Método | Ruta | Descripción | Auth |
+
+| Método | Ruta | Auth | Descripción |
 |---|---|---|---|
-| `GET` | `/categorias/` | Listar categorías | No |
-| `GET` | `/categorias/arbol` | Árbol de categorías | No |
-| `POST` | `/categorias/` | Crear categoría | ADMIN |
-| `PATCH` | `/categorias/{id}` | Actualizar categoría | ADMIN |
-| `DELETE` | `/categorias/{id}` | Eliminar categoría | ADMIN |
+| `GET` | `/api/v1/categorias/` | No | Listar categorías |
+| `GET` | `/api/v1/categorias/arbol` | No | Árbol jerárquico completo |
+| `POST` | `/api/v1/categorias/` | ADMIN | Crear categoría |
+| `PATCH` | `/api/v1/categorias/{id}` | ADMIN | Actualizar categoría |
+| `DELETE` | `/api/v1/categorias/{id}` | ADMIN | Eliminar categoría |
 
 ### Ingredientes
-| Método | Ruta | Descripción | Auth |
+
+| Método | Ruta | Auth | Descripción |
 |---|---|---|---|
-| `GET` | `/ingredientes/` | Listar ingredientes | No |
-| `POST` | `/ingredientes/` | Crear ingrediente | ADMIN |
-| `PATCH` | `/ingredientes/{id}` | Actualizar ingrediente | ADMIN |
-| `DELETE` | `/ingredientes/{id}` | Eliminar ingrediente | ADMIN |
+| `GET` | `/api/v1/ingredientes/` | No | Listar ingredientes |
+| `POST` | `/api/v1/ingredientes/` | ADMIN | Crear ingrediente |
+| `PATCH` | `/api/v1/ingredientes/{id}` | ADMIN | Actualizar ingrediente |
+| `DELETE` | `/api/v1/ingredientes/{id}` | ADMIN | Soft delete |
 
 ### Pedidos
-| Método | Ruta | Descripción | Auth |
+
+| Método | Ruta | Auth | Descripción |
 |---|---|---|---|
-| `GET` | `/pedidos/` | Listar pedidos | ADMIN, PEDIDOS |
-| `GET` | `/pedidos/{id}` | Obtener pedido (con historial si es ADMIN) | ADMIN, PEDIDOS |
-| `POST` | `/pedidos/` | Crear pedido | CLIENTE, ADMIN |
-| `PATCH` | `/pedidos/{id}/estado` | Avanzar estado (FSM) | ADMIN, PEDIDOS |
-| `DELETE` | `/pedidos/{id}` | Cancelar pedido | ADMIN |
+| `GET` | `/api/v1/pedidos/` | JWT | Listar (filtrado por rol) |
+| `GET` | `/api/v1/pedidos/{id}` | JWT | Detalle con historial |
+| `GET` | `/api/v1/pedidos/{id}/historial` | JWT | Historial de estados |
+| `POST` | `/api/v1/pedidos/` | JWT | Crear pedido |
+| `PATCH` | `/api/v1/pedidos/{id}/estado` | ADMIN, STOCK, PEDIDOS | Avanzar estado (FSM) |
+| `PATCH` | `/api/v1/pedidos/{id}/cancelar` | JWT | Cancelar (dueño) |
+| `DELETE` | `/api/v1/pedidos/{id}` | ADMIN | Soft delete |
+| `WS` | `/api/v1/pedidos/ws` | JWT (`?token=`) | WebSocket tiempo real |
 
-### Máquina de Estados de Pedidos (FSM)
+### Pagos (MercadoPago)
 
-```
-PENDIENTE ──► CONFIRMADO ──► EN_PREPARACIÓN ──► EN_CAMINO ──► ENTREGADO
-    │              │                │                │
-    └──────────────┴────────────────┴────────────────┴────► CANCELADO
-```
+| Método | Ruta | Auth | Descripción |
+|---|---|---|---|
+| `POST` | `/api/v1/pagos/preferencia` | JWT | Crear preferencia de pago |
+| `POST` | `/api/v1/pagos/webhook` | Público | IPN de MercadoPago |
+| `POST` | `/api/v1/pagos/confirm` | JWT | Confirmación manual |
+| `GET` | `/api/v1/pagos/pedido/{id}` | JWT | Pago por pedido |
 
-- **PENDIENTE**: Pedido creado, esperando confirmación
-- **CONFIRMADO**: Pago verificado, entra en cola de producción
-- **EN_PREPARACIÓN**: En cocina/producción
-- **EN_CAMINO**: En reparto
-- **ENTREGADO**: Estado terminal exitoso (no se puede cancelar)
-- **CANCELADO**: Estado terminal por cancelación
+### Direcciones
+
+| Método | Ruta | Auth | Descripción |
+|---|---|---|---|
+| `GET` | `/api/v1/direcciones/` | JWT | Listar direcciones del usuario |
+| `POST` | `/api/v1/direcciones/` | JWT | Crear dirección |
+| `PATCH` | `/api/v1/direcciones/{usuario_id}/{id}` | JWT | Actualizar dirección |
+| `DELETE` | `/api/v1/direcciones/{usuario_id}/{id}` | JWT | Eliminar dirección |
+
+### Uploads (Cloudinary)
+
+| Método | Ruta | Auth | Descripción |
+|---|---|---|---|
+| `POST` | `/api/v1/uploads/` | ADMIN, STOCK | Subir imagen (JPEG, PNG, WebP — max 5 MB) |
+| `DELETE` | `/api/v1/uploads/{public_id}` | ADMIN | Eliminar imagen de Cloudinary |
+
+### Estadísticas (ADMIN)
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| `GET` | `/api/v1/estadisticas/resumen` | KPIs: ventas hoy, ticket promedio, activos, mes |
+| `GET` | `/api/v1/estadisticas/ventas` | Ventas por período (day/week/month) |
+| `GET` | `/api/v1/estadisticas/productos-top` | Top productos por ingresos |
+| `GET` | `/api/v1/estadisticas/pedidos-por-estado` | Cantidad por estado |
+| `GET` | `/api/v1/estadisticas/ingresos` | Ingresos por forma de pago |
 
 ### Usuarios
-| Método | Ruta | Descripción | Auth |
-|---|---|---|---|
-| `GET` | `/usuarios/` | Listar usuarios | ADMIN |
-| `GET` | `/usuarios/{id}` | Obtener usuario | ADMIN |
-| `POST` | `/usuarios/` | Registrar usuario | No |
-| `PATCH` | `/usuarios/{id}` | Actualizar usuario | ADMIN |
-| `DELETE` | `/usuarios/{id}` | Desactivar usuario | ADMIN |
-| `POST` | `/usuarios/roles` | Asignar rol | ADMIN |
-| `DELETE` | `/usuarios/{id}/roles/{codigo}` | Quitar rol | ADMIN |
 
-### Uploads
-| Método | Ruta | Descripción | Auth |
+| Método | Ruta | Auth | Descripción |
 |---|---|---|---|
-| `POST` | `/uploads/` | Subir imagen a Cloudinary | ADMIN, STOCK |
+| `GET` | `/api/v1/usuarios/` | ADMIN | Listar usuarios |
+| `POST` | `/api/v1/usuarios/` | ADMIN | Crear usuario |
+| `PATCH` | `/api/v1/usuarios/{id}` | ADMIN | Actualizar usuario |
+| `DELETE` | `/api/v1/usuarios/{id}` | ADMIN | Desactivar (soft delete) |
+| `POST` | `/api/v1/usuarios/roles` | ADMIN | Asignar rol |
+| `DELETE` | `/api/v1/usuarios/{id}/roles/{codigo}` | ADMIN | Quitar rol |
+
+### Unidades de Medida
+
+| Método | Ruta | Auth | Descripción |
+|---|---|---|---|
+| `GET` | `/api/v1/unidad-medida/` | No | Catálogo de unidades |
 
 ---
 
-## 🗂 Estructura del proyecto
+## 9. Máquina de Estados (FSM)
+
+El pedido sigue una máquina de estados finitos con 5 estados:
 
 ```
-parcial-2-backend/
-├── fastapi_backend/               # Backend — API REST
-│   ├── main.py                    # Punto de entrada, startup events
-│   ├── requirements.txt           # Dependencias Python
-│   ├── .env.example               # Template de variables de entorno
-│   ├── app/
-│   │   ├── core/                  # Configuración central
-│   │   │   ├── database.py        # Conexión DB, engine, create_all
-│   │   │   ├── security.py        # JWT, get_current_user, require_roles
-│   │   │   ├── responses.py       # Wrappers de respuesta (APIResponse)
-│   │   │   ├── repository.py      # Repositorio genérico
-│   │   │   ├── config.py          # Settings (MP, Cloudinary, URLs)
-│   │   │   └── websocket.py       # ConnectionManager WebSocket
-│   │   ├── db/                    # Seed independiente
-│   │   │   └── seed.py            # python -m app.db.seed
-│   │   ├── modules/               # Módulos del dominio
-│   │   │   ├── usuario/           # Usuarios y roles
-│   │   │   ├── producto/          # Productos, categorías, ingredientes
-│   │   │   ├── categoria/         # Categorías (árbol)
-│   │   │   ├── ingrediente/       # Ingredientes con stock
-│   │   │   ├── Pedido/            # Pedidos y máquina de estados
-│   │   │   ├── DetallePedido/     # Detalles de pedido (snapshots)
-│   │   │   ├── DireccionEntrega/  # Direcciones de entrega
-│   │   │   ├── auth/              # Autenticación (login/refresh/logout)
-│   │   │   ├── Pago/              # MercadoPago integración
-│   │   │   ├── uploads/           # Cloudinary upload de imágenes
-│   │   │   ├── rol/               # Catálogo de roles + seed
-│   │   │   ├── FormaPago/         # Catálogo de formas de pago + seed
-│   │   │   ├── EstadoPedido/      # Catálogo de estados + seed
-│   │   │   ├── unidadMedida/      # Catálogo de unidades de medida + seed
-│   │   │   └── HistorialEstadoPedido/  # Trazabilidad de estados
-│   │   └── seed_data.py           # Datos de prueba
-│   └── tests/
-│       └── test_api.http          # Pruebas de endpoints (REST Client)
-├── frontend/                      # Panel de Administración
-│   ├── src/
-│   │   ├── api/                   # Cliente HTTP (axios + endpoints)
-│   │   ├── components/            # DataTable, Modal, Layout, Skeleton
-│   │   ├── context/               # AuthContext, ToastContext
-│   │   ├── pages/                 # Dashboard, CRUDs, Auth
-│   │   └── index.css              # Estilos globales + Tailwind
-│   └── vite.config.js             # Proxy al backend
-└── frontend-store/                # Tienda online para clientes
-    ├── src/
-    │   ├── api/                   # Cliente HTTP
-    │   ├── components/            # UI components
-    │   ├── pages/                 # Catálogo, carrito, checkout
-    │   ├── hooks/                 # useWebSocket (integrado con wsStore)
-    │   ├── store/                 # Zustand stores (5)
-    │   │   ├── useAuthStore.ts    # Autenticación
-    │   │   ├── useCartStore.ts    # Carrito (persist)
-    │   │   ├── useWebSocketStore.ts # WebSocket (wsStore, persist)
-    │   │   ├── usePedidoStore.ts  # Pedidos real-time (persist)
-    │   │   └── useFiltroStore.ts  # Filtros catálogo (persist)
-    │   └── types/                 # Definiciones TypeScript
-    └── vite.config.ts             # Proxy al backend
+PENDIENTE ──► CONFIRMADO ──► EN_PREP ──► ENTREGADO ✓
+    │              │              │
+    └──────────────┴──────────────┴────► CANCELADO ✓
 ```
 
+| Estado | Orden | Terminal | Transiciones válidas |
+|---|---|---|---|
+| `PENDIENTE` | 1 | No | → CONFIRMADO, → CANCELADO |
+| `CONFIRMADO` | 2 | No | → EN_PREP, → CANCELADO |
+| `EN_PREP` | 3 | No | → ENTREGADO, → CANCELADO |
+| `ENTREGADO` | 4 | **Sí** | — |
+| `CANCELADO` | 5 | **Sí** | — |
+
+**Reglas de negocio:**
+- Estados terminales (`ENTREGADO`, `CANCELADO`) no admiten más transiciones (HTTP 422)
+- El motivo es obligatorio al cancelar
+- Al confirmar (`PENDIENTE → CONFIRMADO`): se descuenta stock de ingredientes
+- Al cancelar desde `CONFIRMADO`: se restaura el stock
+- `HistorialEstadoPedido` es append-only — nunca se modifica ni elimina
+- Los cambios de estado se notifican en tiempo real vía WebSocket
+
 ---
 
-## 🔒 Seguridad
+## 10. Tecnologías y arquitectura
 
-- **Autenticación**: JWT con doble token (access + refresh)
-  - **Access Token**: 15 minutos, enviado como cookie HttpOnly (también acepta header `Authorization: Bearer`)
-  - **Refresh Token**: 7 días, rotación automática (cada refresh invalida el anterior)
-- **Contraseñas**: Hashing bcrypt con salt automático
-- **Cookies**: HttpOnly, SameSite=Lax, Secure en producción
-- **CORS**: Configurado para los orígenes de los frontends
-- **RBAC**: Decorador `require_roles()` en endpoints protegidos
-- **Soft Delete**: Eliminación lógica en entidades principales (productos, usuarios, categorías)
-- **Snapshots**: Los detalles de pedido guardan nombre y precio al momento de la compra
+### Backend
 
----
-
-## 🎨 Decisiones de diseño
-
-| Decisión | Justificación |
+| Tecnología | Uso |
 |---|---|
-| **SQLModel** sobre SQLAlchemy puro | Integración nativa con Pydantic y FastAPI, menos boilerplate |
-| **Cookies HttpOnly** sobre localStorage | Previene acceso XSS a los tokens; más seguro |
-| **Dual token (access + refresh)** | Permite sesiones largas con rotación segura de tokens |
-| **Máquina de estados FSM** para pedidos | Transiciones controladas, evita estados inválidos |
-| **Soft delete** en entidades principales | Trazabilidad y recuperación de datos |
-| **Snapshots en DetallePedido** | Inmutabilidad histórica: cambios de precio no afectan pedidos pasados |
-| **Doble frontend** (admin + store) | Separación de responsabilidades; públicos distintos |
-| **TailwindCSS v4** | Estilos consistentes con diseño utility-first |
-| **Zustand + React Query** (store) | Estado global simple + fetching declarativo con caché |
-| **Cloudinary** | Almacenamiento y optimización automática de imágenes de productos |
-| **MercadoPago** | Integración de pagos con webhook y notificaciones WebSocket |
+| **Python** + **FastAPI** | Framework REST asíncrono + WebSocket nativo |
+| **SQLModel** | ORM (SQLAlchemy + Pydantic unificados) |
+| **PostgreSQL** | Base de datos relacional |
+| **PyJWT + Passlib (bcrypt)** | JWT (access 30 min + refresh 7 días) + hashing |
+| **slowapi** | Rate limiting (5 intentos/15 min en login y register) |
+| **MercadoPago SDK** | Checkout PRO + webhook IPN |
+| **Cloudinary SDK** | Upload y gestión de imágenes |
+| **pytest** | Tests con SQLite + TestClient |
+
+### Arquitectura de capas
+
+```
+Router (HTTP) → Service (lógica) → UnitOfWork (transacciones) → Repository (datos) → Model (SQLModel)
+                                                                                        ↓
+                                                                        WebSocket Manager (broadcast post-commit)
+```
+
+### Frontend Admin
+
+| Tecnología | Uso |
+|---|---|
+| **React 18** + **Vite 5** | SPA + dev server |
+| **TailwindCSS v4** | Estilos utility-first |
+| **React Router v6** | Enrutamiento |
+| **Axios** | Cliente HTTP con interceptors JWT |
+| **recharts** | Gráficos del dashboard |
+
+### Frontend Store
+
+| Tecnología | Uso |
+|---|---|
+| **React 19** + **TypeScript** + **Vite 8** | SPA tipada |
+| **Zustand** | Estado global (5 stores: auth, cart, pedido, ws, filtro) |
+| **TanStack React Query v5** | Fetching, caché, invalidación automática |
+| **TailwindCSS v4** | Estilos |
+| **Axios** | Cliente HTTP con refresh automático |
 
 ---
 
-## 🎥 Video Demostración
+## Seguridad
 
-[Ver video demostración](https://youtu.be/LINK_AL_VIDEO) (10-15 min)
-
----
-
-## 👤 Autor(es)
-
-Hernan Farfan
-Fabricio Fracapani
-Martin Lepez
-Nicolas Romano
-
----
-
-## 📄 Licencia
-
-Este proyecto es un trabajo académico para la UTN FRM. Uso exclusivamente educativo.
+- JWT con doble token (access 30 min + refresh 7 días con rotación)
+- Cookies HttpOnly, SameSite=Lax, Secure en producción
+- Rate limiting: 5 intentos fallidos cada 15 minutos en login y register
+- MercadoPago: idempotency_key UUID evita cobros duplicados
+- Webhook de MP valida firma `x-signature`
+- Cloudinary: signed upload, API secret NUNCA expuesto al frontend
+- Imágenes: validación de MIME (JPEG, PNG, WebP) y tamaño máximo 5 MB
+- Soft delete en entidades principales
+- Snapshots inmutables en DetallePedido
 
 ---
 
