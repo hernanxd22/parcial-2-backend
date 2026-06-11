@@ -1,5 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from app.core.database import engine, create_db_and_tables
 from sqlmodel import Session, select
 import os 
@@ -25,6 +28,7 @@ from app.modules.Pedido.router import router as pedido_router
 from app.modules.auth.router import router as auth_router
 from app.modules.Pago.router import router as pago_router
 from app.modules.uploads.router import router as uploads_router
+from app.modules.estadisticas.router import router as estadisticas_router
 
 from app.modules.rol.seed import seed_roles
 from app.modules.FormaPago.seed import seed_formas_pago
@@ -39,6 +43,10 @@ def create_app() -> FastAPI:
         description="API REST ",
         version="1.0.0"
     )
+
+    limiter = Limiter(key_func=get_remote_address, default_limits=["100 per hour"])
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
     origins = ["http://localhost:3000", "http://localhost:5173"]
 
@@ -105,6 +113,7 @@ def create_app() -> FastAPI:
     app.include_router(pago_router, prefix="/api/v1/pagos", tags=["Pagos"])
     app.include_router(unidad_medida_router, prefix="/api/v1/unidad-medida", tags=["Unidades de Medida"])
     app.include_router(uploads_router, prefix="/api/v1/uploads", tags=["Uploads"])
+    app.include_router(estadisticas_router, prefix="/api/v1/estadisticas", tags=["Estadisticas"])
     @app.get("/")
     def root():
         return {"message": "Servidor FastAPI funcionando ."}

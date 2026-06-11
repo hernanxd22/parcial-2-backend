@@ -16,7 +16,7 @@ class Ingrediente(SQLModel, table=True):
     nombre: str = Field(unique=True, max_length=100)
     descripcion: Optional[str] = Field(default=None)
     es_alergeno: bool = Field(default=False)
-    stock_cantidad: float = Field(default=0, ge=0)
+    stock_cantidad: int = Field(default=0, ge=0)
     costo: float = Field(default=0, ge=0, description="Costo por 1 unidad base (kg/L/u)")
     imagen_url: Optional[str] = Field(default=None)
     unidad_medida_id: Optional[int] = Field(default=None, foreign_key="unidad_medida.id")

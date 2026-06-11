@@ -10,3 +10,4 @@ mercadopago
 pydantic-settings
 python-multipart
 cloudinary
+slowapi

@@ -1,6 +1,6 @@
 
 from typing import Annotated, Optional
-from fastapi import APIRouter, Depends, Query, Path, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Path, status
 from sqlmodel import Session
 
 from app.core.database import get_session
@@ -10,6 +10,7 @@ from app.modules.producto.schemas import (
     ProductoCreate, ProductoPublic, ProductoUpdate, ProductoList,
     ProductoCategoriaList,
     ProductoIngredienteList,
+    ProductoIngredienteCreate,
     DisponibilidadUpdate,
     CostoProductoResponse,
 )
@@ -146,7 +147,7 @@ def get_producto(
 @router.patch(
     "/{producto_id}",
     response_model=ProductoPublic,
-    summary="Actualización parcial de producto",
+    summary="Actualizacion parcial de producto",
 )
 def update_producto(
     producto_id: Annotated[int, Path(gt=0, description="ID del producto")],
@@ -155,6 +156,75 @@ def update_producto(
     _: Usuario = Depends(require_roles("ADMIN", "STOCK")),
 ) -> ProductoPublic:
     return svc.update(producto_id, data)
+
+
+@router.put(
+    "/{producto_id}",
+    response_model=ProductoPublic,
+    summary="Actualizacion completa de producto",
+)
+def update_producto_full(
+    producto_id: Annotated[int, Path(gt=0, description="ID del producto")],
+    data: ProductoCreate,
+    svc: ProductoService = Depends(get_producto_service),
+    _: Usuario = Depends(require_roles("ADMIN")),
+) -> ProductoPublic:
+    patch = data.model_dump(exclude={"categoria_id", "es_principal", "ingredientes"})
+    update_data = ProductoUpdate(**patch, categoria_id=data.categoria_id, es_principal=data.es_principal, ingredientes=data.ingredientes)
+    return svc.update(producto_id, update_data)
+
+
+@router.patch(
+    "/{producto_id}/imagenes",
+    response_model=ProductoPublic,
+    summary="Actualizar lista de imagenes del producto",
+)
+def update_producto_imagenes(
+    producto_id: Annotated[int, Path(gt=0, description="ID del producto")],
+    imagenes_url: list[str],
+    svc: ProductoService = Depends(get_producto_service),
+    _: Usuario = Depends(require_roles("ADMIN")),
+) -> ProductoPublic:
+    return svc.update(producto_id, ProductoUpdate(imagenes_url=imagenes_url))
+
+
+@router.post(
+    "/{producto_id}/ingredientes",
+    response_model=ProductoPublic,
+    status_code=status.HTTP_201_CREATED,
+    summary="Asociar ingrediente a un producto",
+)
+def asociar_ingrediente(
+    producto_id: Annotated[int, Path(gt=0, description="ID del producto")],
+    data: ProductoIngredienteCreate,
+    svc: ProductoService = Depends(get_producto_service),
+    _: Usuario = Depends(require_roles("ADMIN")),
+) -> ProductoPublic:
+    from app.modules.producto.models import ProductoIngrediente
+    from app.modules.ingrediente.models import Ingrediente
+    from app.modules.producto.unit_of_work import ProductoUnitOfWork
+    from app.modules.producto.schemas import ProductoIngredienteCreateInline
+
+    with ProductoUnitOfWork(svc._session) as uow:
+        producto = svc._get_or_404(uow, producto_id)
+        ingrediente = uow.productos.session.get(Ingrediente, data.ingrediente_id)
+        if not ingrediente:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Ingrediente con id={data.ingrediente_id} no encontrado",
+            )
+        um_id = data.unidad_medida_id or ingrediente.unidad_medida_id
+        relacion = ProductoIngrediente(
+            producto_id=producto_id,
+            ingrediente_id=data.ingrediente_id,
+            es_removible=data.es_removible,
+            cantidad=data.cantidad,
+            unidad_medida_id=um_id,
+        )
+        uow.producto_ingredientes.add(relacion)
+        uow.productos.session.refresh(producto)
+
+    return svc.get_by_id(producto_id)
 
 
 @router.patch(

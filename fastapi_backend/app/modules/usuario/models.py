@@ -64,7 +64,10 @@ class UsuarioRol(SQLModel, table=True):
     usuario_id: int = Field(foreign_key="usuario.id", primary_key=True)
     rol_codigo: str = Field(foreign_key="rol.codigo", primary_key=True)
     asignado_por_id: Optional[int] = Field(default=None, foreign_key="usuario.id")
-    expires_at: Optional[datetime] = None
+    expires_at: Optional[datetime] = Field(
+        default=None,
+        sa_type=DateTime(timezone=True)
+    )
 
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),

@@ -12,7 +12,7 @@ export interface Producto {
   descripcion: string
   precio_base: number
   disponible: boolean
-  imagen_url: string | null
+  imagenes_url: string[] | null
   categoria_nombre?: string
   ingredientes?: ProductoIngrediente[]
 }

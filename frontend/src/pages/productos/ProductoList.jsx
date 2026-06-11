@@ -111,7 +111,7 @@ function ProductoList() {
       !producto.producto_ingredientes ||
       producto.producto_ingredientes.length === 0
     ) {
-      return producto.stock != null ? Number(producto.stock) : null;
+      return producto.stock_cantidad != null ? Number(producto.stock_cantidad) : null;
     }
 
     let minUnidades = Infinity;

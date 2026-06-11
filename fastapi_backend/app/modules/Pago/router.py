@@ -43,6 +43,9 @@ async def webhook(
     request: Request,
     svc: PagoService = Depends(get_pago_service),
 ) -> dict:
+    x_signature = request.headers.get("x-signature")
+    x_request_id = request.headers.get("x-request-id")
+
     payload = None
     query_params = dict(request.query_params)
 
@@ -59,7 +62,7 @@ async def webhook(
         except Exception:
             pass
 
-    return svc.procesar_webhook(payload, query_params)
+    return await svc.procesar_webhook(payload, query_params, x_signature, x_request_id)
 
 
 @router.get(

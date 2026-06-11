@@ -14,10 +14,11 @@ class ProductoCreate(SQLModel):
     nombre: str = Field(min_length=2, max_length=150)
     descripcion: Optional[str] = None
     precio_base: float = Field(gt=0)
-    imagen_url: Optional[str] = Field(default=None)
+    imagenes_url: Optional[List[str]] = Field(default=None)
     disponible: bool = True
     porcentaje_ganancia: Optional[float] = Field(default=None, ge=0)
-    stock: float = Field(default=0, ge=0)
+    stock_cantidad: int = Field(default=0, ge=0)
+    unidad_venta_id: Optional[int] = Field(default=None, gt=0)
     categoria_id: int = Field(gt=0)
     es_principal: bool = False
     ingredientes: list["ProductoIngredienteCreateInline"] = Field(default_factory=list)
@@ -27,10 +28,11 @@ class ProductoUpdate(SQLModel):
     nombre: Optional[str] = Field(default=None, min_length=2, max_length=150)
     descripcion: Optional[str] = None
     precio_base: Optional[float] = Field(default=None, gt=0)
-    imagen_url: Optional[str] = None
+    imagenes_url: Optional[List[str]] = None
     disponible: Optional[bool] = None
     porcentaje_ganancia: Optional[float] = Field(default=None, ge=0)
-    stock: Optional[float] = Field(default=None, ge=0)
+    stock_cantidad: Optional[int] = Field(default=None, ge=0)
+    unidad_venta_id: Optional[int] = Field(default=None, gt=0)
     categoria_id: Optional[int] = Field(default=None, gt=0)
     es_principal: Optional[bool] = None
     ingredientes: Optional[List["ProductoIngredienteCreateInline"]] = None
@@ -48,10 +50,11 @@ class ProductoPublic(SQLModel):
     nombre: str
     descripcion: Optional[str] = None
     precio_base: float
-    imagen_url: Optional[str] = None
+    imagenes_url: Optional[List[str]] = None
     disponible: bool
     porcentaje_ganancia: Optional[float] = None
-    stock: float = 0
+    stock_cantidad: int = 0
+    unidad_venta_id: Optional[int] = None
     costo_total: Optional[float] = None
     categoria_id: Optional[int] = None
     es_principal: bool = False

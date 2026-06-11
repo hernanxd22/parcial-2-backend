@@ -18,7 +18,9 @@ class PedidoRepository(BaseRepository[Pedido]):
         if usuario_id is not None:
             stmt = stmt.where(Pedido.usuario_id == usuario_id)
         return list(
-            self.session.exec(stmt.offset(offset).limit(limit)).all()
+            self.session.exec(
+                stmt.order_by(Pedido.created_at.desc()).offset(offset).limit(limit)
+            ).all()
         )
 
     def get_by_usuario(self,usuario_id: int,offset: int = 0,limit: int = 20,) -> list[Pedido]:
@@ -29,6 +31,7 @@ class PedidoRepository(BaseRepository[Pedido]):
                     Pedido.usuario_id == usuario_id,
                     Pedido.deleted_at == None,
                 )
+                .order_by(Pedido.created_at.desc())
                 .offset(offset)
                 .limit(limit)
             ).all()

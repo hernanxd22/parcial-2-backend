@@ -58,9 +58,8 @@ export default function ProductoDetalle() {
   const sinStock = !producto.disponible
 
   const getImageSrc = () => {
-    if (!producto.imagen_url) return null
-    if (typeof producto.imagen_url === 'string') return producto.imagen_url
-    if (Array.isArray(producto.imagen_url) && producto.imagen_url.length > 0) return producto.imagen_url[0]
+    if (!producto.imagenes_url) return null
+    if (Array.isArray(producto.imagenes_url) && producto.imagenes_url.length > 0) return producto.imagenes_url[0]
     return null
   }
 

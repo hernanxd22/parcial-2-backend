@@ -49,4 +49,4 @@ class Pedido(SQLModel, table=True):
     forma_pago: Optional["FormaPago"] = Relationship(back_populates="pedidos")
     detalles: List["DetallePedido"] = Relationship(back_populates="pedido")
     historial: List["HistorialEstadoPedido"] = Relationship(back_populates="pedido")
-    pagos: Optional["Pago"] = Relationship(back_populates="pedido")
+    pagos: List["Pago"] = Relationship(back_populates="pedido")

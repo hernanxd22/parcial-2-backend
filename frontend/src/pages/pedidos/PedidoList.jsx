@@ -116,7 +116,7 @@ function PedidoList() {
     {
       key: 'created_at',
       label: 'Fecha',
-      render: (val) => new Date(val).toLocaleDateString()
+      render: (val) => new Date(val).toLocaleString()
     }
   ]
 

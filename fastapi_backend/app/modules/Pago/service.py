@@ -1,6 +1,7 @@
 from fastapi import HTTPException, status
 from sqlmodel import Session
 from datetime import datetime, timezone
+import asyncio
 import uuid
 import json
 import logging
@@ -116,63 +117,7 @@ class PagoService:
 
         return result
 
-    def _avanzar_pedido_confirmado(self, uow: PagoUnitOfWork, pedido_id: int, pago: Pago) -> None:
-        from app.modules.Pedido.models import Pedido
-        from app.modules.Pedido.service import PedidoService
-
-        pedido = uow.pagos.session.get(Pedido, pedido_id)
-        if not pedido or pedido.estado_codigo != "PENDIENTE":
-            return
-
-        pedido_svc = PedidoService(self._session)
-        from app.modules.Pedido.schemas import PedidoAvanzarEstado
-
-        try:
-            import asyncio
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                import concurrent.futures
-                future = concurrent.futures.Future()
-
-                def _run():
-                    try:
-                        new_loop = asyncio.new_event_loop()
-                        asyncio.set_event_loop(new_loop)
-                        result = new_loop.run_until_complete(
-                            pedido_svc.avanzar_estado(
-                                pedido_id,
-                                PedidoAvanzarEstado(
-                                    estado_hacia_codigo="CONFIRMADO",
-                                    motivo=None,
-                                    usuario_id=pedido.usuario_id,
-                                )
-                            )
-                        )
-                        future.set_result(result)
-                    except Exception as e:
-                        future.set_exception(e)
-                    finally:
-                        new_loop.close()
-
-                import threading
-                t = threading.Thread(target=_run, daemon=True)
-                t.start()
-                t.join(timeout=10)
-            else:
-                loop.run_until_complete(
-                    pedido_svc.avanzar_estado(
-                        pedido_id,
-                        PedidoAvanzarEstado(
-                            estado_hacia_codigo="CONFIRMADO",
-                            motivo=None,
-                            usuario_id=pedido.usuario_id,
-                        )
-                    )
-                )
-        except Exception as e:
-            logger.error(f"Error al avanzar pedido {pedido_id} via WS: {e}")
-
-    async def _avanzar_pedido_confirmado_async(self, uow: PagoUnitOfWork, pedido_id: int, pago: Pago) -> None:
+    async def _avanzar_pedido_confirmado(self, uow: PagoUnitOfWork, pedido_id: int, pago: Pago) -> None:
         from app.modules.Pedido.models import Pedido
         from app.modules.Pedido.service import PedidoService
         from app.modules.Pedido.schemas import PedidoAvanzarEstado
@@ -198,8 +143,32 @@ class PagoService:
         pago.payment_method_id = pago_mp.get("payment_method_id", "")
         pago.updated_at = _now()
 
-    def procesar_webhook(self, payload: dict | None, query_params: dict | None = None) -> dict:
+    async def procesar_webhook(
+        self,
+        payload: dict | None,
+        query_params: dict | None = None,
+        x_signature: str | None = None,
+        x_request_id: str | None = None,
+    ) -> dict:
         try:
+            if x_signature and settings.MP_WEBHOOK_SECRET:
+                import hashlib
+                import hmac
+
+                ts = x_signature.split(",")[0].split("=")[1] if "ts=" in x_signature else ""
+                v1 = x_signature.split(",")[1].split("=")[1] if "v1=" in x_signature else ""
+
+                manifest = f"id:{x_request_id or ''};request-id:{x_request_id or ''};ts:{ts};"
+                expected = hmac.new(
+                    settings.MP_WEBHOOK_SECRET.encode(),
+                    manifest.encode(),
+                    hashlib.sha256,
+                ).hexdigest()
+
+                if not hmac.compare_digest(v1, expected):
+                    logger.warning("[MP Webhook] Firma invalida")
+                    return {"status": "firma_invalida"}
+
             pago_id = None
             pago_topic = None
 
@@ -241,7 +210,7 @@ class PagoService:
                 uow.pagos.add(pago)
 
                 if mp_status == "approved":
-                    self._avanzar_pedido_confirmado(uow, pago.pedido_id, pago)
+                    await self._avanzar_pedido_confirmado(uow, pago.pedido_id, pago)
 
             logger.info(f"[MP Webhook] Pago {pago.id} actualizado a {mp_status}")
             return {"status": "ok", "mp_status": mp_status}
@@ -275,7 +244,7 @@ class PagoService:
                 uow.pagos.add(pago)
 
                 if mp_status == "approved":
-                    self._avanzar_pedido_confirmado(uow, pago.pedido_id, pago)
+                    asyncio.run(self._avanzar_pedido_confirmado(uow, pago.pedido_id, pago))
 
         return {
             "pedido_id": pago.pedido_id,

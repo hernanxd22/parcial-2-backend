@@ -24,8 +24,8 @@ function ProductoForm() {
     descripcion: "",
     precio_base: "",
     disponible: true,
-    imagen_url: "",
-    stock: "",
+    imagenes_url: "",
+    stock_cantidad: "",
     categoria_id: "",
     es_principal: false,
     porcentaje_ganancia: "",
@@ -110,8 +110,8 @@ function ProductoForm() {
           descripcion: prod.descripcion || "",
           precio_base: prod.precio_base || "",
           disponible: prod.disponible ?? true,
-          imagen_url: prod.imagen_url || "",
-          stock: prod.stock ?? "",
+          imagenes_url: Array.isArray(prod.imagenes_url) ? prod.imagenes_url[0] || "" : (prod.imagenes_url || ""),
+          stock_cantidad: prod.stock_cantidad ?? "",
           categoria_id: prod.categoria_id || "",
           es_principal: prod.es_principal || false,
           porcentaje_ganancia: prod.porcentaje_ganancia ?? "",
@@ -152,9 +152,14 @@ function ProductoForm() {
     setError("");
     try {
       const res = await uploadImage(file);
-      setFormData((prev) => ({ ...prev, imagen_url: res.data.url }));
+      setFormData((prev) => ({ ...prev, imagenes_url: res.data.url }));
     } catch (err) {
-      setError(err.response?.data?.detail || "Error al subir imagen");
+      const detail = err.response?.data?.detail;
+      if (Array.isArray(detail)) {
+        setError(detail.map((d) => d.msg || "Error al subir imagen").join("; "));
+      } else {
+        setError(detail || "Error al subir imagen");
+      }
     } finally {
       setUploadingImage(false);
     }
@@ -240,7 +245,7 @@ function ProductoForm() {
       return;
     }
 
-    if (!formData.imagen_url) {
+    if (!formData.imagenes_url) {
       setError("Cargá una imagen para el producto");
       return;
     }
@@ -257,8 +262,8 @@ function ProductoForm() {
           parseFloat(String(formData.precio_base).replace(",", ".")) || 0,
 
         disponible: formData.disponible,
-        imagen_url: formData.imagen_url || null,
-        stock: llevaIngredientes ? undefined : (parseInt(formData.stock) || 0),
+        imagenes_url: formData.imagenes_url ? [formData.imagenes_url] : null,
+        stock_cantidad: llevaIngredientes ? undefined : (parseInt(formData.stock_cantidad) || 0),
         categoria_id: parseInt(formData.categoria_id),
         es_principal: formData.es_principal,
         porcentaje_ganancia: formData.porcentaje_ganancia
@@ -285,7 +290,14 @@ function ProductoForm() {
 
       navigate("/productos");
     } catch (err) {
-      setError(err.response?.data?.detail || "Error al guardar");
+      const detail = err.response?.data?.detail;
+      if (Array.isArray(detail)) {
+        setError(detail.map((d) => d.msg || JSON.stringify(d)).join("; "));
+      } else if (typeof detail === "object" && detail !== null) {
+        setError(JSON.stringify(detail));
+      } else {
+        setError(detail || "Error al guardar");
+      }
     } finally {
       setLoading(false);
     }
@@ -490,10 +502,10 @@ function ProductoForm() {
             {uploadingImage && (
               <small style={{ color: "#888" }}>Subiendo imagen...</small>
             )}
-            {formData.imagen_url && (
+            {formData.imagenes_url && (
               <div style={{ marginTop: "8px" }}>
                 <img
-                  src={formData.imagen_url}
+                  src={formData.imagenes_url}
                   alt="Preview"
                   style={{
                     maxWidth: "200px",
@@ -507,7 +519,7 @@ function ProductoForm() {
                   className="btn btn-danger btn-sm"
                   style={{ marginLeft: "8px" }}
                   onClick={() =>
-                    setFormData((prev) => ({ ...prev, imagen_url: "" }))
+                    setFormData((prev) => ({ ...prev, imagenes_url: "" }))
                   }
                 >
                   Quitar
@@ -538,9 +550,9 @@ function ProductoForm() {
               <label className="form-label">Stock (unidades)</label>
               <input
                 type="number"
-                name="stock"
+                name="stock_cantidad"
                 className="form-input"
-                value={formData.stock}
+                value={formData.stock_cantidad}
                 onChange={handleChange}
                 step="1"
                 min="0"

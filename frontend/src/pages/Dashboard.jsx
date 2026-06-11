@@ -1,8 +1,12 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { getPedidos, getProductos, getUsuarios } from "../api/endpoints";
+import { getPedidos, getProductos, getUsuarios, getEstadisticasResumen, getEstadisticasPedidosPorEstado, getEstadisticasProductosTop } from "../api/endpoints";
 import { StatSkeleton } from "../components/Skeleton";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend, LineChart, Line
+} from "recharts";
 
 const statIcons = {
   pedidos: (
@@ -98,16 +102,30 @@ const shortcutCards = [
 function Dashboard() {
   const { user } = useAuth();
   const [stats, setStats] = useState({ pedidos: 0, productos: 0, usuarios: 0 });
+  const [kpi, setKpi] = useState(null);
+  const [estadosData, setEstadosData] = useState([]);
+  const [topProductos, setTopProductos] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const ESTADO_COLORS = {
+    PENDIENTE: "#f59e0b",
+    CONFIRMADO: "#3b82f6",
+    EN_PREP: "#8b5cf6",
+    ENTREGADO: "#10b981",
+    CANCELADO: "#ef4444",
+  };
 
   useEffect(() => {
     let cancelled = false;
     const fetchStats = async () => {
       try {
-        const [pedidosRes, productosRes, usuariosRes] = await Promise.all([
+        const [pedidosRes, productosRes, usuariosRes, resumenRes, estadosRes, topRes] = await Promise.all([
           getPedidos({ limit: 1 }),
           getProductos({ limit: 1 }),
           getUsuarios({ limit: 1 }),
+          getEstadisticasResumen(),
+          getEstadisticasPedidosPorEstado(),
+          getEstadisticasProductosTop({ limit: 5 }),
         ]);
         if (!cancelled) {
           setStats({
@@ -115,6 +133,9 @@ function Dashboard() {
             productos: productosRes.data.total || 0,
             usuarios: usuariosRes.data.total || 0,
           });
+          setKpi(resumenRes.data);
+          setEstadosData(estadosRes.data.data || []);
+          setTopProductos(topRes.data.data || []);
         }
       } catch {
         if (!cancelled) {
@@ -160,48 +181,86 @@ function Dashboard() {
         </p>
       </div>
 
-      <div className="dashboard-stats max-w-3xl mx-auto">
+      {kpi && (
+        <div className="dashboard-stats max-w-4xl mx-auto mb-10">
+          <div className="stat-card">
+            <div className="stat-title">Ventas hoy</div>
+            <div className="stat-value">${kpi.ventas_hoy.toLocaleString()}</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-title">Ticket promedio</div>
+            <div className="stat-value">${kpi.ticket_promedio.toLocaleString()}</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-title">Pedidos activos</div>
+            <div className="stat-value">{kpi.pedidos_activos}</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-title">Mes actual</div>
+            <div className="stat-value">${kpi.mes_actual.toLocaleString()}</div>
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-[600px_1fr] gap-6 max-w-5xl mx-auto mb-10">
+        {estadosData.length > 0 && (
+          <div className="card">
+            <h3 className="font-semibold text-stone-800 dark:text-stone-100 mb-4">Pedidos por estado</h3>
+            <ResponsiveContainer width="100%" height={400}>
+              <PieChart>
+                <Pie
+                  data={estadosData}
+                  dataKey="cantidad"
+                  nameKey="estado_codigo"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={120}
+                  innerRadius={50}
+                  label={({ estado_codigo, cantidad }) => `${estado_codigo} (${cantidad})`}
+                >
+                  {estadosData.map((entry) => (
+                    <Cell
+                      key={entry.estado_codigo}
+                      fill={ESTADO_COLORS[entry.estado_codigo] || "#a8a29e"}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {topProductos.length > 0 && (
+          <div className="card">
+            <h3 className="font-semibold text-stone-800 dark:text-stone-100 mb-4">Top productos</h3>
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={topProductos} layout="vertical" margin={{ left: 60 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis type="number" />
+                <YAxis dataKey="nombre" type="category" width={100} tick={{ fontSize: 12 }} />
+                <Tooltip formatter={(value) => `$${Number(value).toLocaleString()}`} />
+                <Bar dataKey="ingresos" fill="#f97316" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
+
+      <div className="dashboard-stats max-w-3xl mx-auto mb-10">
         {[
-          {
-            key: "pedidos",
-            label: "Pedidos totales",
-            value: stats.pedidos,
-            href: "/pedidos",
-          },
-          {
-            key: "productos",
-            label: "Productos activos",
-            value: stats.productos,
-            href: "/productos",
-          },
-          {
-            key: "usuarios",
-            label: "Usuarios registrados",
-            value: stats.usuarios,
-            href: "/usuarios",
-          },
+          { key: "pedidos", label: "Pedidos totales", value: stats.pedidos, href: "/pedidos" },
+          { key: "productos", label: "Productos activos", value: stats.productos, href: "/productos" },
+          { key: "usuarios", label: "Usuarios registrados", value: stats.usuarios, href: "/usuarios" },
         ].map((stat) => (
-          <Link
-            key={stat.key}
-            to={stat.href}
-            className="stat-card group cursor-pointer"
-          >
+          <Link key={stat.key} to={stat.href} className="stat-card group cursor-pointer">
             <div className="flex items-start justify-between mb-3">
               <span className="p-2.5 rounded-xl bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 group-hover:bg-orange-100 dark:group-hover:bg-orange-500/20 transition-colors">
                 {statIcons[stat.key]}
               </span>
-              <svg
-                className="w-5 h-5 text-stone-300 dark:text-stone-600 group-hover:text-orange-500 dark:group-hover:text-orange-400 transition-colors -rotate-45"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M7 17L17 7M7 7h10v10"
-                />
+              <svg className="w-5 h-5 text-stone-300 dark:text-stone-600 group-hover:text-orange-500 dark:group-hover:text-orange-400 transition-colors -rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 17L17 7M7 7h10v10" />
               </svg>
             </div>
             <div className="stat-title">{stat.label}</div>
@@ -216,63 +275,13 @@ function Dashboard() {
         <h2 className="section-title">Acciones rápidas</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
           {visibleShortcuts.map((sc) => (
-            <Link
-              key={sc.to}
-              to={sc.to}
-              className="card group hover:shadow-lg hover:-translate-y-1 transition-all duration-200 cursor-pointer relative overflow-hidden"
-              style={{ padding: "24px" }}
-            >
-              <div
-                className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl ${sc.color} opacity-10 dark:opacity-15 rounded-bl-full group-hover:opacity-20 dark:group-hover:opacity-25 transition-opacity`}
-              />
+            <Link key={sc.to} to={sc.to} className="card group hover:shadow-lg hover:-translate-y-1 transition-all duration-200 cursor-pointer relative overflow-hidden" style={{ padding: "24px" }}>
+              <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl ${sc.color} opacity-10 dark:opacity-15 rounded-bl-full group-hover:opacity-20 dark:group-hover:opacity-25 transition-opacity`} />
               <div className="text-3xl mb-3">{sc.icon}</div>
-              <h3 className="font-semibold text-stone-800 dark:text-stone-100 mb-1">
-                {sc.label}
-              </h3>
-              <p className="text-xs text-stone-500 dark:text-stone-400">
-                {sc.desc}
-              </p>
+              <h3 className="font-semibold text-stone-800 dark:text-stone-100 mb-1">{sc.label}</h3>
+              <p className="text-xs text-stone-500 dark:text-stone-400">{sc.desc}</p>
             </Link>
           ))}
-        </div>
-      </div>
-
-      <div className="card max-w-2xl mx-auto">
-        <div className="flex items-start gap-4">
-          <div className="p-3 rounded-xl bg-orange-50 dark:bg-orange-500/10 flex-shrink-0">
-            <svg
-              className="w-6 h-6 text-orange-600 dark:text-orange-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.8}
-                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          </div>
-          <div>
-            <h3 className="font-semibold text-stone-800 dark:text-stone-100 mb-1">
-              Panel de Administración
-            </h3>
-            <p className="text-sm text-stone-500 dark:text-stone-400 leading-relaxed">
-              Desde este panel podés gestionar pedidos, productos, usuarios y
-              más. Usá el menú lateral para navegar entre las secciones.
-            </p>
-            <div className="flex flex-wrap gap-2 mt-3">
-              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-stone-100 dark:bg-stone-800 text-xs text-stone-600 dark:text-stone-300">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                Pedidos en tiempo real
-              </span>
-              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-stone-100 dark:bg-stone-800 text-xs text-stone-600 dark:text-stone-300">
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                Modo oscuro disponible
-              </span>
-            </div>
-          </div>
         </div>
       </div>
     </div>

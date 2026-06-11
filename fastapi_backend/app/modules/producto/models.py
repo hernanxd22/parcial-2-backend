@@ -1,14 +1,15 @@
 
 from typing import Optional, List, TYPE_CHECKING
 from sqlmodel import SQLModel, Field, Relationship
-from sqlalchemy import DateTime, Column
+from sqlalchemy import DateTime, Column, ARRAY, Integer
 from sqlalchemy.dialects.postgresql import JSON
+from sqlalchemy import Text as saText
 from datetime import datetime, timezone
 
 if TYPE_CHECKING:
     from app.modules.categoria.models import Categoria
     from app.modules.ingrediente.models import Ingrediente
-    from app.modules.unidad_medida.models import UnidadMedida
+    from app.modules.unidadMedida.models import UnidadMedida
     from app.modules.DetallePedido.models import DetallePedido
 
 class Producto(SQLModel, table=True):
@@ -18,10 +19,13 @@ class Producto(SQLModel, table=True):
     nombre: str = Field(max_length=150)
     descripcion: Optional[str] = Field(default=None)
     precio_base: float = Field(gt=0)
-    imagen_url: Optional[str] = Field(default=None)
+    imagenes_url: Optional[List[str]] = Field(
+        default=None, sa_type=ARRAY(saText)
+    )
     disponible: bool = Field(default=True)
     porcentaje_ganancia: Optional[float] = Field(default=None, ge=0)
-    stock: float = Field(default=0, ge=0)
+    stock_cantidad: int = Field(default=0, ge=0, sa_type=Integer())
+    unidad_venta_id: Optional[int] = Field(default=None, foreign_key="unidad_medida.id")
 
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
@@ -45,6 +49,10 @@ class Producto(SQLModel, table=True):
     )
 
     detalles_pedido: List["DetallePedido"] = Relationship(back_populates="producto")
+
+    unidad_venta: Optional["UnidadMedida"] = Relationship(
+        sa_relationship_kwargs={"foreign_keys": "[Producto.unidad_venta_id]"}
+    )
 
 class ProductoCategoria(SQLModel, table=True):
 

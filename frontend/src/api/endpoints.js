@@ -53,3 +53,11 @@ export const uploadImage = (file, folder = "productos") => {
   formData.append("folder", folder)
   return api.post("/uploads/", formData)
 }
+
+export const deleteImage = (publicId) => api.delete(`/uploads/${publicId}`)
+
+export const getEstadisticasResumen = () => api.get("/estadisticas/resumen")
+export const getEstadisticasVentas = (params) => api.get("/estadisticas/ventas", { params })
+export const getEstadisticasProductosTop = (params) => api.get("/estadisticas/productos-top", { params })
+export const getEstadisticasPedidosPorEstado = () => api.get("/estadisticas/pedidos-por-estado")
+export const getEstadisticasIngresos = (params) => api.get("/estadisticas/ingresos", { params })

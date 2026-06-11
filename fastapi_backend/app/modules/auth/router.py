@@ -1,11 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlmodel import Session, select
 import os
 
 from app.core.database import get_session
 from app.core.security import get_current_user
 from app.modules.auth.schemas import (
+    RegisterRequest,
     LoginRequest,
     LoginResponse,
     RefreshRequest,
@@ -14,10 +17,21 @@ from app.modules.auth.schemas import (
 )
 from app.modules.auth.service import AuthService
 from app.modules.usuario.models import Usuario, UsuarioRol
+from app.modules.usuario.service import UsuarioService, hash_password
+from app.modules.usuario.schemas import UsuarioCreate, UsuarioPublic
 
 IS_PRODUCTION = os.getenv("ENVIRONMENT") == "production"
+IS_TEST = os.getenv("ENVIRONMENT") == "test"
+
+limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
+
+
+def _maybe_limit(limit_value: str):
+    if IS_TEST:
+        return lambda f: f
+    return limiter.limit(limit_value)
 
 
 def _set_auth_cookies(response: JSONResponse, access_token: str, refresh_token: str) -> None:
@@ -28,7 +42,7 @@ def _set_auth_cookies(response: JSONResponse, access_token: str, refresh_token: 
         secure=IS_PRODUCTION,
         samesite="lax",
         path="/",
-        max_age=900,
+        max_age=1800,
     )
     response.set_cookie(
         key="refresh_token",
@@ -46,8 +60,37 @@ def _clear_auth_cookies(response: JSONResponse) -> None:
     response.delete_cookie("refresh_token", path="/")
 
 
+@router.post(
+    "/register",
+    response_model=UsuarioPublic,
+    status_code=status.HTTP_201_CREATED,
+    summary="Registrar nuevo usuario",
+)
+@_maybe_limit("5/15minutes")
+def register(
+    data: RegisterRequest,
+    request: Request,
+    session: Session = Depends(get_session),
+):
+    svc = UsuarioService(session)
+    return svc.create(
+        UsuarioCreate(
+            nombre=data.nombre,
+            apellido=data.apellido,
+            email=data.email,
+            password=data.password,
+            celular=data.celular,
+        )
+    )
+
+
 @router.post("/login", response_model=LoginResponse)
-def login(data: LoginRequest, session: Session = Depends(get_session)):
+@_maybe_limit("5/15minutes")
+def login(
+    data: LoginRequest,
+    request: Request,
+    session: Session = Depends(get_session),
+):
     service = AuthService(session)
     result = service.login(data)
     response = JSONResponse(content={

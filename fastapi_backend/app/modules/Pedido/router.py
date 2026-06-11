@@ -101,6 +101,19 @@ def ver_estado_mis_pedidos(
 
 
 @router.get(
+    "/{pedido_id}/historial",
+    summary="Obtener historial de estados del pedido",
+)
+def get_pedido_historial(
+    pedido_id: Annotated[int, Path(gt=0, description="ID del pedido")],
+    svc: PedidoService = Depends(get_pedido_service),
+    _: Usuario = Depends(get_current_user),
+) -> list:
+    pedido = svc.get_by_id(pedido_id)
+    return [h.model_dump() for h in pedido.historial]
+
+
+@router.get(
     "/{pedido_id}",
     response_model=PedidoPublic,
     summary="Obtener pedido por ID (con detalles e historial)",

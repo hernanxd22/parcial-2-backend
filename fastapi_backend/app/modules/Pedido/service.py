@@ -33,11 +33,11 @@ EVENTOS_WS = {
 }
 
 ROLES_POR_TRANSICION = {
-    "PENDIENTE":  ["ADMIN", "PEDIDOS", "CLIENT"],
-    "CONFIRMADO": ["ADMIN", "PEDIDOS", "STOCK", "CLIENT"],
-    "EN_PREP":    ["ADMIN", "PEDIDOS", "STOCK", "CLIENT"],
-    "ENTREGADO":  ["ADMIN", "PEDIDOS", "CLIENT"],
-    "CANCELADO":  ["ADMIN", "PEDIDOS", "STOCK", "CLIENT"],
+    "PENDIENTE":  ["ADMIN", "PEDIDOS", "CLIENTE"],
+    "CONFIRMADO": ["ADMIN", "PEDIDOS", "STOCK", "CLIENTE"],
+    "EN_PREP":    ["ADMIN", "PEDIDOS", "STOCK", "CLIENTE"],
+    "ENTREGADO":  ["ADMIN", "PEDIDOS", "CLIENTE"],
+    "CANCELADO":  ["ADMIN", "PEDIDOS", "STOCK", "CLIENTE"],
 }
 
 
@@ -185,7 +185,7 @@ class PedidoService:
                                 detail=f"El producto '{producto.nombre}' no tiene stock suficiente",
                             )
                 else:
-                    if producto.stock < item.cantidad:
+                    if producto.stock_cantidad < item.cantidad:
                         raise HTTPException(
                             status_code=status.HTTP_409_CONFLICT,
                             detail=f"El producto '{producto.nombre}' no tiene stock suficiente",
@@ -322,20 +322,20 @@ class PedidoService:
                                 raise HTTPException(
                                     status_code=status.HTTP_409_CONFLICT,
                                     detail=f"Stock insuficiente del ingrediente '{ingrediente.nombre}' "
-                                           f"(disponible: {ingrediente.stock_cantidad:.2f} {simb}, "
-                                           f"necesario: {cantidad_necesaria:.2f} {simb})",
+                                        f"(disponible: {ingrediente.stock_cantidad} {simb}, "
+                                               f"necesario: {cantidad_necesaria:.2f} {simb})",
                                 )
                             ingrediente.stock_cantidad -= cantidad_necesaria
                             self._session.add(ingrediente)
                     else:
-                        if producto.stock < detalle.cantidad:
-                            raise HTTPException(
-                                status_code=status.HTTP_409_CONFLICT,
-                                detail=f"Stock insuficiente del producto '{producto.nombre}' "
-                                       f"(disponible: {producto.stock:.0f}, solicitado: {detalle.cantidad})",
-                            )
-                        producto.stock -= detalle.cantidad
-                        self._session.add(producto)
+                            if producto.stock_cantidad < detalle.cantidad:
+                                raise HTTPException(
+                                    status_code=status.HTTP_409_CONFLICT,
+                                    detail=f"Stock insuficiente del producto '{producto.nombre}' "
+                                           f"(disponible: {producto.stock_cantidad}, solicitado: {detalle.cantidad})",
+                                )
+                            producto.stock_cantidad -= detalle.cantidad
+                            self._session.add(producto)
            
             if data.estado_hacia_codigo == "CANCELADO" and estado_anterior == "CONFIRMADO":
                 for detalle in pedido.detalles:
@@ -360,7 +360,7 @@ class PedidoService:
                                 ingrediente.stock_cantidad += cantidad_por_item * detalle.cantidad
                                 self._session.add(ingrediente)
                         else:
-                            producto.stock += detalle.cantidad
+                            producto.stock_cantidad += detalle.cantidad
                             self._session.add(producto)
 
             uow._session.refresh(pedido)

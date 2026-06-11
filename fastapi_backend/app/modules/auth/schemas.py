@@ -3,6 +3,14 @@ from sqlmodel import SQLModel, Field
 from datetime import datetime
 
 
+class RegisterRequest(SQLModel):
+    nombre: str = Field(min_length=2, max_length=80)
+    apellido: str = Field(min_length=2, max_length=80)
+    email: str = Field(max_length=254)
+    password: str = Field(min_length=8)
+    celular: Optional[str] = Field(default=None, max_length=20)
+
+
 class LoginRequest(SQLModel):
     email: str = Field(max_length=254)
     password: str = Field(min_length=6)
