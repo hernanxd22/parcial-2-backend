@@ -13,17 +13,18 @@ export default function Home() {
   const limit = 12
   const [pedidoCreadoMsg, setPedidoCreadoMsg] = useState<string | null>(null)
   const [searchParams, setSearchParams] = useSearchParams()
+  const pedidoCreadoParam = searchParams.get('pedido_creado')
   const clearCart = useCartStore((s) => s.clearCart)
 
   useEffect(() => {
-    const pedidoId = searchParams.get('pedido_creado')
-    if (pedidoId) {
+    if (pedidoCreadoParam) {
       clearCart()
-      setPedidoCreadoMsg(`Pedido #${pedidoId} creado con exito`)
-      searchParams.delete('pedido_creado')
-      setSearchParams(searchParams, { replace: true })
+      setPedidoCreadoMsg(`Pedido #${pedidoCreadoParam} creado con exito`)
+      const newParams = new URLSearchParams(searchParams)
+      newParams.delete('pedido_creado')
+      setSearchParams(newParams, { replace: true })
     }
-  }, [])
+  }, [pedidoCreadoParam])
 
   useEffect(() => {
     if (!pedidoCreadoMsg) return

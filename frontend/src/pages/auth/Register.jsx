@@ -34,9 +34,10 @@ function Register() {
       await register(nombre, apellido, email, password)
       navigate('/')
     } catch (err) {
-      console.error('Error completo:', err)
-      const errorMsg = err.response?.data?.detail || err.message || JSON.stringify(err.response?.data)
-      setError(errorMsg)
+      const msg = err.response?.status === 429
+        ? "Demasiados intentos. Esperá 1 minuto y volvé a intentar."
+        : err.response?.data?.detail || "Error al registrarse"
+      setError(msg)
     } finally {
       setLoading(false)
     }

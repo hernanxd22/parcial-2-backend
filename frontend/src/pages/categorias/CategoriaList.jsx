@@ -134,7 +134,7 @@ function CategoriaList() {
       setCategoriaToDelete(null)
       fetchArbol()
     } catch (err) {
-      alert('Error al eliminar categoría')
+      alert('No se puede eliminar esta categoría porque tiene subcategorías o productos asociados.')
     }
   }
 
@@ -192,7 +192,7 @@ function CategoriaList() {
           <div>
             {filtradas.length === 0 ? (
               <p style={{ textAlign: 'center', color: '#999', padding: '20px' }}>
-                No se encontraron categorías con ese nombre.
+                
               </p>
             ) : (
               filtradas.map((cat) => (

@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   getProductos,
   deleteProducto,
+  reactivateProducto,
   getIngredientes,
   getUnidadesMedida,
 } from "../../api/endpoints";
@@ -18,6 +19,7 @@ function ProductoList() {
   const { user } = useAuth();
   const toast = useToast();
   const isAdmin = user?.rol === "ADMIN" || user?.roles?.includes("ADMIN");
+  const isStock = user?.rol === "STOCK";
 
   const [productos, setProductos] = useState([]);
   const [ingredienteMap, setIngredienteMap] = useState({});
@@ -29,6 +31,9 @@ function ProductoList() {
   const [filtroPrecioMax, setFiltroPrecioMax] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [productoToDelete, setProductoToDelete] = useState(null);
+  const [showReactivateModal, setShowReactivateModal] = useState(false);
+  const [productoToReactivate, setProductoToReactivate] = useState(null);
+  const [mostrarDesactivados, setMostrarDesactivados] = useState(false);
   const [expandedProducto, setExpandedProducto] = useState(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -40,7 +45,7 @@ function ProductoList() {
       setLoading(true);
       const offset = (pageNum - 1) * PAGE_SIZE;
       const [prodRes, ingRes, uniRes] = await Promise.all([
-        getProductos({ offset, limit: PAGE_SIZE, nombre: filtroNombre || undefined }),
+        getProductos({ offset, limit: PAGE_SIZE, nombre: filtroNombre || undefined, incluir_desactivados: mostrarDesactivados }),
         getIngredientes({ limit: 100 }),
         getUnidadesMedida({ limit: 100 }),
       ]);
@@ -75,6 +80,10 @@ function ProductoList() {
     setPage(1);
     fetchProductos(1);
   }, [filtroNombre]);
+
+  useEffect(() => {
+    fetchProductos(page);
+  }, [mostrarDesactivados]);
 
   const handlePageChange = (newPage) => {
     setPage(newPage);
@@ -160,7 +169,11 @@ function ProductoList() {
     const matchPrecioMin = filtroPrecioMin === "" ? true : precio >= precioMin;
     const matchPrecioMax = filtroPrecioMax === "" ? true : precio <= precioMax;
 
-    return matchDisponible && matchPrecioMin && matchPrecioMax;
+    const matchSinIngredientes = isStock
+      ? !p.producto_ingredientes || p.producto_ingredientes.length === 0
+      : true;
+
+    return matchDisponible && matchPrecioMin && matchPrecioMax && matchSinIngredientes;
   });
 
   const renderIngredientes = (producto) => {
@@ -249,6 +262,25 @@ function ProductoList() {
       label: "Ingredientes",
       render: (_, item) => renderIngredientes(item),
     },
+    ...(isAdmin ? [{
+      key: "deleted_at",
+      label: "",
+      render: (val, item) => {
+        if (!val) return null;
+        return (
+          <button
+            className="btn btn-sm btn-primary"
+            style={{ padding: "2px 10px", fontSize: "0.8em" }}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleReactivate(item);
+            }}
+          >
+            Reactivar
+          </button>
+        );
+      },
+    }] : []),
   ];
 
   const handleEdit = (producto) => {
@@ -269,6 +301,23 @@ function ProductoList() {
       fetchProductos();
     } catch {
       toast.error("Error al desactivar el producto");
+    }
+  };
+
+  const handleReactivate = (producto) => {
+    setProductoToReactivate(producto);
+    setShowReactivateModal(true);
+  };
+
+  const confirmReactivate = async () => {
+    try {
+      await reactivateProducto(productoToReactivate.id);
+      setShowReactivateModal(false);
+      setProductoToReactivate(null);
+      toast.success("Producto reactivado correctamente");
+      fetchProductos();
+    } catch {
+      toast.error("Error al reactivar el producto");
     }
   };
 
@@ -402,6 +451,22 @@ function ProductoList() {
               <option value="false">No</option>
             </select>
           </div>
+
+          {isAdmin && (
+            <div className="filtro-group" style={{ display: "flex", alignItems: "flex-end" }}>
+              <label className="filtro-label" style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", marginBottom: 0 }}>
+                <input
+                  type="checkbox"
+                  checked={mostrarDesactivados}
+                  onChange={(e) => {
+                    setMostrarDesactivados(e.target.checked);
+                    setFiltroDisponible("");
+                  }}
+                />
+                Mostrar desactivados
+              </label>
+            </div>
+          )}
         </div>
 
         <DataTable
@@ -542,6 +607,41 @@ function ProductoList() {
 
           <button className="btn btn-danger" onClick={confirmDelete}>
             Desactivar
+          </button>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={showReactivateModal}
+        onClose={() => setShowReactivateModal(false)}
+        title="Reactivar Producto"
+      >
+        <p>
+          ¿Estás seguro de reactivar el producto{" "}
+          <strong>{productoToReactivate?.nombre}</strong>?
+        </p>
+
+        <p style={{ fontSize: "0.9em", color: "#666" }}>
+          El producto volverá a estar disponible en el catálogo.
+        </p>
+
+        <div
+          style={{
+            marginTop: "20px",
+            display: "flex",
+            gap: "10px",
+            justifyContent: "flex-end",
+          }}
+        >
+          <button
+            className="btn btn-secondary"
+            onClick={() => setShowReactivateModal(false)}
+          >
+            Cancelar
+          </button>
+
+          <button className="btn btn-primary" onClick={confirmReactivate}>
+            Reactivar
           </button>
         </div>
       </Modal>

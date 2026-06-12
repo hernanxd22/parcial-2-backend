@@ -50,9 +50,10 @@ def list_productos(
     offset: OffsetQuery = 0,
     limit: LimitQuery = 20,
     nombre: Annotated[Optional[str], Query(description="Filtrar por nombre (búsqueda parcial)")] = None,
+    incluir_desactivados: Annotated[bool, Query(description="Incluir productos desactivados")] = False,
     svc: ProductoService = Depends(get_producto_service),
 ) -> ProductoList:
-    return svc.get_all(offset=offset, limit=limit, nombre=nombre)
+    return svc.get_all(offset=offset, limit=limit, nombre=nombre, incluir_desactivados=incluir_desactivados)
 
 
 @router.get(
@@ -254,5 +255,18 @@ def soft_delete_producto(
     _: Usuario = Depends(require_roles("ADMIN")),
 ) -> None:
     svc.soft_delete(producto_id)
+
+
+@router.patch(
+    "/{producto_id}/reactivar",
+    response_model=ProductoPublic,
+    summary="Reactivar producto desactivado",
+)
+def reactivate_producto(
+    producto_id: Annotated[int, Path(gt=0, description="ID del producto")],
+    svc: ProductoService = Depends(get_producto_service),
+    _: Usuario = Depends(require_roles("ADMIN")),
+) -> ProductoPublic:
+    return svc.reactivate(producto_id)
 
 

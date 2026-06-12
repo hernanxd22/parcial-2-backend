@@ -9,13 +9,15 @@ import {
   getUnidadesMedida,
   uploadImage,
 } from "../../api/endpoints";
-
-import SearchableSelect from "../../components/SearchableSelect";
+import { useAuth } from "../../context/AuthContext";
 
 function ProductoForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEdit = !!id;
+  const { user } = useAuth();
+  const isStock = user?.rol === "STOCK";
+  const readOnly = isStock && isEdit;
 
   const categoriaValidatorRef = useRef(null);
 
@@ -26,6 +28,7 @@ function ProductoForm() {
     disponible: true,
     imagenes_url: "",
     stock_cantidad: "",
+    costo_base: "",
     categoria_id: "",
     es_principal: false,
     porcentaje_ganancia: "",
@@ -43,48 +46,16 @@ function ProductoForm() {
   const [costoCalculado, setCostoCalculado] = useState(null);
   const [calculandoCosto, setCalculandoCosto] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [ingredienteSearchQuery, setIngredienteSearchQuery] = useState("");
+  const [ingredienteSearchResults, setIngredienteSearchResults] = useState([]);
+  const [hasSearchedIngredientes, setHasSearchedIngredientes] = useState(false);
+  const [categoriaSearchQuery, setCategoriaSearchQuery] = useState("");
+  const [categoriaSearchResults, setCategoriaSearchResults] = useState([]);
+  const [hasSearchedCategorias, setHasSearchedCategorias] = useState(false);
 
   useEffect(() => {
     fetchData();
   }, []);
-
-  const obtenerCategoriasAsignables = (categoriasData) => {
-    const categoriasConHijos = new Set(
-      categoriasData
-        .filter((cat) => cat.parent_id !== null && cat.parent_id !== undefined)
-        .map((cat) => cat.parent_id),
-    );
-
-    const obtenerRutaCategoria = (categoria) => {
-      const ruta = [categoria.nombre];
-      let parentId = categoria.parent_id;
-
-      while (parentId) {
-        const padre = categoriasData.find((cat) => cat.id === parentId);
-
-        if (!padre) break;
-
-        ruta.unshift(padre.nombre);
-        parentId = padre.parent_id;
-      }
-
-      return ruta.join(" > ");
-    };
-
-    return categoriasData
-      .filter((cat) => !categoriasConHijos.has(cat.id))
-      .map((cat) => ({
-        ...cat,
-        nombreMostrar: obtenerRutaCategoria(cat),
-      }))
-      .sort((a, b) => {
-        const fechaA = new Date(a.updated_at || 0).getTime();
-        const fechaB = new Date(b.updated_at || 0).getTime();
-
-        return fechaB - fechaA;
-      })
-      .slice(0, 10);
-  };
 
   const fetchData = async () => {
     try {
@@ -95,9 +66,8 @@ function ProductoForm() {
       ]);
 
       const categoriasData = catRes.data.data || [];
-      const categoriasAsignables = obtenerCategoriasAsignables(categoriasData);
 
-      setCategorias(categoriasAsignables);
+      setCategorias(categoriasData);
       setIngredientesDisponibles(ingRes.data.data || []);
       setUnidades(uniRes.data || []);
 
@@ -232,6 +202,18 @@ function ProductoForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (readOnly) {
+      try {
+        await updateProducto(id, { stock_cantidad: parseInt(formData.stock_cantidad) || 0 });
+        navigate("/productos");
+      } catch (err) {
+        setError(err.response?.data?.detail || "Error al actualizar stock");
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     if (!formData.categoria_id) {
       categoriaValidatorRef.current?.setCustomValidity(
         "Seleccioná una categoría",
@@ -308,6 +290,34 @@ function ProductoForm() {
       !ingredientesSeleccionados.some((s) => s.ingrediente_id === ing.id),
   );
 
+  const handleCategoriaSearch = () => {
+    setHasSearchedCategorias(true);
+    const query = categoriaSearchQuery.trim().toLowerCase();
+    if (!query) {
+      setCategoriaSearchResults([]);
+      return;
+    }
+    const results = categorias.filter((cat) =>
+      cat.nombre.toLowerCase().includes(query),
+    );
+    setCategoriaSearchResults(results);
+  };
+
+  const handleIngredienteSearch = () => {
+    setHasSearchedIngredientes(true);
+    const query = ingredienteSearchQuery.trim().toLowerCase();
+    if (!query) {
+      setIngredienteSearchResults([]);
+      return;
+    }
+    const disponibles = ingredientesDisponibles.filter(
+      (ing) =>
+        ing.nombre.toLowerCase().includes(query) &&
+        !ingredientesSeleccionados.some((s) => s.ingrediente_id === ing.id),
+    );
+    setIngredienteSearchResults(disponibles);
+  };
+
   const handleCalcularCosto = () => {
     setCalculandoCosto(true);
     setError("");
@@ -377,6 +387,35 @@ function ProductoForm() {
     }
   };
 
+  const handleCalcularCostoManual = () => {
+    setCalculandoCosto(true);
+    setError("");
+    setCostoCalculado(null);
+
+    try {
+      const costoBase = parseFloat(String(formData.costo_base).replace(",", ".")) || 0;
+      const pct = formData.porcentaje_ganancia
+        ? parseFloat(formData.porcentaje_ganancia)
+        : null;
+      const precioSug =
+        pct && pct > 0 && costoBase > 0
+          ? Math.round(costoBase * (1 + pct / 100) * 100) / 100
+          : null;
+
+      setCostoCalculado({
+        producto_id: id || 0,
+        costo_ingredientes: costoBase,
+        porcentaje_ganancia: pct,
+        precio_sugerido: precioSug,
+        desglose: [],
+      });
+    } catch (err) {
+      setError("Error al calcular costo");
+    } finally {
+      setCalculandoCosto(false);
+    }
+  };
+
   return (
     <div>
       <div className="card-header">
@@ -390,7 +429,13 @@ function ProductoForm() {
       <div className="card">
         {error && <div className="alert alert-error">{error}</div>}
 
-        <form onSubmit={handleSubmit}>
+        {readOnly && (
+          <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: "8px", padding: "10px 14px", marginBottom: "16px", color: "#1e40af", fontSize: "0.9em" }}>
+            Rol STOCK: solo podés modificar el stock del producto.
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} style={{ maxWidth: "600px" }}>
           <div className="form-group">
             <label className="form-label">Nombre</label>
             <input
@@ -400,6 +445,7 @@ function ProductoForm() {
               value={formData.nombre}
               onChange={handleChange}
               required
+              disabled={readOnly}
             />
           </div>
 
@@ -411,6 +457,7 @@ function ProductoForm() {
               value={formData.descripcion}
               onChange={handleChange}
               rows={3}
+              disabled={readOnly}
             />
           </div>
 
@@ -425,6 +472,7 @@ function ProductoForm() {
               step="1"
               min="0"
               placeholder="Ej: 30 (30% de ganancia sobre el costo)"
+              disabled={readOnly}
             />
             <small style={{ color: "#888" }}>
               Precio final = costo de ingredientes + este % de ganancia
@@ -439,6 +487,7 @@ function ProductoForm() {
                   name="disponible"
                   checked={formData.disponible}
                   onChange={handleChange}
+                  disabled={readOnly}
                 />{" "}
                 Disponible
               </label>
@@ -450,6 +499,7 @@ function ProductoForm() {
                   name="es_principal"
                   checked={formData.es_principal}
                   onChange={handleChange}
+                  disabled={readOnly}
                 />{" "}
                 Categoría principal
               </label>
@@ -480,13 +530,117 @@ function ProductoForm() {
                 pointerEvents: "none",
               }}
             />
-            <SearchableSelect
-              options={categorias}
-              value={formData.categoria_id}
-              onChange={handleCategoriaChange}
-              placeholder="Buscar categoría..."
-              labelKey="nombreMostrar"
-            />
+
+            {formData.categoria_id ? (
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "10px 12px",
+                  background: "#f0fdf4",
+                  border: "1px solid #bbf7d0",
+                  borderRadius: "6px",
+                }}
+              >
+                <span>
+                  <strong>Categoría seleccionada:</strong>{" "}
+                  {categorias.find((c) => c.id === formData.categoria_id)?.nombre || `ID ${formData.categoria_id}`}
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-danger btn-sm"
+                  onClick={() => {
+                    handleCategoriaChange("");
+                    setCategoriaSearchQuery("");
+                    setCategoriaSearchResults([]);
+                  }}
+                >
+                  ✕ Quitar
+                </button>
+              </div>
+            ) : (
+              <>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Escribí la categoría..."
+                    value={categoriaSearchQuery}
+                    onChange={(e) => {
+                      setCategoriaSearchQuery(e.target.value);
+                      setHasSearchedCategorias(false);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleCategoriaSearch();
+                      }
+                    }}
+                    style={{ flex: 1 }}
+                    disabled={readOnly}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={handleCategoriaSearch}
+                    disabled={readOnly}
+                  >
+                    Buscar
+                  </button>
+                </div>
+
+                {categoriaSearchResults.length > 0 && (
+                  <div
+                    style={{
+                      marginTop: "8px",
+                      background: "#fff",
+                      border: "1px solid #ddd",
+                      borderRadius: "6px",
+                      maxHeight: "200px",
+                      overflowY: "auto",
+                    }}
+                  >
+                    {categoriaSearchResults.map((cat) => (
+                      <div
+                        key={cat.id}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          padding: "8px 12px",
+                          borderBottom: "1px solid #f0f0f0",
+                          cursor: "pointer",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f5f5ff")}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#fff")}
+                        onClick={() => {
+                          handleCategoriaChange(cat.id);
+                          setCategoriaSearchQuery("");
+                          setCategoriaSearchResults([]);
+                        }}
+                      >
+                        <span>{cat.nombre}</span>
+                        <span
+                          style={{
+                            fontSize: "0.8em",
+                            color: "#888",
+                          }}
+                        >
+                          Seleccionar
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {hasSearchedCategorias && categoriaSearchResults.length === 0 && (
+                  <p style={{ color: "#999", fontSize: "0.85em", marginTop: "4px" }}>
+                    No se encontraron categorías con ese nombre.
+                  </p>
+                )}
+              </>
+            )}
           </div>
 
           <div className="form-group">
@@ -495,7 +649,7 @@ function ProductoForm() {
               type="file"
               accept="image/*"
               onChange={handleImageUpload}
-              disabled={uploadingImage}
+              disabled={uploadingImage || readOnly}
               className="form-input"
               style={{ padding: "8px" }}
             />
@@ -538,30 +692,134 @@ function ProductoForm() {
                   if (!e.target.checked) {
                     setIngredientesSeleccionados([]);
                     setCostoCalculado(null);
+                    setFormData((prev) => ({ ...prev, costo_base: "" }));
                   }
                 }}
+                disabled={readOnly}
               />{" "}
               Lleva ingredientes
             </label>
           </div>
 
           {!llevaIngredientes && (
-            <div className="form-group">
-              <label className="form-label">Stock (unidades)</label>
-              <input
-                type="number"
-                name="stock_cantidad"
-                className="form-input"
-                value={formData.stock_cantidad}
-                onChange={handleChange}
-                step="1"
-                min="0"
-                placeholder="Ej: 50"
-              />
-              <small style={{ color: "#888" }}>
-                Cantidad de unidades fisicas disponibles para la venta
-              </small>
-            </div>
+            <>
+              <div className="form-group">
+                <label className="form-label">Stock (unidades)</label>
+                <input
+                  type="number"
+                  name="stock_cantidad"
+                  className="form-input"
+                  value={formData.stock_cantidad}
+                  onChange={handleChange}
+                  step="1"
+                  min="0"
+                  placeholder="Ej: 50"
+                />
+                <small style={{ color: "#888" }}>
+                  Cantidad de unidades fisicas disponibles para la venta
+                </small>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Costo del producto ($)</label>
+                <input
+                  type="text"
+                  name="costo_base"
+                  className="form-input"
+                  value={formData.costo_base}
+                  onChange={(e) => {
+                    let value = e.target.value;
+                    value = value.replace(/[^0-9.,]/g, "");
+                    setFormData({ ...formData, costo_base: value });
+                  }}
+                  placeholder="0,00"
+                  disabled={readOnly}
+                />
+                <small style={{ color: "#888" }}>
+                  Costo de adquisicion del producto (sin IVA)
+                </small>
+              </div>
+
+              <div className="form-group">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={handleCalcularCostoManual}
+                  disabled={readOnly || calculandoCosto}
+                >
+                  {calculandoCosto ? "Calculando..." : "Calcular precio sugerido"}
+                </button>
+
+                {costoCalculado && (
+                  <div
+                    style={{
+                      marginTop: "12px",
+                      padding: "14px",
+                      background: "#f0fdf4",
+                      borderRadius: "8px",
+                      border: "1px solid #bbf7d0",
+                    }}
+                  >
+                    <h4 style={{ margin: "0 0 10px 0", fontSize: "1em", color: "#166534" }}>
+                      Precio sugerido
+                    </h4>
+
+                    <div
+                      style={{
+                        borderTop: "1px solid #bbf7d0",
+                        marginTop: "10px",
+                        paddingTop: "10px",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                        gap: "8px",
+                      }}
+                    >
+                      <span>
+                        <strong>Costo:</strong> $
+                        {costoCalculado.costo_ingredientes?.toFixed(2)}
+                      </span>
+                      {costoCalculado.precio_sugerido != null ? (
+                        <span style={{ color: "#059669", fontWeight: "bold" }}>
+                          Sugerido ({costoCalculado.porcentaje_ganancia}%): $
+                          {costoCalculado.precio_sugerido?.toFixed(2)}
+                        </span>
+                      ) : (
+                        <span style={{ color: "#b45309", fontSize: "0.9em" }}>
+                          Ingresá el % de ganancia para ver el precio sugerido
+                        </span>
+                      )}
+                    </div>
+
+                    {costoCalculado.precio_sugerido != null ? (
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        style={{ marginTop: "10px" }}
+                        onClick={() =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            precio_base: String(costoCalculado.precio_sugerido),
+                          }))
+                        }
+                      >
+                        Usar precio sugerido
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        style={{ marginTop: "10px", opacity: 0.5, cursor: "not-allowed" }}
+                        disabled
+                      >
+                        Usar precio sugerido
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </>
           )}
 
           {llevaIngredientes && (
@@ -579,18 +837,83 @@ function ProductoForm() {
               </label>
 
               <div style={{ marginBottom: "12px" }}>
-                <SearchableSelect
-                  options={ingredientesFiltrados}
-                  value={null}
-                  onChange={(val) => agregarIngrediente(val)}
-                  placeholder="Buscar ingrediente para agregar..."
-                  labelKey="nombre"
-                />
-                {ingredientesFiltrados.length === 0 && (
-                  <p style={{ color: "#999", fontSize: "0.85em", marginTop: "4px" }}>
-                    Todos los ingredientes disponibles ya fueron agregados.
-                  </p>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Escribí el ingrediente..."
+                    value={ingredienteSearchQuery}
+                    onChange={(e) => {
+                      setIngredienteSearchQuery(e.target.value);
+                      setHasSearchedIngredientes(false);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleIngredienteSearch();
+                      }
+                    }}
+                    style={{ flex: 1 }}
+                    disabled={readOnly}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={handleIngredienteSearch}
+                    disabled={readOnly}
+                  >
+                    Buscar
+                  </button>
+                </div>
+
+                {ingredienteSearchResults.length > 0 && (
+                  <div
+                    style={{
+                      marginTop: "8px",
+                      background: "#fff",
+                      border: "1px solid #ddd",
+                      borderRadius: "6px",
+                      maxHeight: "200px",
+                      overflowY: "auto",
+                    }}
+                  >
+                    {ingredienteSearchResults.map((ing) => (
+                      <div
+                        key={ing.id}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          padding: "8px 12px",
+                          borderBottom: "1px solid #f0f0f0",
+                        }}
+                      >
+                        <span>{ing.nombre}</span>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-primary"
+                          onClick={() => {
+                            agregarIngrediente(ing.id);
+                            setIngredienteSearchResults((prev) =>
+                              prev.filter((i) => i.id !== ing.id),
+                            );
+                          }}
+                        >
+                          + Agregar
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 )}
+
+                {hasSearchedIngredientes &&
+                  ingredienteSearchResults.length === 0 && (
+                    <p style={{ color: "#999", fontSize: "0.85em", marginTop: "4px" }}>
+                      {ingredientesFiltrados.length === 0
+                        ? "Todos los ingredientes disponibles ya fueron agregados."
+                        : "No se encontraron ingredientes con ese nombre."}
+                    </p>
+                  )}
               </div>
 
               {ingredientesSeleccionados.length > 0 && (
@@ -667,7 +990,7 @@ function ProductoForm() {
                 type="button"
                 className="btn btn-secondary"
                 onClick={handleCalcularCosto}
-                disabled={calculandoCosto}
+                disabled={readOnly || calculandoCosto}
               >
                 {calculandoCosto ? "Calculando..." : "Calcular costo"}
               </button>
@@ -721,15 +1044,19 @@ function ProductoForm() {
                       <strong>Costo total:</strong> $
                       {costoCalculado.costo_ingredientes?.toFixed(2)}
                     </span>
-                    {costoCalculado.precio_sugerido != null && (
+                    {costoCalculado.precio_sugerido != null ? (
                       <span style={{ color: "#059669", fontWeight: "bold" }}>
                         Sugerido ({costoCalculado.porcentaje_ganancia}%): $
                         {costoCalculado.precio_sugerido?.toFixed(2)}
                       </span>
+                    ) : (
+                      <span style={{ color: "#b45309", fontSize: "0.9em" }}>
+                        Ingresá el % de ganancia para ver el precio sugerido
+                      </span>
                     )}
                   </div>
 
-                  {costoCalculado.precio_sugerido != null && (
+                  {costoCalculado.precio_sugerido != null ? (
                     <button
                       type="button"
                       className="btn btn-primary btn-sm"
@@ -740,6 +1067,15 @@ function ProductoForm() {
                           precio_base: String(costoCalculado.precio_sugerido),
                         }))
                       }
+                    >
+                      Usar precio sugerido
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      style={{ marginTop: "10px", opacity: 0.5, cursor: "not-allowed" }}
+                      disabled
                     >
                       Usar precio sugerido
                     </button>
@@ -765,6 +1101,7 @@ function ProductoForm() {
               }}
               placeholder="0,00"
               required
+              disabled={readOnly}
             />
             <small style={{ color: "#888" }}>
               Precio final que verá el cliente. Usá "Calcular costo" para obtener una sugerencia.
@@ -783,7 +1120,7 @@ function ProductoForm() {
               className="btn btn-primary"
               disabled={loading}
             >
-              {loading ? "Guardando..." : "Guardar"}
+              {loading ? "Guardando..." : readOnly ? "Actualizar stock" : "Guardar"}
             </button>
 
             <Link to="/productos" className="btn btn-secondary">

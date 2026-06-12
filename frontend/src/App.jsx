@@ -100,7 +100,7 @@ function App() {
           <Route
             path="/ingredientes"
             element={
-              <RequireAuth roles={["ADMIN"]}>
+              <RequireAuth roles={["ADMIN", "STOCK"]}>
                 <IngredienteList />
               </RequireAuth>
             }
@@ -116,7 +116,7 @@ function App() {
           <Route
             path="/ingredientes/:id/editar"
             element={
-              <RequireAuth roles={["ADMIN"]}>
+              <RequireAuth roles={["ADMIN", "STOCK"]}>
                 <IngredienteForm />
               </RequireAuth>
             }

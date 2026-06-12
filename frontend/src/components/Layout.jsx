@@ -34,7 +34,7 @@ const sidebarItems = [
     path: "/ingredientes",
     label: "Ingredientes",
     icon: "leaf",
-    roles: ["ADMIN"],
+    roles: ["ADMIN", "STOCK"],
   },
   {
     path: "/pedidos",

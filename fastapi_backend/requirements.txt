@@ -11,3 +11,6 @@ pydantic-settings
 python-multipart
 cloudinary
 slowapi
+pytest
+httpx
+meter

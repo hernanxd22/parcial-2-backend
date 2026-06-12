@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { getIngredientes, deleteIngrediente, getUnidadesMedida } from '../../api/endpoints'
+import { useAuth } from '../../context/AuthContext'
 import DataTable from '../../components/DataTable'
 import Modal from '../../components/Modal'
 import Pagination from '../../components/Pagination'
@@ -8,6 +9,8 @@ import Pagination from '../../components/Pagination'
 const PAGE_SIZE = 12
 
 function IngredienteList() {
+  const { user } = useAuth()
+  const isStock = user?.rol === "STOCK"
   const [ingredientes, setIngredientes] = useState([])
   const [unidadMap, setUnidadMap] = useState({})
   const [loading, setLoading] = useState(true)
@@ -108,7 +111,8 @@ function IngredienteList() {
       setIngredienteToDelete(null)
       fetchIngredientes()
     } catch (err) {
-      alert('Error al eliminar ingrediente')
+      const msg = err.response?.data?.detail || "Error al eliminar ingrediente";
+      alert(msg);
     }
   }
 
@@ -116,7 +120,7 @@ function IngredienteList() {
     <div>
       <div className="card-header">
         <h1>Ingredientes</h1>
-        <Link to="/ingredientes/nuevo" className="btn btn-primary">Nuevo Ingrediente</Link>
+        {!isStock && <Link to="/ingredientes/nuevo" className="btn btn-primary">Nuevo Ingrediente</Link>}
       </div>
 
       <div className="card">
@@ -150,7 +154,7 @@ function IngredienteList() {
           data={filteredIngredientes}
           columns={columns}
           onEdit={handleEdit}
-          onDelete={handleDelete}
+          onDelete={isStock ? undefined : handleDelete}
           loading={loading}
           emptyMessage="No hay ingredientes"
         />

@@ -153,7 +153,7 @@ function Dashboard() {
 
   if (loading) {
     return (
-      <div>
+    <div>
         <div className="mb-8">
           <div className="h-8 w-36 bg-stone-200 dark:bg-stone-700/50 rounded-lg animate-pulse mb-2" />
           <div className="h-4 w-64 bg-stone-100 dark:bg-stone-700/30 rounded animate-pulse" />
@@ -171,7 +171,7 @@ function Dashboard() {
   const visibleShortcuts = shortcutCards.filter((s) => s.roles.includes(role));
 
   return (
-    <div>
+    <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 30px" }}>
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50 mb-1">
           Bienvenido, {user?.nombre || "Admin"}
@@ -202,7 +202,7 @@ function Dashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-[600px_1fr] gap-6 max-w-5xl mx-auto mb-10">
+      <div className="flex flex-col gap-6 mb-10">
         {estadosData.length > 0 && (
           <div className="card">
             <h3 className="font-semibold text-stone-800 dark:text-stone-100 mb-4">Pedidos por estado</h3>
