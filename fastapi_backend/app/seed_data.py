@@ -10,6 +10,7 @@ from app.modules.usuario.service import hash_password
 from app.modules.DireccionEntrega.models import DireccionEntrega
 from app.modules.Pedido.models import Pedido
 from app.modules.DetallePedido.models import DetallePedido
+from app.modules.HistorialEstadoPedido.models import HistorialEstadoPedido
 
 def _now():
     return datetime.now(timezone.utc)
@@ -332,6 +333,7 @@ def _seed_productos(session: Session):
             "nombre": "Coca-Cola 500ml",
             "descripcion": "Refrescante bebida cola sabor original, ideal para acompañar tu pizza.",
             "precio_base": 400.00,
+            "stock_cantidad": 100,
             "categorias": [(cat_bebidas.id, True)],
             "ingredientes": [],
         },
@@ -339,6 +341,7 @@ def _seed_productos(session: Session):
             "nombre": "Agua Mineral 500ml",
             "descripcion": "Agua mineral natural sin gas, pura y refrescante.",
             "precio_base": 300.00,
+            "stock_cantidad": 100,
             "categorias": [(cat_bebidas.id, True)],
             "ingredientes": [],
         },
@@ -346,6 +349,7 @@ def _seed_productos(session: Session):
             "nombre": "Cerveza Artesanal IPA",
             "descripcion": "Cerveza artesanal estilo IPA con notas cítricas y lupuladas. Amargor balanceado.",
             "precio_base": 600.00,
+            "stock_cantidad": 50,
             "categorias": [(cat_bebidas.id, True)],
             "ingredientes": [],
         },
@@ -353,6 +357,7 @@ def _seed_productos(session: Session):
             "nombre": "Limonada Natural",
             "descripcion": "Limonada casera con jugo de limón natural, azúcar orgánica y hojas de menta fresca.",
             "precio_base": 450.00,
+            "stock_cantidad": 60,
             "categorias": [(cat_bebidas.id, True)],
             "ingredientes": [],
         },
@@ -360,6 +365,7 @@ def _seed_productos(session: Session):
             "nombre": "Tiramisú",
             "descripcion": "El clásico postre italiano: capas de mascarpone, café espresso y cacao en polvo. Irresistible.",
             "precio_base": 800.00,
+            "stock_cantidad": 30,
             "categorias": [(cat_postres.id, True)],
             "ingredientes": [],
         },
@@ -367,6 +373,7 @@ def _seed_productos(session: Session):
             "nombre": "Brownie con Helado",
             "descripcion": "Brownie de chocolate caliente con helado de crema, salsa de chocolate y nueces tostadas.",
             "precio_base": 750.00,
+            "stock_cantidad": 25,
             "categorias": [(cat_postres.id, True)],
             "ingredientes": [],
         },
@@ -374,6 +381,7 @@ def _seed_productos(session: Session):
             "nombre": "Pan de Ajo",
             "descripcion": "Pan ciabatta tostado con manteca de ajo, perejil y un toque de parmesano. Crujiente y aromático.",
             "precio_base": 500.00,
+            "stock_cantidad": 40,
             "categorias": [(cat_entradas.id, True)],
             "ingredientes": [],
         },
@@ -381,6 +389,7 @@ def _seed_productos(session: Session):
             "nombre": "Bastones de Mozzarella",
             "descripcion": "Bastones de queso mozzarella rebozados y fritos, servidos con salsa de tomate fresca. 6 unidades.",
             "precio_base": 650.00,
+            "stock_cantidad": 40,
             "categorias": [(cat_entradas.id, True)],
             "ingredientes": [],
         },
@@ -395,6 +404,7 @@ def _seed_productos(session: Session):
             nombre=pd["nombre"],
             descripcion=pd["descripcion"],
             precio_base=pd["precio_base"],
+            stock_cantidad=pd.get("stock_cantidad", 0),
         )
         session.add(producto)
         session.flush()
@@ -517,6 +527,21 @@ def _seed_pedidos(session: Session):
                 nombre_snapshot=prod.nombre,
                 precio_snapshot=prod.precio_base,
                 subtotal_snap=prod.precio_base * cant,
+            ))
+
+        estado_orden = {"PENDIENTE": 1, "CONFIRMADO": 2, "EN_PREP": 3, "ENTREGADO": 4}
+        pasos = ["PENDIENTE", "CONFIRMADO", "EN_PREP", "ENTREGADO"]
+        orden_final = estado_orden.get(estado, 1)
+
+        for i, codigo in enumerate(pasos):
+            if i + 1 > orden_final:
+                break
+            desde = None if i == 0 else pasos[i - 1]
+            session.add(HistorialEstadoPedido(
+                pedido_id=pedido.id,
+                estado_desde_codigo=desde,
+                estado_hacia_codigo=codigo,
+                usuario_id=cliente.id,
             ))
 
     create_pedido("ENTREGADO", "EFECTIVO", [
