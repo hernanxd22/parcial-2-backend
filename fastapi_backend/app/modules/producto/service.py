@@ -200,10 +200,10 @@ class ProductoService:
             result = self._to_public(producto)
         return result
 
-    def get_all(self, offset: int = 0, limit: int = 20, nombre: str | None = None) -> ProductoList:
+    def get_all(self, offset: int = 0, limit: int = 20, nombre: str | None = None, incluir_desactivados: bool = False) -> ProductoList:
         with ProductoUnitOfWork(self._session) as uow:
-            productos = uow.productos.get_all_paged(offset=offset, limit=limit, nombre=nombre)
-            total = uow.productos.count(nombre=nombre)
+            productos = uow.productos.get_all_paged(offset=offset, limit=limit, nombre=nombre, incluir_desactivados=incluir_desactivados)
+            total = uow.productos.count(nombre=nombre, incluir_desactivados=incluir_desactivados)
             result = ProductoList(
                 data=[self._to_public(p) for p in productos],
                 total=total,
@@ -324,6 +324,15 @@ class ProductoService:
             producto.deleted_at = _now()
             producto.updated_at = _now()
             uow.productos.add(producto)
+
+    def reactivate(self, producto_id: int) -> ProductoPublic:
+        with ProductoUnitOfWork(self._session) as uow:
+            producto = self._get_or_404(uow, producto_id)
+            producto.disponible = True
+            producto.deleted_at = None
+            producto.updated_at = _now()
+            uow.productos.add(producto)
+            return self._to_public(producto)
 
     def get_all_relaciones(self) -> ProductoCategoriaList:
         with ProductoUnitOfWork(self._session) as uow:

@@ -15,6 +15,7 @@ export const getProductoById = (id) => api.get(`/productos/${id}`)
 export const createProducto = (data) => api.post('/productos/', data)
 export const updateProducto = (id, data) => api.patch(`/productos/${id}`, data)
 export const deleteProducto = (id) => api.delete(`/productos/${id}/desactivar`)
+export const reactivateProducto = (id) => api.patch(`/productos/${id}/reactivar`)
 export const getArbolCategorias = () => api.get('/categorias/arbol')
 export const getUnidadesMedida = (params) => api.get('/unidad-medida/', { params })
 
