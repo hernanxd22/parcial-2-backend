@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../store/useAuthStore'
@@ -71,11 +71,9 @@ export default function Checkout() {
         })),
       }),
     onSuccess: async (res) => {
-      const pedidoId = res.data.id
-
       if (formaPago === 'MERCADOPAGO') {
         try {
-          const { data } = await crearPreferenciaPago(pedidoId)
+          const { data } = await crearPreferenciaPago(res.data.id)
           window.location.href = data.init_point
         } catch {
           setError('Error al conectar con MercadoPago. Intente nuevamente.')
@@ -86,7 +84,9 @@ export default function Checkout() {
       clearCart()
       if (user?.id) saveCartForUser(user.id)
       queryClient.invalidateQueries({ queryKey: ['mis-pedidos'] })
-      navigate('/mis-pedidos')
+      setTimeout(() => {
+        navigate(`/?pedido_creado=${res.data.id}`)
+      }, 0)
     },
     onError: (error: { response?: { status?: number; data?: { detail?: string } } }) => {
       if (error.response?.status === 409) {
@@ -109,6 +109,18 @@ export default function Checkout() {
     direccionMutation.mutate()
   }
 
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      navigate('/login')
+    }
+  }, [loading, isAuthenticated, navigate])
+
+  useEffect(() => {
+    if (items.length === 0) {
+      navigate('/carrito')
+    }
+  }, [items, navigate])
+
   if (loading || loadingDirecciones) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-12 text-center">
@@ -119,12 +131,10 @@ export default function Checkout() {
   }
 
   if (!isAuthenticated) {
-    navigate('/login')
     return null
   }
 
   if (items.length === 0) {
-    navigate('/carrito')
     return null
   }
 
