@@ -22,8 +22,12 @@ export default function Login() {
     try {
       await login(email, password)
       navigate(from, { replace: true })
-    } catch {
-      setError('Email o contraseña incorrectos')
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { status?: number; data?: { detail?: string } } }
+      const msg = axiosErr.response?.status === 429
+        ? "Demasiados intentos. Esperá 1 minuto y volvé a intentar."
+        : "Email o contraseña incorrectos"
+      setError(msg)
     } finally {
       setIsLoading(false)
     }

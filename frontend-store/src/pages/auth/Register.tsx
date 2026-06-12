@@ -21,8 +21,12 @@ export default function Register() {
     try {
       await register(nombre, apellido, email, password)
       navigate('/')
-    } catch {
-      setError('No se pudo crear la cuenta. Verificá los datos.')
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { status?: number; data?: { detail?: string } } }
+      const msg = axiosErr.response?.status === 429
+        ? "Demasiados intentos. Esperá 1 minuto y volvé a intentar."
+        : "No se pudo crear la cuenta. Verificá los datos."
+      setError(msg)
     } finally {
       setIsLoading(false)
     }

@@ -66,7 +66,7 @@ def _clear_auth_cookies(response: JSONResponse) -> None:
     status_code=status.HTTP_201_CREATED,
     summary="Registrar nuevo usuario",
 )
-@_maybe_limit("5/15minutes")
+@_maybe_limit("5/1minute")
 def register(
     data: RegisterRequest,
     request: Request,
@@ -85,7 +85,7 @@ def register(
 
 
 @router.post("/login", response_model=LoginResponse)
-@_maybe_limit("5/15minutes")
+@_maybe_limit("5/1minute")
 def login(
     data: LoginRequest,
     request: Request,

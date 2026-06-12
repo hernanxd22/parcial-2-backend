@@ -20,7 +20,10 @@ function Login() {
       await login(email, password)
       navigate('/')
     } catch (err) {
-      setError(err.response?.data?.detail || 'Error al iniciar sesión')
+      const msg = err.response?.status === 429
+        ? "Demasiados intentos. Esperá 1 minuto y volvé a intentar."
+        : err.response?.data?.detail || "Error al iniciar sesión"
+      setError(msg)
     } finally {
       setLoading(false)
     }
