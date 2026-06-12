@@ -1,10 +1,10 @@
 
 from fastapi import HTTPException, status
-from sqlmodel import Session
+from sqlmodel import Session, select
 from datetime import datetime, timezone
 
 from app.modules.ingrediente.models import Ingrediente
-from app.modules.producto.models import ProductoIngrediente
+from app.modules.producto.models import ProductoIngrediente, Producto
 from app.modules.ingrediente.schemas import (
     IngredienteCreate, IngredientePublic, IngredienteUpdate, IngredienteList,
 )
@@ -112,6 +112,23 @@ class IngredienteService:
     def soft_delete(self, ingrediente_id: int) -> None:
         with IngredienteUnitOfWork(self._session) as uow:
             ingrediente = self._get_or_404(uow, ingrediente_id)
+
+            stmt = (
+                select(ProductoIngrediente)
+                .join(Producto)
+                .where(
+                    ProductoIngrediente.ingrediente_id == ingrediente_id,
+                    Producto.disponible == True,
+                    Producto.deleted_at == None,
+                )
+                .limit(1)
+            )
+            if self._session.exec(stmt).first() is not None:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="No se puede eliminar el ingrediente porque está asociado a productos activos",
+                )
+
             ingrediente.activo = False
             ingrediente.deleted_at = _now()
             ingrediente.updated_at = _now()

@@ -18,6 +18,7 @@ function ProductoList() {
   const { user } = useAuth();
   const toast = useToast();
   const isAdmin = user?.rol === "ADMIN" || user?.roles?.includes("ADMIN");
+  const isStock = user?.rol === "STOCK";
 
   const [productos, setProductos] = useState([]);
   const [ingredienteMap, setIngredienteMap] = useState({});
@@ -160,7 +161,11 @@ function ProductoList() {
     const matchPrecioMin = filtroPrecioMin === "" ? true : precio >= precioMin;
     const matchPrecioMax = filtroPrecioMax === "" ? true : precio <= precioMax;
 
-    return matchDisponible && matchPrecioMin && matchPrecioMax;
+    const matchSinIngredientes = isStock
+      ? !p.producto_ingredientes || p.producto_ingredientes.length === 0
+      : true;
+
+    return matchDisponible && matchPrecioMin && matchPrecioMax && matchSinIngredientes;
   });
 
   const renderIngredientes = (producto) => {

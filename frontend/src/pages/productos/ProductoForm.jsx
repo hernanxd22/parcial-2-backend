@@ -9,11 +9,15 @@ import {
   getUnidadesMedida,
   uploadImage,
 } from "../../api/endpoints";
+import { useAuth } from "../../context/AuthContext";
 
 function ProductoForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEdit = !!id;
+  const { user } = useAuth();
+  const isStock = user?.rol === "STOCK";
+  const readOnly = isStock && isEdit;
 
   const categoriaValidatorRef = useRef(null);
 
@@ -44,8 +48,10 @@ function ProductoForm() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [ingredienteSearchQuery, setIngredienteSearchQuery] = useState("");
   const [ingredienteSearchResults, setIngredienteSearchResults] = useState([]);
+  const [hasSearchedIngredientes, setHasSearchedIngredientes] = useState(false);
   const [categoriaSearchQuery, setCategoriaSearchQuery] = useState("");
   const [categoriaSearchResults, setCategoriaSearchResults] = useState([]);
+  const [hasSearchedCategorias, setHasSearchedCategorias] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -196,6 +202,18 @@ function ProductoForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (readOnly) {
+      try {
+        await updateProducto(id, { stock_cantidad: parseInt(formData.stock_cantidad) || 0 });
+        navigate("/productos");
+      } catch (err) {
+        setError(err.response?.data?.detail || "Error al actualizar stock");
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     if (!formData.categoria_id) {
       categoriaValidatorRef.current?.setCustomValidity(
         "Seleccioná una categoría",
@@ -273,6 +291,7 @@ function ProductoForm() {
   );
 
   const handleCategoriaSearch = () => {
+    setHasSearchedCategorias(true);
     const query = categoriaSearchQuery.trim().toLowerCase();
     if (!query) {
       setCategoriaSearchResults([]);
@@ -285,6 +304,7 @@ function ProductoForm() {
   };
 
   const handleIngredienteSearch = () => {
+    setHasSearchedIngredientes(true);
     const query = ingredienteSearchQuery.trim().toLowerCase();
     if (!query) {
       setIngredienteSearchResults([]);
@@ -409,6 +429,12 @@ function ProductoForm() {
       <div className="card">
         {error && <div className="alert alert-error">{error}</div>}
 
+        {readOnly && (
+          <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: "8px", padding: "10px 14px", marginBottom: "16px", color: "#1e40af", fontSize: "0.9em" }}>
+            Rol STOCK: solo podés modificar el stock del producto.
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} style={{ maxWidth: "600px" }}>
           <div className="form-group">
             <label className="form-label">Nombre</label>
@@ -419,6 +445,7 @@ function ProductoForm() {
               value={formData.nombre}
               onChange={handleChange}
               required
+              disabled={readOnly}
             />
           </div>
 
@@ -430,6 +457,7 @@ function ProductoForm() {
               value={formData.descripcion}
               onChange={handleChange}
               rows={3}
+              disabled={readOnly}
             />
           </div>
 
@@ -444,6 +472,7 @@ function ProductoForm() {
               step="1"
               min="0"
               placeholder="Ej: 30 (30% de ganancia sobre el costo)"
+              disabled={readOnly}
             />
             <small style={{ color: "#888" }}>
               Precio final = costo de ingredientes + este % de ganancia
@@ -458,6 +487,7 @@ function ProductoForm() {
                   name="disponible"
                   checked={formData.disponible}
                   onChange={handleChange}
+                  disabled={readOnly}
                 />{" "}
                 Disponible
               </label>
@@ -469,6 +499,7 @@ function ProductoForm() {
                   name="es_principal"
                   checked={formData.es_principal}
                   onChange={handleChange}
+                  disabled={readOnly}
                 />{" "}
                 Categoría principal
               </label>
@@ -536,7 +567,10 @@ function ProductoForm() {
                     className="form-input"
                     placeholder="Escribí la categoría..."
                     value={categoriaSearchQuery}
-                    onChange={(e) => setCategoriaSearchQuery(e.target.value)}
+                    onChange={(e) => {
+                      setCategoriaSearchQuery(e.target.value);
+                      setHasSearchedCategorias(false);
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -544,11 +578,13 @@ function ProductoForm() {
                       }
                     }}
                     style={{ flex: 1 }}
+                    disabled={readOnly}
                   />
                   <button
                     type="button"
                     className="btn btn-primary"
                     onClick={handleCategoriaSearch}
+                    disabled={readOnly}
                   >
                     Buscar
                   </button>
@@ -598,9 +634,9 @@ function ProductoForm() {
                   </div>
                 )}
 
-                {categoriaSearchQuery.trim() && categoriaSearchResults.length === 0 && (
+                {hasSearchedCategorias && categoriaSearchResults.length === 0 && (
                   <p style={{ color: "#999", fontSize: "0.85em", marginTop: "4px" }}>
-                    
+                    No se encontraron categorías con ese nombre.
                   </p>
                 )}
               </>
@@ -613,7 +649,7 @@ function ProductoForm() {
               type="file"
               accept="image/*"
               onChange={handleImageUpload}
-              disabled={uploadingImage}
+              disabled={uploadingImage || readOnly}
               className="form-input"
               style={{ padding: "8px" }}
             />
@@ -659,6 +695,7 @@ function ProductoForm() {
                     setFormData((prev) => ({ ...prev, costo_base: "" }));
                   }
                 }}
+                disabled={readOnly}
               />{" "}
               Lleva ingredientes
             </label>
@@ -696,6 +733,7 @@ function ProductoForm() {
                     setFormData({ ...formData, costo_base: value });
                   }}
                   placeholder="0,00"
+                  disabled={readOnly}
                 />
                 <small style={{ color: "#888" }}>
                   Costo de adquisicion del producto (sin IVA)
@@ -707,7 +745,7 @@ function ProductoForm() {
                   type="button"
                   className="btn btn-secondary"
                   onClick={handleCalcularCostoManual}
-                  disabled={calculandoCosto}
+                  disabled={readOnly || calculandoCosto}
                 >
                   {calculandoCosto ? "Calculando..." : "Calcular precio sugerido"}
                 </button>
@@ -805,7 +843,10 @@ function ProductoForm() {
                     className="form-input"
                     placeholder="Escribí el ingrediente..."
                     value={ingredienteSearchQuery}
-                    onChange={(e) => setIngredienteSearchQuery(e.target.value)}
+                    onChange={(e) => {
+                      setIngredienteSearchQuery(e.target.value);
+                      setHasSearchedIngredientes(false);
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -813,11 +854,13 @@ function ProductoForm() {
                       }
                     }}
                     style={{ flex: 1 }}
+                    disabled={readOnly}
                   />
                   <button
                     type="button"
                     className="btn btn-primary"
                     onClick={handleIngredienteSearch}
+                    disabled={readOnly}
                   >
                     Buscar
                   </button>
@@ -863,11 +906,12 @@ function ProductoForm() {
                   </div>
                 )}
 
-                {ingredienteSearchQuery.trim() &&
-                  ingredienteSearchResults.length === 0 &&
-                  ingredientesFiltrados.length === 0 && (
+                {hasSearchedIngredientes &&
+                  ingredienteSearchResults.length === 0 && (
                     <p style={{ color: "#999", fontSize: "0.85em", marginTop: "4px" }}>
-                      Todos los ingredientes disponibles ya fueron agregados.
+                      {ingredientesFiltrados.length === 0
+                        ? "Todos los ingredientes disponibles ya fueron agregados."
+                        : "No se encontraron ingredientes con ese nombre."}
                     </p>
                   )}
               </div>
@@ -946,7 +990,7 @@ function ProductoForm() {
                 type="button"
                 className="btn btn-secondary"
                 onClick={handleCalcularCosto}
-                disabled={calculandoCosto}
+                disabled={readOnly || calculandoCosto}
               >
                 {calculandoCosto ? "Calculando..." : "Calcular costo"}
               </button>
@@ -1057,6 +1101,7 @@ function ProductoForm() {
               }}
               placeholder="0,00"
               required
+              disabled={readOnly}
             />
             <small style={{ color: "#888" }}>
               Precio final que verá el cliente. Usá "Calcular costo" para obtener una sugerencia.
@@ -1075,7 +1120,7 @@ function ProductoForm() {
               className="btn btn-primary"
               disabled={loading}
             >
-              {loading ? "Guardando..." : "Guardar"}
+              {loading ? "Guardando..." : readOnly ? "Actualizar stock" : "Guardar"}
             </button>
 
             <Link to="/productos" className="btn btn-secondary">

@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { getIngredienteById, createIngrediente, updateIngrediente, getUnidadesMedida, uploadImage } from '../../api/endpoints'
+import { useAuth } from '../../context/AuthContext'
 
 function IngredienteForm() {
   const { id } = useParams()
   const navigate = useNavigate()
   const isEdit = !!id
+  const { user } = useAuth()
+  const isStock = user?.rol === "STOCK"
+  const readOnly = isStock && isEdit
 
   const [formData, setFormData] = useState({
     nombre: '',
@@ -75,30 +79,36 @@ function IngredienteForm() {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    if (!formData.nombre.trim()) {
-      setError("El nombre del ingrediente es obligatorio")
-      return
-    }
+    if (!readOnly) {
+      if (!formData.nombre.trim()) {
+        setError("El nombre del ingrediente es obligatorio")
+        return
+      }
 
-    if (!formData.unidad_medida_id) {
-      setError("Seleccioná una unidad de medida")
-      return
+      if (!formData.unidad_medida_id) {
+        setError("Seleccioná una unidad de medida")
+        return
+      }
     }
 
     setError('')
     setLoading(true)
 
     try {
-      const payload = {
-        ...formData,
-        stock_cantidad: parseFloat(formData.stock_cantidad) || 0,
-        unidad_medida_id: formData.unidad_medida_id ? parseInt(formData.unidad_medida_id) : null,
-      }
-
-      if (isEdit) {
-        await updateIngrediente(id, payload)
+      if (readOnly) {
+        await updateIngrediente(id, { stock_cantidad: parseFloat(formData.stock_cantidad) || 0 })
       } else {
-        await createIngrediente(payload)
+        const payload = {
+          ...formData,
+          stock_cantidad: parseFloat(formData.stock_cantidad) || 0,
+          unidad_medida_id: formData.unidad_medida_id ? parseInt(formData.unidad_medida_id) : null,
+        }
+
+        if (isEdit) {
+          await updateIngrediente(id, payload)
+        } else {
+          await createIngrediente(payload)
+        }
       }
       navigate('/ingredientes')
     } catch (err) {
@@ -118,6 +128,12 @@ function IngredienteForm() {
       <div className="card">
         {error && <div className="alert alert-error">{error}</div>}
 
+        {readOnly && (
+          <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: "8px", padding: "10px 14px", marginBottom: "16px", color: "#1e40af", fontSize: "0.9em" }}>
+            Rol STOCK: solo podés modificar el stock del ingrediente.
+          </div>
+        )}
+
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label className="form-label">Nombre</label>
@@ -128,6 +144,7 @@ function IngredienteForm() {
               value={formData.nombre}
               onChange={handleChange}
               required
+              disabled={readOnly}
             />
           </div>
 
@@ -139,6 +156,7 @@ function IngredienteForm() {
               value={formData.descripcion || ''}
               onChange={handleChange}
               rows={3}
+              disabled={readOnly}
             />
           </div>
 
@@ -149,6 +167,7 @@ function IngredienteForm() {
                 name="es_alergeno"
                 checked={formData.es_alergeno}
                 onChange={handleChange}
+                disabled={readOnly}
               />{' '}
               Es alérgeno
             </label>
@@ -160,7 +179,7 @@ function IngredienteForm() {
               type="file"
               accept="image/*"
               onChange={handleImageUpload}
-              disabled={uploadingImage}
+              disabled={uploadingImage || readOnly}
               className="form-input"
               style={{ padding: '8px' }}
             />
@@ -215,6 +234,7 @@ function IngredienteForm() {
                 className="form-select"
                 value={formData.unidad_medida_id}
                 onChange={handleChange}
+                disabled={readOnly}
               >
                 <option value="">Sin unidad</option>
                 {unidades.map(uni => (
@@ -235,6 +255,7 @@ function IngredienteForm() {
               step="0.01"
               min="0"
               placeholder="Ej: 1000 (lo que te sale 1 kg, 1 L o 1 unidad)"
+              disabled={readOnly}
             />
             <small style={{ color: '#888' }}>
               ¿Cuánto te sale 1 {unidades.find(u => u.id == formData.unidad_medida_id)?.simbolo || 'unidad'} de este ingrediente?
@@ -243,7 +264,7 @@ function IngredienteForm() {
 
           <div style={{ display: 'flex', gap: '10px' }}>
             <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? 'Guardando...' : 'Guardar'}
+              {loading ? 'Guardando...' : readOnly ? 'Actualizar stock' : 'Guardar'}
             </button>
             <Link to="/ingredientes" className="btn btn-secondary">
               Cancelar

@@ -134,7 +134,7 @@ function CategoriaList() {
       setCategoriaToDelete(null)
       fetchArbol()
     } catch (err) {
-      alert('Error al eliminar categoría')
+      alert('No se puede eliminar esta categoría porque tiene subcategorías o productos asociados.')
     }
   }
 
