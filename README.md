@@ -48,7 +48,7 @@ psql --version
 ```powershell
 git clone https://github.com/farfan-hernan/parcial-2-backend.git
 cd parcial-2-backend
-git checkout correciones
+git checkout main
 ```
 
 El proyecto tiene 3 carpetas independientes:
@@ -105,13 +105,13 @@ python -m venv .venv
 # source .venv/bin/activate
 
 # Instalar dependencias
-pip install -r requirements.txt
+python pip install -r requirements.txt
 ```
 
 ### 3.4 Iniciar el servidor
 
 ```powershell
-uvicorn main:app --reload
+python uvicorn main:app --reload
 ```
 
 El backend arranca en **http://localhost:8000**. Al iniciar por primera vez:
@@ -206,8 +206,8 @@ Todos los endpoints usan el prefijo `/api/v1`. Los públicos no requieren autent
 
 | Método | Ruta | Auth | Descripción |
 |---|---|---|---|
-| `POST` | `/api/v1/auth/register` | No | Registrar nuevo usuario (rate limited: 5/15 min) |
-| `POST` | `/api/v1/auth/login` | No | Login, devuelve tokens JWT (rate limited: 5/15 min) |
+| `POST` | `/api/v1/auth/register` | No | Registrar nuevo usuario (rate limited: 5/1 min) |
+| `POST` | `/api/v1/auth/login` | No | Login, devuelve tokens JWT (rate limited: 5/1 min) |
 | `POST` | `/api/v1/auth/refresh` | No | Refrescar access token (rotación) |
 | `POST` | `/api/v1/auth/logout` | JWT | Invalidar refresh token |
 | `GET` | `/api/v1/auth/me` | JWT | Perfil del usuario autenticado |
