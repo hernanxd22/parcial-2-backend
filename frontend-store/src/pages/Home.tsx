@@ -78,7 +78,7 @@ export default function Home() {
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-tight">
               Las mejores{' '}
               <span className="bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text text-transparent">
-                pizzas
+                comidas
               </span>{' '}
               de la ciudad
             </h1>
