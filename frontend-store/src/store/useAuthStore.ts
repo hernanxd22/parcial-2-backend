@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import api from '../api/axios'
 import type { User } from '../types'
 import { saveCartForUser, loadCartForUser, useCartStore } from './useCartStore'
@@ -13,7 +14,9 @@ interface AuthState {
   checkAuth: () => Promise<void>
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set, get) => ({
   user: null,
   isAuthenticated: false,
   loading: true,
@@ -54,46 +57,55 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     await get().login(email, password)
   },
 
-  checkAuth: async () => {
-    try {
-      const response = await api.get('/auth/me')
-      const userData = response.data
+      checkAuth: async () => {
+        try {
+          const response = await api.get('/auth/me')
+          const userData = response.data
 
-      set({
-        user: {
-          id: userData.id,
-          email: userData.email,
-          nombre: userData.nombre,
-          apellido: userData.apellido,
-          roles: userData.roles,
-        },
-        isAuthenticated: true,
-        loading: false,
-      })
-    } catch {
-      try {
-        const refreshResponse = await api.post('/auth/refresh')
-        localStorage.setItem('access_token', refreshResponse.data.access_token)
-        const response = await api.get('/auth/me')
-        const userData = response.data
+          set({
+            user: {
+              id: userData.id,
+              email: userData.email,
+              nombre: userData.nombre,
+              apellido: userData.apellido,
+              roles: userData.roles,
+            },
+            isAuthenticated: true,
+            loading: false,
+          })
+        } catch {
+          try {
+            const refreshResponse = await api.post('/auth/refresh')
+            localStorage.setItem('access_token', refreshResponse.data.access_token)
+            const response = await api.get('/auth/me')
+            const userData = response.data
 
-        set({
-          user: {
-            id: userData.id,
-            email: userData.email,
-            nombre: userData.nombre,
-            apellido: userData.apellido,
-            roles: userData.roles,
-          },
-          isAuthenticated: true,
-          loading: false,
-        })
-      } catch {
-        set({ user: null, isAuthenticated: false, loading: false })
-      }
+            set({
+              user: {
+                id: userData.id,
+                email: userData.email,
+                nombre: userData.nombre,
+                apellido: userData.apellido,
+                roles: userData.roles,
+              },
+              isAuthenticated: true,
+              loading: false,
+            })
+          } catch {
+            set({ user: null, isAuthenticated: false, loading: false })
+          }
+        }
+      },
+    }),
+    {
+      name: 'auth-store',
+      partialize: (state) => ({
+        user: state.user,
+        isAuthenticated: state.isAuthenticated,
+      }),
     }
-  },
-}))
+  )
+)
 
 useCartStore.subscribe(() => {
   const userId = useAuthStore.getState().user?.id
