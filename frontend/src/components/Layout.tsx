@@ -417,13 +417,14 @@ function Layout() {
                     </svg>
                   )}
                   {i === breadcrumbs.length - 1 ? (
-                    <span className="font-semibold text-stone-800 dark:text-stone-100">
+                    <span className="font-semibold text-stone-800 dark:text-stone-100" style={{marginLeft: '20px'}}>
                       {crumb.label}
                     </span>
                   ) : (
                     <Link
                       to={crumb.path}
                       className="text-stone-500 dark:text-stone-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors"
+                      style={{marginLeft: '20px'}}
                     >
                       {crumb.label}
                     </Link>
