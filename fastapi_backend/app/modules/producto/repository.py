@@ -21,12 +21,14 @@ class ProductoRepository(BaseRepository[Producto]):
         )
         return self.session.exec(stmt).first()
 
-    def get_all_paged(self, offset: int = 0, limit: int = 20, nombre: str | None = None, incluir_desactivados: bool = False) -> list[Producto]:
+    def get_all_paged(self, offset: int = 0, limit: int = 20, nombre: str | None = None, incluir_desactivados: bool = False, categoria_id: int | None = None) -> list[Producto]:
         stmt = select(Producto)
         if not incluir_desactivados:
             stmt = stmt.where(Producto.deleted_at == None)
         if nombre:
             stmt = stmt.where(Producto.nombre.ilike(f"%{nombre}%"))
+        if categoria_id is not None:
+            stmt = stmt.join(ProductoCategoria).where(ProductoCategoria.categoria_id == categoria_id)
         stmt = self._load_relations(stmt.order_by(Producto.created_at.desc()).offset(offset).limit(limit))
         return list(self.session.exec(stmt).all())
 
@@ -40,12 +42,14 @@ class ProductoRepository(BaseRepository[Producto]):
         )
         return list(self.session.exec(stmt).all())
 
-    def count(self, nombre: str | None = None, incluir_desactivados: bool = False) -> int:
+    def count(self, nombre: str | None = None, incluir_desactivados: bool = False, categoria_id: int | None = None) -> int:
         stmt = select(Producto)
         if not incluir_desactivados:
             stmt = stmt.where(Producto.deleted_at == None)
         if nombre:
             stmt = stmt.where(Producto.nombre.ilike(f"%{nombre}%"))
+        if categoria_id is not None:
+            stmt = stmt.join(ProductoCategoria).where(ProductoCategoria.categoria_id == categoria_id)
         return len(self.session.exec(stmt).all())
 
 

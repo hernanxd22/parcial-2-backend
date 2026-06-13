@@ -380,7 +380,7 @@ function Layout() {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="flex items-center justify-between h-16 px-8 lg:px-10 bg-white dark:bg-[#1c1917] border-b border-stone-200 dark:border-stone-800 flex-shrink-0">
+        <header className="flex items-center justify-between h-16 px-12 lg:px-16 bg-white dark:bg-[#1c1917] border-b border-stone-200 dark:border-stone-800 flex-shrink-0">
           <div className="flex items-center gap-3">
             <nav
               className="hidden sm:flex items-center gap-1.5 text-sm"

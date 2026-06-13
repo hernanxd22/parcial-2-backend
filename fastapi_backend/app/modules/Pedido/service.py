@@ -138,6 +138,8 @@ class PedidoService:
             **pedido.model_dump(),
             detalles=[DetallePedidoPublic.model_validate(d) for d in pedido.detalles],
             historial=[HistorialEstadoPublic.model_validate(h) for h in pedido.historial],
+            usuario_nombre=f"{pedido.usuario.nombre} {pedido.usuario.apellido}" if pedido.usuario else None,
+            direccion_texto=f"{pedido.direccion.alias}: {pedido.direccion.linea1}, {pedido.direccion.ciudad}" if pedido.direccion else None,
         )
 
 
@@ -447,6 +449,15 @@ class PedidoService:
                     )
                     for d in p.detalles
                 ]
+                motivo = None
+                if p.estado_codigo == "CANCELADO":
+                    historial = uow.historial.get_by_pedido(p.id)
+                    cancel_entry = next(
+                        (h for h in historial if h.estado_hacia_codigo == "CANCELADO" and h.motivo),
+                        None,
+                    )
+                    if cancel_entry:
+                        motivo = cancel_entry.motivo
                 result.append(PedidoEstadoPedido(
                     id=p.id,
                     fecha=p.created_at.isoformat(),
@@ -454,5 +465,6 @@ class PedidoService:
                     estado=p.estado_codigo,
                     usuario_id=p.usuario_id,
                     items=items,
+                    motivo_cancelacion=motivo,
                 ))
             return PedidoEstadoList(data=result, total=total)

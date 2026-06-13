@@ -44,6 +44,10 @@ class PedidoRepository(BaseRepository[Pedido]):
                 Pedido.id == pedido_id,
                 Pedido.deleted_at == None,
             )
+            .options(
+                selectinload(Pedido.usuario),
+                selectinload(Pedido.direccion),
+            )
         ).first()
 
     def get_active_by_usuario(self, usuario_id: int, offset: int = 0, limit: int = 12) -> list[Pedido]:

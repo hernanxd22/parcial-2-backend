@@ -200,10 +200,10 @@ class ProductoService:
             result = self._to_public(producto)
         return result
 
-    def get_all(self, offset: int = 0, limit: int = 20, nombre: str | None = None, incluir_desactivados: bool = False) -> ProductoList:
+    def get_all(self, offset: int = 0, limit: int = 20, nombre: str | None = None, incluir_desactivados: bool = False, categoria_id: int | None = None) -> ProductoList:
         with ProductoUnitOfWork(self._session) as uow:
-            productos = uow.productos.get_all_paged(offset=offset, limit=limit, nombre=nombre, incluir_desactivados=incluir_desactivados)
-            total = uow.productos.count(nombre=nombre, incluir_desactivados=incluir_desactivados)
+            productos = uow.productos.get_all_paged(offset=offset, limit=limit, nombre=nombre, incluir_desactivados=incluir_desactivados, categoria_id=categoria_id)
+            total = uow.productos.count(nombre=nombre, incluir_desactivados=incluir_desactivados, categoria_id=categoria_id)
             result = ProductoList(
                 data=[self._to_public(p) for p in productos],
                 total=total,
