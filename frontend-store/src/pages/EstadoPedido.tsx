@@ -120,7 +120,7 @@ export default function EstadoPedido() {
     queryFn: () => getEstadoMisPedidos(offset),
   })
 
-  const handleWsMessage = useCallback((msg: { event: string; data?: { pedido_id?: number; estado_anterior?: string | null; estado_nuevo?: string } }) => {
+  const handleWsMessage = useCallback((msg: { event: string; data?: { pedido_id?: number; estado_anterior?: string | null; estado_nuevo?: string; motivo?: string } }) => {
     if (msg.event === "WS_CONNECTED") {
       queryClient.invalidateQueries({ queryKey: ['estado-pedidos'] })
       return
@@ -138,7 +138,7 @@ export default function EstadoPedido() {
             data: {
               ...(old as { data: { data: Pedido[]; total: number } }).data,
               data: (old as { data: { data: Pedido[] } }).data.data.map(p =>
-                p.id === d.pedido_id ? { ...p, estado: d.estado_nuevo! } : p
+                p.id === d.pedido_id ? { ...p, estado: d.estado_nuevo!, motivo_cancelacion: d.motivo || p.motivo_cancelacion } : p
               )
             }
           }
@@ -154,7 +154,7 @@ export default function EstadoPedido() {
           data: {
             ...(old as { data: { data: Pedido[]; total: number } }).data,
             data: (old as { data: { data: Pedido[] } }).data.data.map(p =>
-              p.id === d.pedido_id ? { ...p, estado: d.estado_nuevo! } : p
+              p.id === d.pedido_id ? { ...p, estado: d.estado_nuevo!, motivo_cancelacion: d.motivo || p.motivo_cancelacion } : p
             )
           }
         }
