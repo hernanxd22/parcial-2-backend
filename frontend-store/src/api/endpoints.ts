@@ -27,6 +27,9 @@ export const getMisPedidos = (usuarioId?: number) =>
 export const getEstadoMisPedidos = (offset: number = 0) =>
   api.get<{ data: Pedido[], total: number }>('/pedidos/mi-estado', { params: { offset, limit: 12 } })
 
+export const cancelarPedido = (id: number, motivo: string) =>
+  api.patch(`/pedidos/${id}/cancelar`, { motivo })
+
 export const getTodosLosPedidos = () =>
   api.get<ListResponse<Pedido>>('/pedidos/')
 

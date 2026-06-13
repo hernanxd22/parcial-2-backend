@@ -43,7 +43,7 @@ function IngredienteList() {
       setTotal(ingRes.data.total || 0)
       setTotalPages(Math.ceil((ingRes.data.total || 0) / PAGE_SIZE))
       const map: Record<number, UnidadMedida> = {}
-      ;(uniRes.data.data || []).forEach((u: UnidadMedida) => { map[u.id] = u })
+      ;(uniRes.data || []).forEach((u: UnidadMedida) => { map[u.id] = u })
       setUnidadMap(map)
     } catch (err: unknown) {
       console.error('Error:', err)
