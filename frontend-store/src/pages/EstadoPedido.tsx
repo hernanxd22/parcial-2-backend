@@ -243,7 +243,17 @@ export default function EstadoPedido() {
                         month: 'long',
                         day: 'numeric',
                       })}
+                      {' · '}
+                      {new Date(pedido.fecha).toLocaleTimeString('es-AR', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
                     </p>
+                    {pedido.estado === 'CANCELADO' && pedido.motivo_cancelacion && (
+                      <p className="text-xs text-red-500 mt-1">
+                        Motivo: {pedido.motivo_cancelacion}
+                      </p>
+                    )}
                   </div>
 
                   <div className="text-right">

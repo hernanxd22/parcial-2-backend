@@ -57,6 +57,7 @@ export interface Pedido {
   estado: string
   usuario_id: number
   items: PedidoItem[]
+  motivo_cancelacion?: string
 }
 
 export interface PedidoItem {

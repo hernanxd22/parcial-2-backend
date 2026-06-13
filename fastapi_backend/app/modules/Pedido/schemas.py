@@ -62,6 +62,8 @@ class PedidoPublic(SQLModel):
     deleted_at: Optional[datetime]
     detalles: List[DetallePedidoPublic] = []
     historial: List[HistorialEstadoPublic] = []
+    usuario_nombre: Optional[str] = None
+    direccion_texto: Optional[str] = None
 
 
 class PedidoPublicSimple(SQLModel):
@@ -108,6 +110,7 @@ class PedidoEstadoPedido(SQLModel):
     estado: str
     usuario_id: int
     items: List[PedidoItemEstado] = []
+    motivo_cancelacion: Optional[str] = None
 
 
 class PedidoEstadoList(SQLModel):

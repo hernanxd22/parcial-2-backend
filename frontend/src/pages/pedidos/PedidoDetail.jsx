@@ -89,7 +89,7 @@ function PedidoDetail() {
         
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '15px' }}>
           <div>
-            <strong>Usuario ID:</strong> {pedido?.usuario_id}
+            <strong>Cliente:</strong> {pedido?.usuario_nombre || 'No disponible'}
           </div>
           <div>
             <strong>Estado:</strong>{' '}
@@ -101,7 +101,7 @@ function PedidoDetail() {
             <strong>Forma de Pago:</strong> {pedido?.forma_pago_codigo}
           </div>
           <div>
-            <strong>Dirección ID:</strong> {pedido?.direccion_id || 'Retiro en local'}
+            <strong>Dirección:</strong> {pedido?.direccion_texto || 'Retiro en local'}
           </div>
           <div>
             <strong>Subtotal:</strong> ${pedido?.subtotal}

@@ -82,11 +82,6 @@ export default function ProductoCard({ producto }: ProductoCardProps) {
               <p className="text-2xl font-bold price">
                 ${producto.precio_base.toLocaleString('es-AR', { minimumFractionDigits: 0 })}
               </p>
-              {producto.precio_base < 100 && (
-                <p className="text-xs text-amber-600 mt-0.5 font-medium">
-                  ¡Envío gratis disponible!
-                </p>
-              )}
             </div>
 
             <button
