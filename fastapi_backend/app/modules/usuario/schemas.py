@@ -25,6 +25,7 @@ class UsuarioPublic(SQLModel):
     email: str
     celular: Optional[str]
     activo: bool
+    roles: list[str] = []
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime]

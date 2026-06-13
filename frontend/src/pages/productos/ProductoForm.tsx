@@ -91,7 +91,7 @@ function ProductoForm() {
 
       setCategorias(categoriasData);
       setIngredientesDisponibles(ingRes.data.data || []);
-      setUnidades(uniRes.data.data || []);
+      setUnidades(uniRes.data || []);
 
       if (isEdit) {
         const prodRes = await getProductoById(Number(id));

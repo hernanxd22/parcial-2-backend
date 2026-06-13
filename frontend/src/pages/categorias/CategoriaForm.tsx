@@ -25,6 +25,9 @@ function CategoriaForm() {
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string>('')
   const [uploadingImage, setUploadingImage] = useState<boolean>(false)
+  const [categoriaSearchQuery, setCategoriaSearchQuery] = useState('')
+  const [categoriaSearchResults, setCategoriaSearchResults] = useState<Categoria[]>([])
+  const [hasSearchedCategorias, setHasSearchedCategorias] = useState(false)
 
   useEffect(() => {
     fetchData()
@@ -79,10 +82,14 @@ function CategoriaForm() {
     setLoading(true)
 
     try {
+      const payload = {
+        ...formData,
+        parent_id: formData.parent_id || null,
+      }
       if (isEdit) {
-        await updateCategoria(Number(id), formData as unknown as Record<string, unknown>)
+        await updateCategoria(Number(id), payload as unknown as Record<string, unknown>)
       } else {
-        await createCategoria(formData as unknown as Record<string, unknown>)
+        await createCategoria(payload as unknown as Record<string, unknown>)
       }
       navigate('/categorias')
     } catch (err: unknown) {
@@ -92,7 +99,23 @@ function CategoriaForm() {
     }
   }
 
-  const categoriasOptions = categorias.filter(c => c.id !== parseInt(id || '0'))
+  const handleCategoriaSearch = () => {
+    setHasSearchedCategorias(true)
+    const query = categoriaSearchQuery.trim().toLowerCase()
+    if (!query) {
+      setCategoriaSearchResults([])
+      return
+    }
+    const results = categorias
+      .filter((cat) => cat.nombre.toLowerCase().includes(query) && cat.id !== (id ? Number(id) : 0))
+    setCategoriaSearchResults(results)
+  }
+
+  const handleSelectCategoriaPadre = (catId: number | null) => {
+    setFormData(prev => ({ ...prev, parent_id: catId }))
+    setCategoriaSearchQuery('')
+    setCategoriaSearchResults([])
+  }
 
   return (
     <div>
@@ -128,19 +151,110 @@ function CategoriaForm() {
             />
           </div>
 
-          <div className="form-group">
+          <div className="form-group" style={{ position: 'relative' }}>
             <label className="form-label">Categoría Padre</label>
-            <select
-              name="parent_id"
-              className="form-select"
-              value={formData.parent_id || ''}
-              onChange={handleChange}
-            >
-              <option value="">Ninguna (categoría raíz)</option>
-              {categoriasOptions.map(cat => (
-                <option key={cat.id} value={cat.id}>{cat.nombre}</option>
-              ))}
-            </select>
+
+            {formData.parent_id ? (
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '10px 12px',
+                  background: '#f0fdf4',
+                  border: '1px solid #bbf7d0',
+                  borderRadius: '6px',
+                }}
+              >
+                <span>
+                  <strong>Categoría seleccionada:</strong>{' '}
+                  {categorias.find((c) => c.id === formData.parent_id)?.nombre || `ID ${formData.parent_id}`}
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-danger btn-sm"
+                  onClick={() => {
+                    handleSelectCategoriaPadre(null)
+                    setCategoriaSearchQuery('')
+                    setCategoriaSearchResults([])
+                  }}
+                >
+                  ✕ Quitar
+                </button>
+              </div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Escribí la categoría..."
+                    value={categoriaSearchQuery}
+                    onChange={(e) => {
+                      setCategoriaSearchQuery(e.target.value)
+                      setHasSearchedCategorias(false)
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        handleCategoriaSearch()
+                      }
+                    }}
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={handleCategoriaSearch}
+                  >
+                    Buscar
+                  </button>
+                </div>
+
+                {categoriaSearchResults.length > 0 && (
+                  <div
+                    style={{
+                      marginTop: '8px',
+                      background: '#fff',
+                      border: '1px solid #ddd',
+                      borderRadius: '6px',
+                      maxHeight: '200px',
+                      overflowY: 'auto',
+                    }}
+                  >
+                    {categoriaSearchResults.map((cat) => (
+                      <div
+                        key={cat.id}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '8px 12px',
+                          borderBottom: '1px solid #f0f0f0',
+                          cursor: 'pointer',
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f5f5ff')}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#fff')}
+                        onClick={() => {
+                          handleSelectCategoriaPadre(cat.id)
+                        }}
+                      >
+                        <span>{cat.nombre}</span>
+                        <span style={{ fontSize: '0.8em', color: '#888' }}>
+                          Seleccionar
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {hasSearchedCategorias && categoriaSearchResults.length === 0 && (
+                  <p style={{ color: '#999', fontSize: '0.85em', marginTop: '4px' }}>
+                    No se encontraron categorías con ese nombre.
+                  </p>
+                )}
+              </>
+            )}
           </div>
 
           <div className="form-group">

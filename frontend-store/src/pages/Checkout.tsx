@@ -21,6 +21,7 @@ export default function Checkout() {
   const [ciudad, setCiudad] = useState('')
   const [provincia, setProvincia] = useState('')
   const [codigoPostal, setCodigoPostal] = useState('')
+  const [retiroLocal, setRetiroLocal] = useState(false)
 
   const { data: direccionesRes, isLoading: loadingDirecciones } = useQuery({
     queryKey: ['direcciones', user?.id],
@@ -30,7 +31,7 @@ export default function Checkout() {
 
   const direcciones: Direccion[] = direccionesRes?.data?.data ?? []
 
-  const envio = total >= 10000 ? 0 : 3500
+  const envio = retiroLocal ? 0 : (total >= 10000 ? 0 : 3500)
   const totalFinal = total + envio
 
   const direccionMutation = useMutation({
@@ -64,7 +65,7 @@ export default function Checkout() {
       createPedido({
         usuario_id: user!.id,
         forma_pago_codigo: formaPago,
-        direccion_id: Number(direccionId),
+        ...(retiroLocal ? {} : { direccion_id: Number(direccionId) }),
         items: items.map((item) => ({
           producto_id: item.producto_id,
           cantidad: item.cantidad,
@@ -100,7 +101,7 @@ export default function Checkout() {
   const handleSubmitPedido = (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    if (!direccionId) return
+    if (!retiroLocal && !direccionId) return
     pedidoMutation.mutate()
   }
 
@@ -153,32 +154,52 @@ export default function Checkout() {
                 <span className="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center text-sm">
                   1
                 </span>
-                Dirección de entrega
+                {retiroLocal ? 'Retiro en el local' : 'Dirección de entrega'}
               </h2>
-              <button
-                type="button"
-                onClick={() => setShowForm(!showForm)}
-                className="text-sm font-medium text-orange-600 hover:text-orange-700 flex items-center gap-1"
-              >
-                {showForm ? (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                    Cancelar
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
-                    Nueva dirección
-                  </>
-                )}
-              </button>
+              {!retiroLocal && (
+                <button
+                  type="button"
+                  onClick={() => setShowForm(!showForm)}
+                  className="text-sm font-medium text-orange-600 hover:text-orange-700 flex items-center gap-1"
+                >
+                  {showForm ? (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      Cancelar
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                      Nueva dirección
+                    </>
+                  )}
+                </button>
+              )}
             </div>
 
-            {showForm && (
+            <label className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all mb-4 ${retiroLocal ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-500/20' : 'border-stone-200 bg-stone-50 hover:border-orange-300'}`}>
+              <input
+                type="checkbox"
+                checked={retiroLocal}
+                onChange={(e) => {
+                  setRetiroLocal(e.target.checked)
+                  if (e.target.checked) {
+                    setDireccionId('')
+                  }
+                }}
+                className="accent-orange-600 w-5 h-5"
+              />
+              <div>
+                <span className="font-semibold text-stone-800">🏪 Retirar en el local</span>
+                <span className="text-sm text-stone-500 ml-2">Sin costo de envío</span>
+              </div>
+            </label>
+
+            {!retiroLocal && showForm && (
               <div className="mb-6 p-5 bg-amber-50 rounded-xl border border-amber-200 space-y-4">
                 <h3 className="font-semibold text-stone-700">Nueva dirección</h3>
                 <input
@@ -234,7 +255,7 @@ export default function Checkout() {
               </div>
             )}
 
-            {direcciones.length > 0 ? (
+            {!retiroLocal && (direcciones.length > 0 ? (
               <select
                 value={direccionId}
                 onChange={(e) => setDireccionId(e.target.value ? Number(e.target.value) : '')}
@@ -261,7 +282,7 @@ export default function Checkout() {
                   </button>
                 </div>
               )
-            )}
+            ))}
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-6">
@@ -350,7 +371,13 @@ export default function Checkout() {
               </div>
             </div>
 
-            <div className="mt-5 p-4 bg-stone-50 rounded-xl">
+            <div className="mt-5 p-4 bg-stone-50 rounded-xl space-y-2">
+              {retiroLocal && (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="font-semibold text-stone-600">Modo:</span>
+                  <span className="text-orange-600 font-medium">🏪 Retiro en el local</span>
+                </div>
+              )}
               <div className="flex items-center gap-2 text-sm">
                 <span className="font-semibold text-stone-600">Forma de pago:</span>
                 <span className="text-stone-500">
@@ -363,7 +390,7 @@ export default function Checkout() {
 
             <button
               type="submit"
-              disabled={pedidoMutation.isPending || !direccionId}
+              disabled={pedidoMutation.isPending || (!retiroLocal && !direccionId)}
               className="mt-6 w-full py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 disabled:from-stone-300 disabled:to-stone-300 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {pedidoMutation.isPending ? (

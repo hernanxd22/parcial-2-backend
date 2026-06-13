@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { useAuthStore } from '../store/useAuthStore'
-import { getEstadoMisPedidos } from '../api/endpoints'
+import { getEstadoMisPedidos, cancelarPedido } from '../api/endpoints'
 import { useWebSocket } from '../hooks/useWebSocket'
 import type { Pedido } from '../types'
 
@@ -105,6 +105,8 @@ export default function EstadoPedido() {
   const navigate = useNavigate()
   const { isAuthenticated, loading, user } = useAuthStore()
   const [page, setPage] = useState(1)
+  const [cancelPedidoId, setCancelPedidoId] = useState<number | null>(null)
+  const [cancelMotivo, setCancelMotivo] = useState('')
   const queryClient = useQueryClient()
 
   useEffect(() => {
@@ -118,6 +120,19 @@ export default function EstadoPedido() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ['estado-pedidos', page],
     queryFn: () => getEstadoMisPedidos(offset),
+  })
+
+  const cancelMutation = useMutation({
+    mutationFn: ({ id, motivo }: { id: number; motivo: string }) =>
+      cancelarPedido(id, motivo),
+    onSuccess: () => {
+      setCancelPedidoId(null)
+      setCancelMotivo('')
+      queryClient.invalidateQueries({ queryKey: ['estado-pedidos'] })
+    },
+    onError: (err: { response?: { data?: { detail?: string } } }) => {
+      alert(err.response?.data?.detail || 'Error al cancelar el pedido')
+    },
   })
 
   const handleWsMessage = useCallback((msg: { event: string; data?: { pedido_id?: number; estado_anterior?: string | null; estado_nuevo?: string; motivo?: string } }) => {
@@ -281,12 +296,60 @@ export default function EstadoPedido() {
                     </div>
                   </div>
                 )}
+                {(pedido.estado === 'PENDIENTE' || pedido.estado === 'CONFIRMADO') && (
+                  <div className="mt-4 pt-4 border-t border-stone-100">
+                    <button
+                      onClick={() => setCancelPedidoId(pedido.id)}
+                      className="text-sm font-medium text-red-600 hover:text-red-700 hover:underline transition-colors"
+                    >
+                      Cancelar pedido
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
 
           <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
         </>
+      )}
+
+      {cancelPedidoId && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4">
+            <h2 className="text-lg font-bold text-stone-800 mb-2">Cancelar pedido #{cancelPedidoId}</h2>
+            <p className="text-sm text-stone-500 mb-4">Indicá el motivo de la cancelación:</p>
+            <textarea
+              value={cancelMotivo}
+              onChange={(e) => setCancelMotivo(e.target.value)}
+              className="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
+              rows={3}
+              placeholder="Ej: Me arrepentí del pedido..."
+              autoFocus
+            />
+            <div className="flex gap-3 mt-4 justify-end">
+              <button
+                onClick={() => { setCancelPedidoId(null); setCancelMotivo('') }}
+                className="px-4 py-2 text-sm font-medium text-stone-600 bg-stone-100 rounded-xl hover:bg-stone-200 transition-colors"
+              >
+                Volver
+              </button>
+              <button
+                onClick={() => {
+                  if (!cancelMotivo.trim()) {
+                    alert('El motivo es obligatorio para cancelar')
+                    return
+                  }
+                  cancelMutation.mutate({ id: cancelPedidoId, motivo: cancelMotivo.trim() })
+                }}
+                disabled={cancelMutation.isPending}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 disabled:bg-stone-300 transition-colors"
+              >
+                {cancelMutation.isPending ? 'Cancelando...' : 'Confirmar cancelación'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

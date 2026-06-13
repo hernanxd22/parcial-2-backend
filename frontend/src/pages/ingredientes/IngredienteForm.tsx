@@ -44,7 +44,7 @@ function IngredienteForm() {
   const fetchData = async () => {
     try {
       const uniRes = await getUnidadesMedida({ limit: 100 })
-      setUnidades(uniRes.data.data || [])
+      setUnidades(uniRes.data || [])
 
       if (isEdit) {
         const response = await getIngredienteById(Number(id))

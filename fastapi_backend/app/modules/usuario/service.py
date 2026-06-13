@@ -91,7 +91,13 @@ class UsuarioService:
             usuarios = uow.usuarios.get_active(offset=offset, limit=limit, search=search)
             total = uow.usuarios.count(search=search)
             result = UsuarioList(
-                data=[UsuarioPublic.model_validate(u) for u in usuarios],
+                data=[
+                    UsuarioPublic(
+                        **u.model_dump(),
+                        roles=[ur.rol_codigo for ur in u.roles] if u.roles else [],
+                    )
+                    for u in usuarios
+                ],
                 total=total,
             )
         return result

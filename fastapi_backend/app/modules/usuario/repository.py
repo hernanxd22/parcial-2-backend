@@ -1,4 +1,5 @@
 from sqlmodel import Session, select
+from sqlalchemy.orm import selectinload
 from app.core.repository import BaseRepository
 from app.modules.usuario.models import Usuario, UsuarioRol
 
@@ -15,9 +16,8 @@ class UsuarioRepository(BaseRepository[Usuario]):
                 Usuario.apellido.ilike(f"%{search}%") |
                 Usuario.email.ilike(f"%{search}%")
             )
-        return list(
-            self.session.exec(stmt.offset(offset).limit(limit)).all()
-        )
+        stmt = stmt.options(selectinload(Usuario.roles)).offset(offset).limit(limit)
+        return list(self.session.exec(stmt).all())
 
     def get_by_email(self, email: str) -> Usuario | None:
         return self.session.exec(

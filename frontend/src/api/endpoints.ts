@@ -56,7 +56,7 @@ export const reactivateProducto = (id: number): Promise<AxiosResponse<Producto>>
 export const getArbolCategorias = (): Promise<AxiosResponse<CategoriaNodo[]>> =>
   api.get('/categorias/arbol')
 
-export const getUnidadesMedida = (params?: Params): Promise<AxiosResponse<ListResponse<UnidadMedida>>> =>
+export const getUnidadesMedida = (params?: Params): Promise<AxiosResponse<UnidadMedida[]>> =>
   api.get('/unidad-medida/', { params })
 
 export const getCategorias = (params?: Params): Promise<AxiosResponse<ListResponse<Categoria>>> =>

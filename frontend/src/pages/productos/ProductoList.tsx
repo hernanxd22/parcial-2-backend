@@ -76,7 +76,7 @@ function ProductoList() {
       setIngredienteMap(ingMap);
 
       const uniMap: Record<number, UnidadMedida> = {};
-      (uniRes.data.data || []).forEach((u: UnidadMedida) => {
+      (uniRes.data || []).forEach((u: UnidadMedida) => {
         uniMap[u.id] = u;
       });
       setUnidadMap(uniMap);
