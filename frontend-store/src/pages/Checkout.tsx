@@ -30,7 +30,7 @@ export default function Checkout() {
 
   const direcciones: Direccion[] = direccionesRes?.data?.data ?? []
 
-  const envio = total >= 100 ? 0 : 9.99
+  const envio = total >= 10000 ? 0 : 3500
   const totalFinal = total + envio
 
   const direccionMutation = useMutation({

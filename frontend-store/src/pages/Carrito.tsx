@@ -37,7 +37,7 @@ export default function Carrito() {
     )
   }
 
-  const envio = total >= 100 ? 0 : 9.99
+  const envio = total >= 10000 ? 0 : 3500
   const totalFinal = total + envio
 
   return (
@@ -88,18 +88,18 @@ export default function Carrito() {
                 </span>
               </div>
 
-              {total < 100 && (
+              {total < 10000 && (
                 <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
                   <p className="text-sm text-amber-700 flex items-center gap-2">
                     <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    Sumá ${(100 - total).toFixed(2)} más para obtener envío gratis
+                    Sumá ${(10000 - total).toFixed(2)} más para obtener envío gratis
                   </p>
                   <div className="mt-2 w-full bg-amber-200 rounded-full h-1.5">
                     <div
                       className="bg-amber-500 h-1.5 rounded-full transition-all"
-                      style={{ width: `${Math.min((total / 100) * 100, 100)}%` }}
+                      style={{ width: `${Math.min((total / 10000) * 100, 100)}%` }}
                     ></div>
                   </div>
                 </div>

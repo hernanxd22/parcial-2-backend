@@ -194,7 +194,7 @@ class PedidoService:
                         )
 
             descuento = 0.00
-            costo_envio = 0.00 if (data.direccion_id is None or subtotal >= 100) else 9.99
+            costo_envio = 0.00 if (data.direccion_id is None or subtotal >= 10000) else 3500.00
             total = round(subtotal - descuento + costo_envio, 2)
 
             pedido = Pedido(
