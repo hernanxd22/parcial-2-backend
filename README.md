@@ -226,9 +226,9 @@ El seed crea automáticamente estos usuarios:
 
 | Email | Password | Rol | Acceso |
 |---|---|---|---|
-| `admin@foodstore.com` | La de tu `.env` (`ADMIN_PASSWORD`) | ADMIN | Admin panel completo |
+| `admin@admin.com` | La de tu `.env` (`ADMIN_PASSWORD`) | ADMIN | Admin panel completo |
 | `cliente@test.com` | `password123` | CLIENTE | Tienda online |
-| `stock@test.com` | `password123` | STOCK | Productos y stock |
+| `stock@test.com` | `password123` | STOCK | Productos e Ingredientes |
 | `pedidos@test.com` | `password123` | PEDIDOS | Gestión de pedidos |
 
 ---
