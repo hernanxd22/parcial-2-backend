@@ -70,7 +70,7 @@ def update_ingrediente(
     ingrediente_id: Annotated[int, Path(gt=0, description="ID del ingrediente")],
     data: IngredienteUpdate,
     svc: IngredienteService = Depends(get_ingrediente_service),
-    _: Usuario = Depends(require_roles("ADMIN")),
+    _: Usuario = Depends(require_roles("ADMIN", "STOCK")),
 ) -> IngredientePublic:
     return svc.update(ingrediente_id, data)
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { getUsuarioById, createUsuario, updateUsuario } from '../../api/endpoints'
+import { getUsuarioById, createUsuario, updateUsuario, getUsuarioRoles, assignRole, removeRole } from '../../api/endpoints'
 
 interface UsuarioFormData {
   nombre: string
@@ -9,6 +9,8 @@ interface UsuarioFormData {
   password: string
   celular: string
 }
+
+const ROLE_OPTIONS = ['CLIENTE', 'PEDIDOS', 'STOCK', 'ADMIN']
 
 function UsuarioForm() {
   const { id } = useParams<{ id: string }>()
@@ -22,6 +24,7 @@ function UsuarioForm() {
     password: '',
     celular: ''
   })
+  const [rol, setRol] = useState('CLIENTE')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -34,20 +37,43 @@ function UsuarioForm() {
   const fetchUsuario = async () => {
     if (!id) return
     try {
-      const response = await getUsuarioById(Number(id))
-      const { password_hash, ...data } = response.data as unknown as UsuarioFormData & { password_hash?: string }
-      setFormData(data)
+      const [usuarioRes, rolesRes] = await Promise.all([
+        getUsuarioById(Number(id)),
+        getUsuarioRoles(Number(id)),
+      ])
+      const user = usuarioRes.data
+      setFormData({
+        nombre: user.nombre || '',
+        apellido: user.apellido || '',
+        email: user.email || '',
+        password: '',
+        celular: String(user.celular || ''),
+      })
+      const currentRoles = (rolesRes.data.data || []).map((r: { rol_codigo: string }) => r.rol_codigo)
+      setRol(currentRoles[0] || 'CLIENTE')
     } catch (err) {
       console.error('Error:', err)
       navigate('/usuarios')
     }
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     })
+  }
+
+  const syncRol = async (usuarioId: number, newRol: string) => {
+    const currentRolesRes = await getUsuarioRoles(usuarioId)
+    const currentRoles = (currentRolesRes.data.data || []).map(r => r.rol_codigo)
+    const toRemove = currentRoles.filter(r => r !== newRol)
+    for (const r of toRemove) {
+      await removeRole(usuarioId, r)
+    }
+    if (!currentRoles.includes(newRol)) {
+      await assignRole({ usuario_id: usuarioId, rol_codigo: newRol })
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -57,10 +83,26 @@ function UsuarioForm() {
 
     try {
       if (isEdit) {
-        const { password, ...data } = formData
-        await updateUsuario(Number(id!), password ? formData : data)
+        const payload: Record<string, unknown> = {}
+        if (formData.password) payload.password = formData.password
+        payload.nombre = formData.nombre
+        payload.apellido = formData.apellido
+        payload.email = formData.email
+        payload.celular = formData.celular || null
+        await updateUsuario(Number(id!), payload)
+        await syncRol(Number(id!), rol || 'CLIENTE')
       } else {
-        await createUsuario(formData as unknown as Record<string, unknown>)
+        const res = await createUsuario({
+          nombre: formData.nombre,
+          apellido: formData.apellido,
+          email: formData.email,
+          password: formData.password,
+          celular: formData.celular || null,
+        } as unknown as Record<string, unknown>)
+        const newId = (res.data as { id: number }).id
+        if (newId) {
+          await syncRol(newId, rol || 'CLIENTE')
+        }
       }
       navigate('/usuarios')
     } catch (err) {
@@ -129,6 +171,7 @@ function UsuarioForm() {
               value={formData.password}
               onChange={handleChange}
               minLength={6}
+              required={!isEdit}
             />
           </div>
 
@@ -143,7 +186,21 @@ function UsuarioForm() {
             />
           </div>
 
-          <div style={{ display: 'flex', gap: '10px' }}>
+          <div className="form-group">
+            <label className="form-label">Rol</label>
+            <select
+              name="rol"
+              className="form-select"
+              value={rol}
+              onChange={(e) => setRol(e.target.value)}
+            >
+              {ROLE_OPTIONS.map(r => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
             <button type="submit" className="btn btn-primary" disabled={loading}>
               {loading ? 'Guardando...' : 'Guardar'}
             </button>

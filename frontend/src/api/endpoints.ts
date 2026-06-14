@@ -50,6 +50,15 @@ export const updateProducto = (id: number, data: Params): Promise<AxiosResponse<
 export const deleteProducto = (id: number): Promise<AxiosResponse<void>> =>
   api.delete(`/productos/${id}/desactivar`)
 
+export const getUsuarioRoles = (id: number): Promise<AxiosResponse<ListResponse<{ usuario_id: number; rol_codigo: string }>>> =>
+  api.get(`/usuarios/${id}/roles`)
+
+export const assignRole = (data: { usuario_id: number; rol_codigo: string }): Promise<AxiosResponse<Record<string, unknown>>> =>
+  api.post('/usuarios/roles', data)
+
+export const removeRole = (usuario_id: number, rol_codigo: string): Promise<AxiosResponse<void>> =>
+  api.delete(`/usuarios/${usuario_id}/roles/${rol_codigo}`)
+
 export const reactivateProducto = (id: number): Promise<AxiosResponse<Producto>> =>
   api.patch(`/productos/${id}/reactivar`)
 

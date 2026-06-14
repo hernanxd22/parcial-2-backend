@@ -75,12 +75,9 @@ function UsuarioList() {
     { key: 'apellido', label: 'Apellido' },
     { key: 'email', label: 'Email' },
     {
-      key: 'roles',
+      key: 'rol',
       label: 'Rol',
-      render: (val: unknown) => {
-        const roles = val as string[]
-        return roles && roles.length > 0 ? roles.join(', ') : '-'
-      }
+      render: (val: unknown) => (val as string) || '-'
     },
     { key: 'celular', label: 'Celular' },
     {

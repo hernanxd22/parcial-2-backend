@@ -47,7 +47,7 @@ class UsuarioService:
 
 
     def _get_relacion_or_404(self,uow: UsuarioUnitOfWork,usuario_id: int,rol_codigo: str,) -> UsuarioRol:
-        relacion = uow.usuario_roles.get_by_pk(usuario_id, rol_codigo)
+        relacion = uow.usuario_roles.get_relacion(usuario_id, rol_codigo)
         if not relacion:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -94,7 +94,7 @@ class UsuarioService:
                 data=[
                     UsuarioPublic(
                         **u.model_dump(),
-                        roles=[ur.rol_codigo for ur in u.roles] if u.roles else [],
+                        rol=u.roles[0].rol_codigo if u.roles else None,
                     )
                     for u in usuarios
                 ],
