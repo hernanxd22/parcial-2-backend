@@ -56,6 +56,9 @@ def list_pedidos(
     offset: OffsetQuery = 0,
     limit: LimitQuery = 20,
     usuario_filter: Annotated[Optional[int], Query(alias="usuario_id", ge=1, description="Filtrar por usuario (solo ADMIN/PEDIDOS)")] = None,
+    estado: Annotated[Optional[str], Query(description="Filtrar por estado")] = None,
+    pedido_id: Annotated[Optional[int], Query(description="Filtrar por número de pedido")] = None,
+    nombre_cliente: Annotated[Optional[str], Query(description="Filtrar por nombre del cliente")] = None,
     svc: PedidoService = Depends(get_pedido_service),
     current_user: Usuario = Depends(get_current_user),
     session: Session = Depends(get_session),
@@ -66,7 +69,7 @@ def list_pedidos(
     role_codes = [ur.rol_codigo for ur in roles] if roles else ["CLIENTE"]
 
     if "ADMIN" in role_codes or "PEDIDOS" in role_codes:
-        return svc.get_all(offset, limit, usuario_id=usuario_filter)
+        return svc.get_all(offset, limit, usuario_id=usuario_filter, estado=estado, pedido_id=pedido_id, nombre_cliente=nombre_cliente)
     else:
         return svc.get_all(offset, limit, usuario_id=current_user.id)
 

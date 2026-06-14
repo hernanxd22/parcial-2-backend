@@ -230,10 +230,10 @@ class PedidoService:
 
         return result
 
-    def get_all(self, offset: int = 0, limit: int = 20, usuario_id: int | None = None) -> PedidoList:
+    def get_all(self, offset: int = 0, limit: int = 20, usuario_id: int | None = None, estado: str | None = None, pedido_id: int | None = None, nombre_cliente: str | None = None) -> PedidoList:
         with PedidoUnitOfWork(self._session) as uow:
-            pedidos = uow.pedidos.get_all(offset=offset, limit=limit, usuario_id=usuario_id)
-            total = uow.pedidos.count()
+            pedidos = uow.pedidos.get_all(offset=offset, limit=limit, usuario_id=usuario_id, estado=estado, pedido_id=pedido_id, nombre_cliente=nombre_cliente)
+            total = uow.pedidos.count(usuario_id=usuario_id, estado=estado, pedido_id=pedido_id, nombre_cliente=nombre_cliente)
             result = PedidoList(
                 data=[
                     PedidoPublicSimple(
