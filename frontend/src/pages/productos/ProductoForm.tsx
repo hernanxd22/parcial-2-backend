@@ -487,24 +487,6 @@ function ProductoForm() {
             />
           </div>
 
-          <div className="form-group">
-            <label className="form-label">% Ganancia</label>
-            <input
-              type="number"
-              name="porcentaje_ganancia"
-              className="form-input"
-              value={formData.porcentaje_ganancia}
-              onChange={handleChange}
-              step="1"
-              min="0"
-              placeholder="Ej: 30 (30% de ganancia sobre el costo)"
-              disabled={readOnly}
-            />
-            <small style={{ color: "#888" }}>
-              Precio final = costo de ingredientes + este % de ganancia
-            </small>
-          </div>
-
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
             <div className="form-group">
               <label className="form-label">
@@ -768,13 +750,28 @@ function ProductoForm() {
               </div>
 
               <div className="form-group">
+                <label className="form-label">% Ganancia</label>
+                <input
+                  type="number"
+                  name="porcentaje_ganancia"
+                  className="form-input"
+                  value={formData.porcentaje_ganancia}
+                  onChange={handleChange}
+                  step="1"
+                  min="0"
+                  placeholder="Ej: 30 (30% de ganancia sobre el costo)"
+                  disabled={readOnly}
+                />
+              </div>
+
+              <div className="form-group">
                 <button
                   type="button"
                   className="btn btn-secondary"
                   onClick={handleCalcularCostoManual}
                   disabled={readOnly || calculandoCosto}
                 >
-                  {calculandoCosto ? "Calculando..." : "Calcular precio sugerido"}
+                  {calculandoCosto ? "Calculando..." : "Calcular costo"}
                 </button>
 
                 {costoCalculado && (
@@ -1008,6 +1005,23 @@ function ProductoForm() {
                   Buscá ingredientes arriba para agregarlos al producto.
                 </p>
               )}
+            </div>
+          )}
+
+          {llevaIngredientes && (
+            <div className="form-group">
+              <label className="form-label">% Ganancia</label>
+              <input
+                type="number"
+                name="porcentaje_ganancia"
+                className="form-input"
+                value={formData.porcentaje_ganancia}
+                onChange={handleChange}
+                step="1"
+                min="0"
+                placeholder="Ej: 30 (30% de ganancia sobre el costo)"
+                disabled={readOnly}
+              />
             </div>
           )}
 
