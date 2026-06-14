@@ -460,6 +460,8 @@ function ProductoForm() {
         )}
 
         <form onSubmit={handleSubmit} style={{ maxWidth: "600px" }}>
+          {!readOnly && (
+            <>
           <div className="form-group">
             <label className="form-label">Nombre</label>
             <input
@@ -699,6 +701,7 @@ function ProductoForm() {
                   onClick={() =>
                     setFormData((prev) => ({ ...prev, imagenes_url: "" }))
                   }
+                  disabled={readOnly}
                 >
                   Quitar
                 </button>
@@ -1131,6 +1134,36 @@ function ProductoForm() {
               Precio final que verá el cliente. Usá "Calcular costo" para obtener una sugerencia.
             </small>
           </div>
+          </>)}
+
+          {readOnly && (
+            <>
+            <div className="form-group">
+              <label className="form-label">Producto</label>
+              <input
+                type="text"
+                className="form-input"
+                value={formData.nombre}
+                disabled
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Stock</label>
+              <input
+                type="number"
+                name="stock_cantidad"
+                className="form-input"
+                value={formData.stock_cantidad}
+                onChange={handleChange}
+                step="1"
+                min="0"
+              />
+              <small style={{ color: "#888" }}>
+                Cantidad de unidades disponibles para la venta
+              </small>
+            </div>
+            </>
+          )}
 
           <div
             style={{

@@ -56,7 +56,7 @@ function App() {
 
       <Route element={<RequireAuth roles={["ADMIN", "STOCK", "PEDIDOS"]} />}>
         <Route element={<Layout />}>
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/" element={<RequireAuth roles={["ADMIN"]}><Dashboard /></RequireAuth>} />
           <Route path="/usuarios" element={<RequireAuth roles={["ADMIN"]} />}>
             <Route index element={<UsuarioList />} />
             <Route path="nuevo" element={<UsuarioForm />} />

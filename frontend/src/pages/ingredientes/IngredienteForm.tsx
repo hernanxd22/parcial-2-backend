@@ -148,6 +148,8 @@ function IngredienteForm() {
         )}
 
         <form onSubmit={handleSubmit}>
+          {!readOnly && (
+            <>
           <div className="form-group">
             <label className="form-label">Nombre</label>
             <input
@@ -219,6 +221,7 @@ function IngredienteForm() {
                   onClick={() =>
                     setFormData((prev) => ({ ...prev, imagen_url: '' }))
                   }
+                  disabled={readOnly}
                 >
                   Quitar
                 </button>
@@ -274,6 +277,32 @@ function IngredienteForm() {
               ¿Cuánto te sale 1 {unidades.find(u => u.id == parseInt(formData.unidad_medida_id))?.simbolo || 'unidad'} de este ingrediente?
             </small>
           </div>
+          </>)}
+          {readOnly && (
+            <>
+            <div className="form-group">
+              <label className="form-label">Ingrediente</label>
+              <input
+                type="text"
+                className="form-input"
+                value={formData.nombre}
+                disabled
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Stock</label>
+              <input
+                type="number"
+                name="stock_cantidad"
+                className="form-input"
+                value={formData.stock_cantidad}
+                onChange={handleChange}
+                step="0.01"
+                min="0"
+              />
+            </div>
+            </>
+          )}
 
           <div style={{ display: 'flex', gap: '10px' }}>
             <button type="submit" className="btn btn-primary" disabled={loading}>

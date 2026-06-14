@@ -105,13 +105,13 @@ python -m venv .venv
 # source .venv/bin/activate
 
 # Instalar dependencias
-python pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
 ### 3.4 Iniciar el servidor
 
 ```powershell
-python uvicorn main:app --reload
+python -m uvicorn main:app --reload
 ```
 
 El backend arranca en **http://localhost:8000**. Al iniciar por primera vez:
@@ -121,6 +121,41 @@ El backend arranca en **http://localhost:8000**. Al iniciar por primera vez:
 
 Documentación Swagger: **http://localhost:8000/docs**  
 Documentación ReDoc: **http://localhost:8000/redoc**
+
+### 3.5 Configurar ngrok para pagos con MercadoPago (opcional)
+
+Si necesitás probar la integración de pagos con MercadoPago en desarrollo,
+necesitás exponer tu backend a internet para recibir los webhooks.
+Para eso usamos **ngrok**.
+
+**Instalar ngrok**
+
+1. Creá una cuenta gratis en https://ngrok.com
+2. Descargá e instalá ngrok desde https://ngrok.com/download
+3. Autenticate con tu token:
+
+```powershell
+ngrok config add-authtoken TU_TOKEN
+```
+
+**Usar ngrok**
+
+```powershell
+ngrok http 8000
+```
+
+ngrok te va a mostrar una URL pública tipo `https://xxxx.ngrok-free.app`.
+Copiala y actualizá tu `.env`:
+
+```env
+NGROK_URL=https://xxxx.ngrok-free.app
+MP_WEBHOOK_URL=https://xxxx.ngrok-free.app/api/v1/pagos/webhook
+```
+
+Reiniciá el backend para que tome los cambios.
+
+> **Nota**: La URL gratuita de ngrok cambia cada vez que lo reiniciás.
+> Vas a tener que actualizar las variables de entorno nuevamente.
 
 ---
 
