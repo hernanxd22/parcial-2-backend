@@ -82,7 +82,7 @@ class UsuarioService:
             )
             uow.usuario_roles.add(rol)
 
-            result = UsuarioPublic.model_validate(usuario)
+            result = UsuarioPublic.model_validate(usuario.model_dump(exclude={'roles'}))
         return result
 
 
@@ -106,7 +106,7 @@ class UsuarioService:
     def get_by_id(self, usuario_id: int) -> UsuarioPublic:
         with UsuarioUnitOfWork(self._session) as uow:
             usuario = self._get_or_404(uow, usuario_id)
-            result = UsuarioPublic.model_validate(usuario)
+            result = UsuarioPublic.model_validate(usuario.model_dump(exclude={'roles'}))
         return result
 
 
@@ -128,7 +128,7 @@ class UsuarioService:
 
             usuario.updated_at = _now()
             uow.usuarios.add(usuario)
-            result = UsuarioPublic.model_validate(usuario)
+            result = UsuarioPublic.model_validate(usuario.model_dump(exclude={'roles'}))
 
         return result
 

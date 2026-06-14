@@ -28,7 +28,7 @@ const sidebarItems: SidebarItem[] = [
     path: "/",
     label: "Dashboard",
     icon: "grid",
-    roles: ["ADMIN", "STOCK", "PEDIDOS"],
+    roles: ["ADMIN"],
   },
   { path: "/usuarios", label: "Usuarios", icon: "users", roles: ["ADMIN"] },
   {
@@ -354,24 +354,6 @@ function Layout() {
         <div
           className={`border-t border-white/10 p-3 space-y-2 ${!sidebarOpen && "lg:p-2"}`}
         >
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className={`
-              flex items-center gap-3 w-full px-3 py-2.5 rounded-lg
-              transition-all duration-200
-              text-white/70 hover:bg-white/10 hover:text-white
-              ${!sidebarOpen && "lg:justify-center lg:px-2"}
-            `}
-          >
-            <span className="flex-shrink-0">
-              {darkMode ? icons.sun : icons.moon}
-            </span>
-            <span
-              className={`text-sm whitespace-nowrap transition-opacity duration-200 ${sidebarOpen ? "opacity-100" : "opacity-0 lg:hidden"}`}
-            >
-              {darkMode ? "Modo claro" : "Modo oscuro"}
-            </span>
-          </button>
 
           <button
             onClick={handleLogout}
