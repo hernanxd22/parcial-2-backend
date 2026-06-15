@@ -1,8 +1,10 @@
 # Food Store — Sistema de Gestión Gastronómica
 
-**Trabajo Práctico Integrador — Parcial 2**  
+**Trabajo Práctico Integrador — Programacion 4 Backend y Frontend**  
 **Universidad Tecnológica Nacional — Facultad Regional Mendoza**  
 **Tecnicatura Universitaria en Programación — 2026**
+
+**[Video demostración](https://youtu.be/TU_LINK_AQUI)**
 
 ---
 
@@ -139,7 +141,7 @@ python -m uvicorn main:app --reload
 El backend arranca en **http://localhost:8000**. Al iniciar por primera vez:
 
 - Crea automáticamente todas las tablas
-- Siembra datos de prueba: 4 roles, 5 estados, 3 formas de pago, 7 unidades de medida, 6 categorías, 39 ingredientes, 20 productos, 4 usuarios y 4 pedidos de ejemplo
+- Siembra datos de prueba: 4 roles, 5 estados, 3 formas de pago, 7 unidades de medida, 6 categorías, 40 ingredientes, 20 productos, 4 usuarios y 4 pedidos de ejemplo
 
 Documentación Swagger: **http://localhost:8000/docs**  
 Documentación ReDoc: **http://localhost:8000/redoc**
@@ -191,7 +193,7 @@ cd fastapi_backend
 # Activar el entorno virtual si no lo está
 .\.venv\Scripts\Activate.ps1
 
-# Ejecutar todos los tests (15)
+# Ejecutar todos los tests (16)
 python -m pytest tests/ -v
 
 # O por archivo individual
@@ -200,7 +202,7 @@ python -m pytest tests/test_pedidos.py -v
 python -m pytest tests/test_estadisticas.py -v
 ```
 
-**15 tests** que cubren:
+**16 tests** que cubren:
 
 | Archivo | Qué prueba |
 |---|---|
@@ -313,6 +315,7 @@ Todos los endpoints usan el prefijo `/api/v1`. Los públicos no requieren autent
 | `POST` | `/api/v1/pedidos/` | JWT | Crear pedido |
 | `PATCH` | `/api/v1/pedidos/{id}/estado` | ADMIN, STOCK, PEDIDOS | Avanzar estado (FSM) |
 | `PATCH` | `/api/v1/pedidos/{id}/cancelar` | JWT | Cancelar (dueño) |
+| `POST` | `/api/v1/pedidos/validar-stock` | JWT | Validar stock sin crear pedido |
 | `DELETE` | `/api/v1/pedidos/{id}` | ADMIN | Soft delete |
 | `WS` | `/api/v1/pedidos/ws` | JWT (`?token=`) | WebSocket tiempo real |
 
@@ -391,8 +394,9 @@ PENDIENTE ──► CONFIRMADO ──► EN_PREP ──► ENTREGADO ✓
 **Reglas de negocio:**
 - Estados terminales (`ENTREGADO`, `CANCELADO`) no admiten más transiciones (HTTP 422)
 - El motivo es obligatorio al cancelar
-- Al confirmar (`PENDIENTE → CONFIRMADO`): se descuenta stock de ingredientes
-- Al cancelar desde `CONFIRMADO`: se restaura el stock
+- Al confirmar (`PENDIENTE → CONFIRMADO`): se descuenta stock de ingredientes y productos
+- Al cancelar desde `CONFIRMADO`: se restaura todo el stock
+- Al cancelar desde `EN_PREP`: se restaura solo el stock de productos sin ingredientes
 - `HistorialEstadoPedido` es append-only — nunca se modifica ni elimina
 - Los cambios de estado se notifican en tiempo real vía WebSocket
 
