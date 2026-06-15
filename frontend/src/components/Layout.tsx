@@ -35,7 +35,7 @@ const sidebarItems: SidebarItem[] = [
     path: "/productos",
     label: "Productos",
     icon: "box",
-    roles: ["ADMIN", "STOCK"],
+    roles: ["ADMIN"],
   },
   {
     path: "/categorias",
@@ -47,7 +47,13 @@ const sidebarItems: SidebarItem[] = [
     path: "/ingredientes",
     label: "Ingredientes",
     icon: "leaf",
-    roles: ["ADMIN", "STOCK"],
+    roles: ["ADMIN"],
+  },
+  {
+    path: "/actualizar-stock",
+    label: "Actualizar Stock",
+    icon: "box",
+    roles: ["STOCK","ADMIN"],
   },
   {
     path: "/pedidos",

@@ -79,6 +79,17 @@ function ProductoForm() {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (error) {
+      setTimeout(() => {
+        const alert = document.querySelector('.alert-error')
+        if (alert) {
+          alert.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      }, 100)
+    }
+  }, [error]);
+
   const fetchData = async () => {
     try {
       const [catRes, ingRes, uniRes] = await Promise.all([

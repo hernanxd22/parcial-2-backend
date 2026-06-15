@@ -1,18 +1,35 @@
 import { Link, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
 import { useCartStore } from '../store/useCartStore'
 import { useAuthStore } from '../store/useAuthStore'
+import { validarStock } from '../api/endpoints'
 import CarritoItem from '../components/CarritoItem'
 
 export default function Carrito() {
   const { items, total } = useCartStore()
   const { isAuthenticated } = useAuthStore()
   const navigate = useNavigate()
+  const [validando, setValidando] = useState(false)
+  const [errorStock, setErrorStock] = useState('')
 
-  const handleFinalizarPedido = () => {
+  const handleFinalizarPedido = async () => {
     if (!isAuthenticated) {
       navigate('/login', { state: { from: '/checkout' } })
-    } else {
-      navigate('/checkout')
+      return
+    }
+    setErrorStock('')
+    setValidando(true)
+    try {
+      const res = await validarStock(items.map(i => ({ producto_id: i.producto_id, cantidad: i.cantidad })))
+      if (res.data.ok) {
+        navigate('/checkout')
+      } else {
+        setErrorStock(res.data.detail || 'No hay stock suficiente para completar el pedido')
+      }
+    } catch {
+      setErrorStock('Error al verificar el stock')
+    } finally {
+      setValidando(false)
     }
   }
 
@@ -115,14 +132,26 @@ export default function Carrito() {
               </div>
             </div>
 
+            {errorStock && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl mt-4">
+                <p className="text-sm text-red-600 flex items-center gap-2">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {errorStock}
+                </p>
+              </div>
+            )}
+
             <button
               onClick={handleFinalizarPedido}
-              className="mt-6 w-full py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+              disabled={validando}
+              className="mt-6 w-full py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 disabled:from-stone-300 disabled:to-stone-300 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
-              Finalizar pedido
+              {validando ? 'Verificando stock...' : 'Finalizar pedido'}
             </button>
 
             <Link
