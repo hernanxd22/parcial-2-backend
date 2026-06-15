@@ -202,9 +202,11 @@ class ProductoService:
             uow.productos.session.refresh(producto)
 
             if producto.porcentaje_ganancia is not None and producto.porcentaje_ganancia > 0 and producto.producto_ingredientes:
-                costo_total, _ = self._calcular_costo_interno(producto)
-                producto.precio_base = round(costo_total * (1 + producto.porcentaje_ganancia / 100), 2)
-                uow.productos.add(producto)
+                precio_manual = data.precio_base and data.precio_base != "0"
+                if not precio_manual:
+                    costo_total, _ = self._calcular_costo_interno(producto)
+                    producto.precio_base = round(costo_total * (1 + producto.porcentaje_ganancia / 100), 2)
+                    uow.productos.add(producto)
 
             result = self._to_public(producto)
         return result

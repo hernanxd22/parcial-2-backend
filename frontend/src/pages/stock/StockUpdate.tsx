@@ -7,8 +7,11 @@ import type { Categoria } from '../../types/categoria'
 
 const PAGE_SIZE = 10
 
+type Modo = 'agregar' | 'establecer'
+
 function StockUpdate() {
   const [tab, setTab] = useState<'productos' | 'ingredientes'>('productos')
+  const [modo, setModo] = useState<Modo>('agregar')
 
   return (
     <div>
@@ -17,42 +20,68 @@ function StockUpdate() {
       </div>
 
       <div className="card">
-        <div style={{ display: 'flex', gap: '0', marginBottom: '16px', borderBottom: '1px solid #e5e7eb' }}>
-          <button
-            onClick={() => setTab('productos')}
-            style={{
-              padding: '10px 20px', border: 'none',
-              background: tab === 'productos' ? '#eef2ff' : 'transparent',
-              color: tab === 'productos' ? '#4f46e5' : '#6b7280',
-              fontWeight: tab === 'productos' ? 600 : 400,
-              borderBottom: tab === 'productos' ? '2px solid #4f46e5' : '2px solid transparent',
-              cursor: 'pointer',
-            }}
-          >
-            Productos
-          </button>
-          <button
-            onClick={() => setTab('ingredientes')}
-            style={{
-              padding: '10px 20px', border: 'none',
-              background: tab === 'ingredientes' ? '#eef2ff' : 'transparent',
-              color: tab === 'ingredientes' ? '#4f46e5' : '#6b7280',
-              fontWeight: tab === 'ingredientes' ? 600 : 400,
-              borderBottom: tab === 'ingredientes' ? '2px solid #4f46e5' : '2px solid transparent',
-              cursor: 'pointer',
-            }}
-          >
-            Ingredientes
-          </button>
+        <div style={{ display: 'flex', gap: '0', marginBottom: '16px', borderBottom: '1px solid #e5e7eb', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', gap: '0' }}>
+            <button
+              onClick={() => setTab('productos')}
+              style={{
+                padding: '10px 20px', border: 'none',
+                background: tab === 'productos' ? '#eef2ff' : 'transparent',
+                color: tab === 'productos' ? '#4f46e5' : '#6b7280',
+                fontWeight: tab === 'productos' ? 600 : 400,
+                borderBottom: tab === 'productos' ? '2px solid #4f46e5' : '2px solid transparent',
+                cursor: 'pointer',
+              }}
+            >
+              Productos
+            </button>
+            <button
+              onClick={() => setTab('ingredientes')}
+              style={{
+                padding: '10px 20px', border: 'none',
+                background: tab === 'ingredientes' ? '#eef2ff' : 'transparent',
+                color: tab === 'ingredientes' ? '#4f46e5' : '#6b7280',
+                fontWeight: tab === 'ingredientes' ? 600 : 400,
+                borderBottom: tab === 'ingredientes' ? '2px solid #4f46e5' : '2px solid transparent',
+                cursor: 'pointer',
+              }}
+            >
+              Ingredientes
+            </button>
+          </div>
+          <div style={{ display: 'flex', gap: '2px', paddingBottom: '8px', paddingRight: '8px' }}>
+            <button
+              onClick={() => setModo('agregar')}
+              style={{
+                padding: '4px 12px', border: '1px solid #d1d5db', borderRadius: '6px 0 0 6px',
+                background: modo === 'agregar' ? '#4f46e5' : '#fff',
+                color: modo === 'agregar' ? '#fff' : '#6b7280',
+                fontSize: '0.8em', fontWeight: 500, cursor: 'pointer', transition: 'all 0.1s',
+              }}
+            >
+              + Agregar
+            </button>
+            <button
+              onClick={() => setModo('establecer')}
+              style={{
+                padding: '4px 12px', border: '1px solid #d1d5db', borderRadius: '0 6px 6px 0',
+                background: modo === 'establecer' ? '#4f46e5' : '#fff',
+                color: modo === 'establecer' ? '#fff' : '#6b7280',
+                fontSize: '0.8em', fontWeight: 500, cursor: 'pointer', transition: 'all 0.1s',
+              }}
+            >
+              = Establecer
+            </button>
+          </div>
         </div>
 
-        {tab === 'productos' ? <ProductosTab /> : <IngredientesTab />}
+        {tab === 'productos' ? <ProductosTab modo={modo} /> : <IngredientesTab modo={modo} />}
       </div>
     </div>
   )
 }
 
-function ProductosTab() {
+function ProductosTab({ modo }: { modo: Modo }) {
   const [productos, setProductos] = useState<Producto[]>([])
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [loading, setLoading] = useState(true)
@@ -93,11 +122,12 @@ function ProductosTab() {
   }, [])
 
   const handleSave = async (id: number, stockActual: number) => {
-    const incremento = parseInt(increments[id]) || 0
-    if (incremento <= 0) return
+    const valor = parseInt(increments[id]) || 0
+    if (valor <= 0 && modo === 'agregar') return
+    if (modo === 'establecer' && increments[id] === '') return
     setSaving(prev => ({ ...prev, [id]: true }))
     try {
-      const nuevoStock = stockActual + incremento
+      const nuevoStock = modo === 'agregar' ? stockActual + valor : valor
       await updateProducto(id, { stock_cantidad: nuevoStock } as unknown as Record<string, unknown>)
       setProductos(prev => prev.map(p => p.id === id ? { ...p, stock_cantidad: nuevoStock } : p))
       setIncrements(prev => ({ ...prev, [id]: '' }))
@@ -109,6 +139,9 @@ function ProductosTab() {
       setSaving(prev => ({ ...prev, [id]: false }))
     }
   }
+
+  const label = modo === 'agregar' ? 'Agregar stock' : 'Nuevo stock'
+  const placeholder = modo === 'agregar' ? '+cantidad' : '0'
 
   return (
     <>
@@ -137,7 +170,7 @@ function ProductosTab() {
               <tr>
                 <th>Producto</th>
                 <th style={{ width: '110px' }}>Stock actual</th>
-                <th style={{ width: '130px' }}>Agregar stock</th>
+                <th style={{ width: '130px' }}>{label}</th>
                 <th style={{ width: '100px' }}></th>
               </tr>
             </thead>
@@ -155,7 +188,7 @@ function ProductosTab() {
                       style={{ width: '90px', padding: '4px 8px' }}
                       min="0"
                       step="1"
-                      placeholder="+cantidad"
+                      placeholder={placeholder}
                     />
                   </td>
                   <td>
@@ -183,7 +216,7 @@ function ProductosTab() {
   )
 }
 
-function IngredientesTab() {
+function IngredientesTab({ modo }: { modo: Modo }) {
   const [ingredientes, setIngredientes] = useState<Ingrediente[]>([])
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
@@ -216,11 +249,12 @@ function IngredientesTab() {
   useEffect(() => { setPage(1); fetchIngredientes(1) }, [filtroNombre])
 
   const handleSave = async (id: number, stockActual: number) => {
-    const incremento = parseFloat(increments[id]) || 0
-    if (incremento <= 0) return
+    const valor = parseFloat(increments[id]) || 0
+    if (valor <= 0 && modo === 'agregar') return
+    if (modo === 'establecer' && increments[id] === '') return
     setSaving(prev => ({ ...prev, [id]: true }))
     try {
-      const nuevoStock = stockActual + incremento
+      const nuevoStock = modo === 'agregar' ? stockActual + valor : valor
       await updateIngrediente(id, { stock_cantidad: nuevoStock } as unknown as Record<string, unknown>)
       setIngredientes(prev => prev.map(i => i.id === id ? { ...i, stock_cantidad: nuevoStock } : i))
       setIncrements(prev => ({ ...prev, [id]: '' }))
@@ -232,6 +266,9 @@ function IngredientesTab() {
       setSaving(prev => ({ ...prev, [id]: false }))
     }
   }
+
+  const label = modo === 'agregar' ? 'Agregar stock' : 'Nuevo stock'
+  const placeholder = modo === 'agregar' ? '+cantidad' : '0'
 
   return (
     <>
@@ -253,7 +290,7 @@ function IngredientesTab() {
               <tr>
                 <th>Ingrediente</th>
                 <th style={{ width: '110px' }}>Stock actual</th>
-                <th style={{ width: '130px' }}>Agregar stock</th>
+                <th style={{ width: '130px' }}>{label}</th>
                 <th style={{ width: '100px' }}></th>
               </tr>
             </thead>
@@ -271,7 +308,7 @@ function IngredientesTab() {
                       style={{ width: '90px', padding: '4px 8px' }}
                       min="0"
                       step="0.01"
-                      placeholder="+cantidad"
+                      placeholder={placeholder}
                     />
                   </td>
                   <td>

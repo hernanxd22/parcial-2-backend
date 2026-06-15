@@ -395,6 +395,13 @@ class PedidoService:
                             producto.stock_cantidad += detalle.cantidad
                             self._session.add(producto)
 
+            if data.estado_hacia_codigo == "CANCELADO" and estado_anterior == "EN_PREP":
+                for detalle in pedido.detalles:
+                    producto = self._session.get(Producto, detalle.producto_id)
+                    if producto and not producto.producto_ingredientes:
+                        producto.stock_cantidad += detalle.cantidad
+                        self._session.add(producto)
+
             uow._session.refresh(pedido)
             result = self._to_public(pedido)
 

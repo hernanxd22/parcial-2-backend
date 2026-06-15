@@ -266,7 +266,7 @@ function ProductoList() {
     },
     {
       key: "stock_max",
-      label: "Stock max.",
+      label: "Stock",
       render: (_, item) => {
         const stock = calcularStockMaximo(item);
         if (stock === null) {
