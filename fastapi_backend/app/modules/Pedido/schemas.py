@@ -117,3 +117,14 @@ class PedidoEstadoList(SQLModel):
     """Respuesta paginada para estado de pedidos."""
     data: List[PedidoEstadoPedido]
     total: int
+
+
+class ValidarStockRequest(SQLModel):
+    """Request para validar stock sin crear pedido."""
+    items: List[ItemPedidoRequest] = Field(min_length=1)
+
+
+class ValidarStockResponse(SQLModel):
+    """Respuesta de validación de stock."""
+    ok: bool
+    detail: Optional[str] = None

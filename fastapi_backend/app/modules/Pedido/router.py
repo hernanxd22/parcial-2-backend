@@ -14,6 +14,8 @@ from app.modules.Pedido.schemas import (
     CancelarPedidoRequest,
     PedidoEstadoPedido,
     PedidoEstadoList,
+    ValidarStockRequest,
+    ValidarStockResponse,
 )
 from app.modules.Pedido.service import PedidoService
 
@@ -26,6 +28,19 @@ def get_pedido_service(session: Session = Depends(get_session),) -> PedidoServic
 
 OffsetQuery = Annotated[int, Query(ge=0, description="Registros a omitir")]
 LimitQuery = Annotated[int, Query(ge=1, le=100, description="Máximo de resultados")]
+
+
+@router.post(
+    "/validar-stock",
+    response_model=ValidarStockResponse,
+    summary="Validar stock sin crear pedido",
+)
+def validar_stock(
+    data: ValidarStockRequest,
+    svc: PedidoService = Depends(get_pedido_service),
+    _: Usuario = Depends(get_current_user),
+) -> ValidarStockResponse:
+    return svc.validar_stock(data)
 
 
 @router.post(

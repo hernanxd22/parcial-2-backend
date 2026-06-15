@@ -16,6 +16,8 @@ from app.modules.Pedido.schemas import (
     PedidoEstadoPedido,
     PedidoItemEstado,
     PedidoEstadoList,
+    ValidarStockRequest,
+    ValidarStockResponse,
 )
 from app.modules.Pedido.unit_of_work import PedidoUnitOfWork
 from app.modules.producto.models import Producto
@@ -142,6 +144,34 @@ class PedidoService:
             direccion_texto=f"{pedido.direccion.alias}: {pedido.direccion.linea1}, {pedido.direccion.ciudad}" if pedido.direccion else None,
         )
 
+    def validar_stock(self, data: ValidarStockRequest) -> ValidarStockResponse:
+        """Valida stock de los items sin crear pedido."""
+        try:
+            for item in data.items:
+                producto = self._session.get(Producto, item.producto_id)
+                if not producto or producto.deleted_at is not None:
+                    return ValidarStockResponse(ok=False, detail=f"Producto con id={item.producto_id} no encontrado")
+                if not producto.disponible:
+                    return ValidarStockResponse(ok=False, detail=f"Producto '{producto.nombre}' no está disponible")
+
+                if producto.producto_ingredientes:
+                    for pi in producto.producto_ingredientes:
+                        ingrediente = pi.ingrediente
+                        stock_unidad = ingrediente.unidad_medida
+                        receta_unidad = pi.unidad_medida
+                        if stock_unidad and receta_unidad and stock_unidad.tipo == receta_unidad.tipo:
+                            cantidad_por_item = _convertir_unidad(pi.cantidad, receta_unidad.tipo, receta_unidad.simbolo, stock_unidad.simbolo)
+                        else:
+                            cantidad_por_item = pi.cantidad
+                        cantidad_necesaria = cantidad_por_item * item.cantidad
+                        if ingrediente.stock_cantidad < cantidad_necesaria:
+                            return ValidarStockResponse(ok=False, detail=f"El producto '{producto.nombre}' no tiene stock suficiente")
+                else:
+                    if producto.stock_cantidad < item.cantidad:
+                        return ValidarStockResponse(ok=False, detail=f"El producto '{producto.nombre}' no tiene stock suficiente")
+            return ValidarStockResponse(ok=True)
+        except Exception:
+            return ValidarStockResponse(ok=False, detail="Error al validar stock")
 
     async def create(self, data: PedidoCreate) -> PedidoPublic:
         with PedidoUnitOfWork(self._session) as uow:
