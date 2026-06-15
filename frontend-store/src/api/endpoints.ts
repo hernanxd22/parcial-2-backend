@@ -30,6 +30,9 @@ export const getEstadoMisPedidos = (offset: number = 0) =>
 export const cancelarPedido = (id: number, motivo: string) =>
   api.patch(`/pedidos/${id}/cancelar`, { motivo })
 
+export const validarStock = (items: Array<{ producto_id: number; cantidad: number }>) =>
+  api.post<{ ok: boolean; detail: string | null }>('/pedidos/validar-stock', { items })
+
 export const getTodosLosPedidos = () =>
   api.get<ListResponse<Pedido>>('/pedidos/')
 

@@ -14,6 +14,8 @@ from app.modules.Pedido.schemas import (
     CancelarPedidoRequest,
     PedidoEstadoPedido,
     PedidoEstadoList,
+    ValidarStockRequest,
+    ValidarStockResponse,
 )
 from app.modules.Pedido.service import PedidoService
 
@@ -26,6 +28,19 @@ def get_pedido_service(session: Session = Depends(get_session),) -> PedidoServic
 
 OffsetQuery = Annotated[int, Query(ge=0, description="Registros a omitir")]
 LimitQuery = Annotated[int, Query(ge=1, le=100, description="Máximo de resultados")]
+
+
+@router.post(
+    "/validar-stock",
+    response_model=ValidarStockResponse,
+    summary="Validar stock sin crear pedido",
+)
+def validar_stock(
+    data: ValidarStockRequest,
+    svc: PedidoService = Depends(get_pedido_service),
+    _: Usuario = Depends(get_current_user),
+) -> ValidarStockResponse:
+    return svc.validar_stock(data)
 
 
 @router.post(
@@ -56,6 +71,9 @@ def list_pedidos(
     offset: OffsetQuery = 0,
     limit: LimitQuery = 20,
     usuario_filter: Annotated[Optional[int], Query(alias="usuario_id", ge=1, description="Filtrar por usuario (solo ADMIN/PEDIDOS)")] = None,
+    estado: Annotated[Optional[str], Query(description="Filtrar por estado")] = None,
+    pedido_id: Annotated[Optional[int], Query(description="Filtrar por número de pedido")] = None,
+    nombre_cliente: Annotated[Optional[str], Query(description="Filtrar por nombre del cliente")] = None,
     svc: PedidoService = Depends(get_pedido_service),
     current_user: Usuario = Depends(get_current_user),
     session: Session = Depends(get_session),
@@ -66,7 +84,7 @@ def list_pedidos(
     role_codes = [ur.rol_codigo for ur in roles] if roles else ["CLIENTE"]
 
     if "ADMIN" in role_codes or "PEDIDOS" in role_codes:
-        return svc.get_all(offset, limit, usuario_id=usuario_filter)
+        return svc.get_all(offset, limit, usuario_id=usuario_filter, estado=estado, pedido_id=pedido_id, nombre_cliente=nombre_cliente)
     else:
         return svc.get_all(offset, limit, usuario_id=current_user.id)
 

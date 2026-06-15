@@ -230,7 +230,34 @@ function ProductoList() {
     );
   };
 
-  const columns: ColumnDef<Producto>[] = [
+  const columns: ColumnDef<Producto>[] = isStock ? [
+    { key: "nombre", label: "Nombre" },
+    {
+      key: "stock_max",
+      label: "Stock",
+      render: (_, item) => {
+        const stock = calcularStockMaximo(item);
+        if (stock === null) return <span style={{ color: "#999", fontSize: "0.85em" }}>-</span>;
+        if (stock === 0) return <span className="badge badge-error">0</span>;
+        if (stock <= 5) return <span className="badge badge-warning">{stock} u</span>;
+        return <span className="badge badge-success">{stock} u</span>;
+      },
+    },
+    {
+      key: "disponible",
+      label: "Disponible",
+      render: (val) => (
+        <span className={`badge ${val ? "badge-success" : "badge-warning"}`}>
+          {val ? "Si" : "No"}
+        </span>
+      ),
+    },
+    {
+      key: "ingredientes",
+      label: "Ingredientes",
+      render: (_, item) => renderIngredientes(item),
+    },
+  ] : [
     { key: "nombre", label: "Nombre" },
     {
       key: "precio_base",
@@ -239,7 +266,7 @@ function ProductoList() {
     },
     {
       key: "stock_max",
-      label: "Stock max.",
+      label: "Stock",
       render: (_, item) => {
         const stock = calcularStockMaximo(item);
         if (stock === null) {
@@ -298,6 +325,7 @@ function ProductoList() {
   ];
 
   const handleEdit = (producto: Producto) => {
+    if (isStock && producto.producto_ingredientes && producto.producto_ingredientes.length > 0) return
     navigate(`/productos/${producto.id}/editar`);
   };
 

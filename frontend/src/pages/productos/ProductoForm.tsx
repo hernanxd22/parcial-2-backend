@@ -79,6 +79,17 @@ function ProductoForm() {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (error) {
+      setTimeout(() => {
+        const alert = document.querySelector('.alert-error')
+        if (alert) {
+          alert.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      }, 100)
+    }
+  }, [error]);
+
   const fetchData = async () => {
     try {
       const [catRes, ingRes, uniRes] = await Promise.all([
@@ -132,10 +143,10 @@ function ProductoForm() {
     const { name, value, type } = e.target;
     const checked = type === "checkbox" ? (e.target as HTMLInputElement).checked : false;
 
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       [name]: type === "checkbox" ? checked : value,
-    });
+    }));
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -160,10 +171,10 @@ function ProductoForm() {
   };
 
   const handleCategoriaChange = (val: string | number) => {
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       categoria_id: String(val),
-    });
+    }));
 
     if (categoriaValidatorRef.current) {
       categoriaValidatorRef.current.setCustomValidity("");
@@ -487,31 +498,17 @@ function ProductoForm() {
             />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
-            <div className="form-group">
-              <label className="form-label">
-                <input
-                  type="checkbox"
-                  name="disponible"
-                  checked={formData.disponible}
-                  onChange={handleChange}
-                  disabled={readOnly}
-                />{" "}
-                Disponible
-              </label>
-            </div>
-            <div className="form-group">
-              <label className="form-label">
-                <input
-                  type="checkbox"
-                  name="es_principal"
-                  checked={formData.es_principal}
-                  onChange={handleChange}
-                  disabled={readOnly}
-                />{" "}
-                Categoría principal
-              </label>
-            </div>
+          <div className="form-group">
+            <label className="form-label">
+              <input
+                type="checkbox"
+                name="disponible"
+                checked={formData.disponible}
+                onChange={handleChange}
+                disabled={readOnly}
+              />{" "}
+              Disponible
+            </label>
           </div>
 
           <div className="form-group" style={{ position: "relative" }}>
@@ -739,7 +736,7 @@ function ProductoForm() {
                   onChange={(e) => {
                     let value = e.target.value;
                     value = value.replace(/[^0-9.,]/g, "");
-                    setFormData({ ...formData, costo_base: value });
+                    setFormData((prev) => ({ ...prev, costo_base: value }));
                   }}
                   placeholder="0,00"
                   disabled={readOnly}
@@ -1138,7 +1135,7 @@ function ProductoForm() {
               onChange={(e) => {
                 let value = e.target.value;
                 value = value.replace(/[^0-9.,]/g, "");
-                setFormData({ ...formData, precio_base: value });
+                setFormData((prev) => ({ ...prev, precio_base: value }));
               }}
               placeholder="0,00"
               required

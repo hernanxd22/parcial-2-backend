@@ -21,7 +21,8 @@ function PedidoList() {
   const [pedidos, setPedidos] = useState<PedidoListItem[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [filtroEstado, setFiltroEstado] = useState<string>('')
-  const [filtroUsuario, setFiltroUsuario] = useState<string>('')
+  const [filtroPedidoId, setFiltroPedidoId] = useState<string>('')
+  const [filtroCliente, setFiltroCliente] = useState<string>('')
   const [page, setPage] = useState<number>(1)
   const [totalPages, setTotalPages] = useState<number>(1)
   const [total, setTotal] = useState<number>(0)
@@ -31,7 +32,9 @@ function PedidoList() {
       setLoading(true)
       const offset = (pageNum - 1) * PAGE_SIZE
       const params: Record<string, string | number> = { offset, limit: PAGE_SIZE }
-      if (filtroUsuario) params.usuario_id = parseInt(filtroUsuario)
+      if (filtroEstado) params.estado = filtroEstado
+      if (filtroPedidoId) params.pedido_id = Number(filtroPedidoId)
+      if (filtroCliente) params.nombre_cliente = filtroCliente
       const response = await getPedidos(params)
       setPedidos(response.data.data || [])
       setTotal(response.data.total || 0)
@@ -50,18 +53,13 @@ function PedidoList() {
   useEffect(() => {
     setPage(1)
     fetchPedidos(1)
-  }, [filtroUsuario])
+  }, [filtroEstado, filtroPedidoId, filtroCliente])
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage)
     fetchPedidos(newPage)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
-
-  const filteredPedidos = pedidos.filter(p => {
-    const matchEstado = filtroEstado === '' ? true : p.estado_codigo === filtroEstado
-    return matchEstado
-  })
 
   const getEstadoBadge = (estado: string) => {
     const colors: Record<string, string> = {
@@ -136,7 +134,7 @@ function PedidoList() {
           <h1 className="card-title">Pedidos</h1>
           {!loading && (
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400">
-              {filteredPedidos.length} de {total}
+              {pedidos.length} de {total}
             </span>
           )}
           {connected && (
@@ -146,12 +144,6 @@ function PedidoList() {
             </span>
           )}
         </div>
-        <Link to="/pedidos/nuevo" className="btn btn-primary" style={{ marginTop: '10px' }}>
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Nuevo Pedido
-        </Link>
       </div>
 
       <div className="card">
@@ -173,19 +165,30 @@ function PedidoList() {
           </div>
 
           <div className="filtro-group">
-            <label className="filtro-label">Usuario ID</label>
+            <label className="filtro-label"># Pedido</label>
             <input
               type="text"
               className="filtro-input"
-              placeholder="Buscar por ID..."
-              value={filtroUsuario}
-              onChange={(e) => setFiltroUsuario(e.target.value)}
+              placeholder="Buscar por número..."
+              value={filtroPedidoId}
+              onChange={(e) => setFiltroPedidoId(e.target.value)}
+            />
+          </div>
+
+          <div className="filtro-group">
+            <label className="filtro-label">Cliente</label>
+            <input
+              type="text"
+              className="filtro-input"
+              placeholder="Buscar por nombre..."
+              value={filtroCliente}
+              onChange={(e) => setFiltroCliente(e.target.value)}
             />
           </div>
         </div>
 
         <DataTable
-          data={filteredPedidos}
+          data={pedidos}
           columns={columns}
           onEdit={(p) => navigate(`/pedidos/${p.id}`)}
           loading={loading}

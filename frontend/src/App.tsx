@@ -16,6 +16,7 @@ import PedidoList from "./pages/pedidos/PedidoList";
 import PedidoDetail from "./pages/pedidos/PedidoDetail";
 import PedidoCreate from "./pages/pedidos/PedidoCreate";
 import Error404 from "./pages/Error404";
+import StockUpdate from "./pages/stock/StockUpdate";
 import type { Role } from "./types/user";
 
 interface RequireAuthProps {
@@ -137,6 +138,7 @@ function App() {
             }
           />
           <Route path="/pedidos/:id" element={<PedidoDetail />} />
+          <Route path="/actualizar-stock" element={<RequireAuth roles={["STOCK","ADMIN"]}><StockUpdate /></RequireAuth>} />
           <Route path="*" element={<Error404 />} />
         </Route>
       </Route>

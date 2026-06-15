@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { getPedidoById, avanzarEstadoPedido } from '../../api/endpoints'
 import { useAuth } from '../../context/AuthContext'
+import { useWebSocket } from '../../hooks/useWebSocket'
 import { Pedido, EstadoPedido } from '../../types/pedido'
+import { WSMessage } from '../../types/websocket'
 
 const FSM: Record<EstadoPedido, EstadoPedido[]> = {
   'PENDIENTE': ['CONFIRMADO', 'CANCELADO'],
@@ -24,6 +26,7 @@ function PedidoDetail() {
   const [saving, setSaving] = useState<boolean>(false)
 
   const isAdmin = user?.rol === 'ADMIN'
+  const isPedidos = user?.rol === 'PEDIDOS'
 
   const fetchPedido = async () => {
     try {
@@ -73,6 +76,16 @@ function PedidoDetail() {
     }
     return colors[estado] || 'badge-info'
   }
+
+  const handleWsMessage = useCallback((msg: WSMessage) => {
+    const d = msg.data
+    if (!d || d.pedido_id !== Number(id)) return
+    if (msg.event === "estado_cambiado" || msg.event === "pedido_cancelado") {
+      fetchPedido()
+    }
+  }, [id])
+
+  useWebSocket({ onMessage: handleWsMessage, enabled: true })
 
   if (loading) return <div className="loading">Cargando...</div>
 
@@ -136,7 +149,7 @@ function PedidoDetail() {
         )}
       </div>
 
-      {isAdmin && (
+      {(isAdmin || isPedidos) && (
         <>
           <div className="card">
             <h2 className="card-title">Items del Pedido</h2>

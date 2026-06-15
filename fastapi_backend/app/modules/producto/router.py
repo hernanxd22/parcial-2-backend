@@ -51,10 +51,11 @@ def list_productos(
     limit: LimitQuery = 20,
     nombre: Annotated[Optional[str], Query(description="Filtrar por nombre (búsqueda parcial)")] = None,
     categoria_id: Annotated[Optional[int], Query(description="Filtrar por categoría")] = None,
+    sin_ingredientes: Annotated[Optional[bool], Query(description="Solo productos sin ingredientes")] = False,
     incluir_desactivados: Annotated[bool, Query(description="Incluir productos desactivados")] = False,
     svc: ProductoService = Depends(get_producto_service),
 ) -> ProductoList:
-    return svc.get_all(offset=offset, limit=limit, nombre=nombre, incluir_desactivados=incluir_desactivados, categoria_id=categoria_id)
+    return svc.get_all(offset=offset, limit=limit, nombre=nombre, incluir_desactivados=incluir_desactivados, categoria_id=categoria_id, sin_ingredientes=sin_ingredientes)
 
 
 @router.get(

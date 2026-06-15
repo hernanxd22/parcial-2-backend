@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, Path, Request, status, Query
 from fastapi.responses import RedirectResponse
 from sqlmodel import Session
 import json
+import logging
 
 from app.core.config import settings
 from app.core.database import get_session
@@ -73,15 +74,22 @@ async def redirect_pago(
     pedido_id: int,
     status_pago: str,
     request: Request,
+    svc: PagoService = Depends(get_pago_service),
 ):
-    frontend_url = settings.FRONTEND_URL
-
     if status_pago == "success":
-        redirect_url = f"{frontend_url}/?pedido_creado={pedido_id}"
+        payment_id = request.query_params.get("payment_id")
+        if payment_id:
+            try:
+                resultado = svc.confirmar_pago(ConfirmarPagoRequest(pedido_id=pedido_id, payment_id=payment_id))
+                logger = logging.getLogger("app.modules.Pago.router")
+                logger.info(f"[MP Redirect] Pago confirmado: {resultado}")
+            except Exception:
+                pass
+        redirect_url = f"{settings.FRONTEND_URL}/?pedido_creado={pedido_id}"
     elif status_pago == "failure":
-        redirect_url = f"{frontend_url}/carrito?pago=fallido"
+        redirect_url = f"{settings.FRONTEND_URL}/carrito?pago=fallido"
     else:
-        redirect_url = f"{frontend_url}/mis-pedidos"
+        redirect_url = f"{settings.FRONTEND_URL}/mis-pedidos"
 
     return RedirectResponse(url=redirect_url)
 

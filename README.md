@@ -81,13 +81,35 @@ cd fastapi_backend
 copy .env.example .env
 ```
 
-Editá el archivo `.env` con tus datos. Lo único **obligatorio** es:
+Editá el archivo `.env` con tus datos:
 
 ```env
-DATABASE_URL=postgresql://postgres:TU_CONTRASEÑA@localhost:5432/parcial2
-JWT_SECRET=una_clave_segura_de_al_menos_32_caracteres_cambiar_esto
-ADMIN_EMAIL=admin@foodstore.com
-ADMIN_PASSWORD=Admin1234!
+DATABASE_URL=postgresql://postgres:password@localhost:5432/parcial2
+
+# JWT
+JWT_SECRET=your-secret-key-min-32-chars
+ADMIN_EMAIL=admin@admin.com
+ADMIN_PASSWORD=admin123
+
+# Entorno
+ENVIRONMENT=development
+FRONTEND_URL=http://localhost:5173
+BACKEND_URL=http://localhost:8000
+
+# MercadoPago
+MP_ACCESS_TOKEN=TEST-xxxx
+MP_PUBLIC_KEY=TEST-xxxx
+MP_WEBHOOK_SECRET=your-webhook-secret
+MP_WEBHOOK_URL=https://your-ngrok.ngrok-free.app/api/v1/pagos/webhook
+NGROK_URL=https://your-ngrok.ngrok-free.app
+
+# Cloudinary
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
+
+# WebSocket
+WS_URL=ws://localhost:8000/api/v1/pedidos/ws
 ```
 
 Las variables de MercadoPago, Cloudinary y WebSocket son opcionales para desarrollo local. Las funcionalidades básicas (catálogo, pedidos, auth) funcionan sin ellas.
@@ -96,7 +118,7 @@ Las variables de MercadoPago, Cloudinary y WebSocket son opcionales para desarro
 
 ```powershell
 # Crear entorno virtual
-python -m venv .venv
+python -m venv .venv o py -m venv .venv
 
 # Activar (Windows PowerShell)
 .\.venv\Scripts\Activate.ps1

@@ -76,7 +76,18 @@ function IngredienteList() {
     return matchAlergeno
   })
 
-  const columns: Column[] = [
+  const columns: Column[] = isStock ? [
+    { key: 'nombre', label: 'Nombre' },
+    { key: 'descripcion', label: 'Descripción' },
+    { 
+      key: 'stock_cantidad', 
+      label: 'Stock',
+      render: (val, item) => {
+        const uni = item.unidad_medida_id ? unidadMap[item.unidad_medida_id] : null
+        return String(val) + (uni ? ` ${uni.simbolo}` : '')
+      }
+    }
+  ] : [
     { key: 'nombre', label: 'Nombre' },
     { key: 'descripcion', label: 'Descripción' },
     { key: 'costo', label: 'Costo', render: (val) => `$${(val as number)?.toFixed(2)}` },

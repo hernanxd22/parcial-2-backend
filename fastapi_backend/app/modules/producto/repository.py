@@ -21,7 +21,7 @@ class ProductoRepository(BaseRepository[Producto]):
         )
         return self.session.exec(stmt).first()
 
-    def get_all_paged(self, offset: int = 0, limit: int = 20, nombre: str | None = None, incluir_desactivados: bool = False, categoria_id: int | None = None) -> list[Producto]:
+    def get_all_paged(self, offset: int = 0, limit: int = 20, nombre: str | None = None, incluir_desactivados: bool = False, categoria_id: int | None = None, sin_ingredientes: bool = False) -> list[Producto]:
         stmt = select(Producto)
         if not incluir_desactivados:
             stmt = stmt.where(Producto.deleted_at == None)
@@ -29,6 +29,10 @@ class ProductoRepository(BaseRepository[Producto]):
             stmt = stmt.where(Producto.nombre.ilike(f"%{nombre}%"))
         if categoria_id is not None:
             stmt = stmt.join(ProductoCategoria).where(ProductoCategoria.categoria_id == categoria_id)
+        if sin_ingredientes:
+            stmt = stmt.where(
+                ~Producto.id.in_(select(ProductoIngrediente.producto_id))
+            )
         stmt = self._load_relations(stmt.order_by(Producto.created_at.desc()).offset(offset).limit(limit))
         return list(self.session.exec(stmt).all())
 
@@ -42,7 +46,7 @@ class ProductoRepository(BaseRepository[Producto]):
         )
         return list(self.session.exec(stmt).all())
 
-    def count(self, nombre: str | None = None, incluir_desactivados: bool = False, categoria_id: int | None = None) -> int:
+    def count(self, nombre: str | None = None, incluir_desactivados: bool = False, categoria_id: int | None = None, sin_ingredientes: bool = False) -> int:
         stmt = select(Producto)
         if not incluir_desactivados:
             stmt = stmt.where(Producto.deleted_at == None)
@@ -50,6 +54,10 @@ class ProductoRepository(BaseRepository[Producto]):
             stmt = stmt.where(Producto.nombre.ilike(f"%{nombre}%"))
         if categoria_id is not None:
             stmt = stmt.join(ProductoCategoria).where(ProductoCategoria.categoria_id == categoria_id)
+        if sin_ingredientes:
+            stmt = stmt.where(
+                ~Producto.id.in_(select(ProductoIngrediente.producto_id))
+            )
         return len(self.session.exec(stmt).all())
 
 
