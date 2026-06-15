@@ -16,7 +16,7 @@ class Producto(SQLModel, table=True):
     __tablename__ = "producto"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    nombre: str = Field(max_length=150)
+    nombre: str = Field(max_length=150, unique=True)
     descripcion: Optional[str] = Field(default=None)
     precio_base: float = Field(gt=0)
     imagenes_url: Optional[List[str]] = Field(

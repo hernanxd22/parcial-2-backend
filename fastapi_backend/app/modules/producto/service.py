@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from sqlmodel import Session
+from sqlmodel import Session, select
 from datetime import datetime, timezone
 from typing import Optional
 import logging
@@ -151,6 +151,15 @@ class ProductoService:
                     detail=f"Categoría con id={data.categoria_id} no encontrada",
                 )
 
+            existente = uow.productos.session.exec(
+                select(Producto).where(Producto.nombre == data.nombre)
+            ).first()
+            if existente:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"Ya existe un producto con el nombre '{data.nombre}'",
+                )
+
             create_data = data.model_dump(exclude={"categoria_id", "es_principal", "ingredientes"})
             producto = Producto.model_validate(create_data)
             uow.productos.add(producto)
@@ -200,10 +209,10 @@ class ProductoService:
             result = self._to_public(producto)
         return result
 
-    def get_all(self, offset: int = 0, limit: int = 20, nombre: str | None = None, incluir_desactivados: bool = False, categoria_id: int | None = None) -> ProductoList:
+    def get_all(self, offset: int = 0, limit: int = 20, nombre: str | None = None, incluir_desactivados: bool = False, categoria_id: int | None = None, sin_ingredientes: bool = False) -> ProductoList:
         with ProductoUnitOfWork(self._session) as uow:
-            productos = uow.productos.get_all_paged(offset=offset, limit=limit, nombre=nombre, incluir_desactivados=incluir_desactivados, categoria_id=categoria_id)
-            total = uow.productos.count(nombre=nombre, incluir_desactivados=incluir_desactivados, categoria_id=categoria_id)
+            productos = uow.productos.get_all_paged(offset=offset, limit=limit, nombre=nombre, incluir_desactivados=incluir_desactivados, categoria_id=categoria_id, sin_ingredientes=sin_ingredientes)
+            total = uow.productos.count(nombre=nombre, incluir_desactivados=incluir_desactivados, categoria_id=categoria_id, sin_ingredientes=sin_ingredientes)
             result = ProductoList(
                 data=[self._to_public(p) for p in productos],
                 total=total,
@@ -228,6 +237,16 @@ class ProductoService:
     def update(self, producto_id: int, data: ProductoUpdate) -> ProductoPublic:
         with ProductoUnitOfWork(self._session) as uow:
             producto = self._get_or_404(uow, producto_id)
+
+            if data.nombre is not None and data.nombre != producto.nombre:
+                existente = uow.productos.session.exec(
+                    select(Producto).where(Producto.nombre == data.nombre)
+                ).first()
+                if existente:
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail=f"Ya existe un producto con el nombre '{data.nombre}'",
+                    )
 
             patch = data.model_dump(exclude_unset=True, exclude={"categoria_id", "es_principal", "ingredientes"})
             for field, value in patch.items():
