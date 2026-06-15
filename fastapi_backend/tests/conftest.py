@@ -147,6 +147,11 @@ def client_headers(client, client_user):
 
 @pytest.fixture(scope="function")
 def producto(session):
+    existing = session.exec(
+        select(Producto).where(Producto.nombre == "Pizza de Prueba")
+    ).first()
+    if existing:
+        return existing
     prod = Producto(
         nombre="Pizza de Prueba",
         descripcion="Producto creado para tests automatizados",
