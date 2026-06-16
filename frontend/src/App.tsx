@@ -29,8 +29,11 @@ function RequireAuth({ roles, children }: RequireAuthProps) {
 
   if (loading) {
     return (
-      <div className="loading">
-        <span>Cargando...</span>
+      <div className="min-h-screen flex items-center justify-center bg-stone-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="text-stone-500 mt-3">Cargando...</p>
+        </div>
       </div>
     );
   }
@@ -42,7 +45,8 @@ function RequireAuth({ roles, children }: RequireAuthProps) {
   if (roles && user) {
     const hasRole = roles.includes(user.rol);
     if (!hasRole) {
-      return <Navigate to="/" />;
+      const fallback = user.rol === 'STOCK' ? '/actualizar-stock' : user.rol === 'PEDIDOS' ? '/pedidos' : '/login';
+      return <Navigate to={fallback} />;
     }
   }
 
