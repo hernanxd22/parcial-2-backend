@@ -50,6 +50,16 @@ export const createDireccion = (data: {
   es_principal: boolean
 }) => api.post('/direcciones/', data)
 
+export const updateDireccion = (usuarioId: number, direccionId: number, data: {
+  alias: string
+  linea1: string
+  linea2?: string
+  ciudad: string
+  provincia: string
+  codigo_postal: string
+  es_principal: boolean
+}) => api.patch(`/direcciones/${usuarioId}/${direccionId}`, data)
+
 export const login = (data: { email: string; password: string }) =>
   api.post('/auth/login', data)
 

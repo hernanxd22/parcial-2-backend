@@ -1,11 +1,13 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from app.core.database import engine, create_db_and_tables
 from sqlmodel import Session, select
-import os 
+import os
+import time
+import logging
 
 from app.modules.unidadMedida.models import UnidadMedida
 from app.modules.rol.models import Rol         
@@ -61,8 +63,22 @@ def create_app() -> FastAPI:
     )
 
     @app.middleware("http")
-    async def add_ngrok_header(request, call_next):
-        response = await call_next(request)
+    async def log_requests(request: Request, call_next):
+        logger = logging.getLogger("app.requests")
+        start = time.time()
+
+        try:
+            response = await call_next(request)
+        except Exception as e:
+            logger.error(f"{request.method} {request.url.path} -> 500 ERROR: {e}")
+            raise
+
+        process_time = time.time() - start
+        logger.info(
+            f"{request.method} {request.url.path} -> {response.status_code} "
+            f"({process_time:.3f}s)"
+        )
+        response.headers["X-Process-Time"] = str(process_time)
         response.headers["ngrok-skip-browser-warning"] = "true"
         return response
 
