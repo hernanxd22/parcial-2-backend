@@ -4,7 +4,9 @@
 **Universidad Tecnológica Nacional — Facultad Regional Mendoza**  
 **Tecnicatura Universitaria en Programación — 2026**
 
-**[Video demostración](https://youtu.be/TU_LINK_AQUI)**
+**[Video demostración Youtube](https://www.youtube.com/watch?v=nNBA_gMNkO8)**
+---
+**[Video demostración Google Drive](https://drive.google.com/drive/folders/1VISxnSXV2eN489ay0v_YJFUOKfbcTAAk?usp=sharing)**
 
 ---
 
@@ -48,15 +50,15 @@ psql --version
 ## 2. Clonar el proyecto
 
 ```powershell
-git clone https://github.com/farfan-hernan/parcial-2-backend.git
-cd parcial-2-backend
+git clone https://github.com/naromano/TrabajoIntegradorProg4BackendFrontend.git
+cd TrabajoIntegradorProg4BackendFrontend
 git checkout main
 ```
 
 El proyecto tiene 3 carpetas independientes:
 
 ```
-parcial-2-backend/
+TrabajoIntegradorProg4BackendFrontend/
 ├── fastapi_backend/     ← API REST (Python)
 ├── frontend/            ← Panel admin (React)
 └── frontend-store/      ← Tienda online (React + TypeScript)
@@ -71,10 +73,10 @@ parcial-2-backend/
 Abrí **pgAdmin** o la terminal y ejecutá:
 
 ```sql
-CREATE DATABASE parcial2;
+CREATE DATABASE tpiprog4;
 ```
 
-> Si usás **psql** desde terminal: `psql -U postgres -c "CREATE DATABASE parcial2;"`
+> Si usás **psql** desde terminal: `psql -U postgres -c "CREATE DATABASE tpiprog4;"`
 
 ### 3.2 Configurar variables de entorno
 
@@ -86,7 +88,7 @@ copy .env.example .env
 Editá el archivo `.env` con tus datos:
 
 ```env
-DATABASE_URL=postgresql://postgres:password@localhost:5432/parcial2
+DATABASE_URL=postgresql://postgres:TU_PASSWORDPGADMIN@localhost:5432/tpiprog4
 
 # JWT
 JWT_SECRET=your-secret-key-min-32-chars
@@ -224,7 +226,7 @@ pnpm dev
 
 Disponible en **http://localhost:3001**
 
-**Login:** `admin@foodstore.com` / `Admin1234!` (o el que configuraste en `.env`)
+**Login:** `admin@admin.com` / `admin123` (o el que configuraste en `.env`)
 
 Secciones: Dashboard con gráficos, Productos, Categorías, Ingredientes, Pedidos, Usuarios.
 
