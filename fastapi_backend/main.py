@@ -9,6 +9,11 @@ import os
 import time
 import logging
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(levelname)s:%(name)s: %(message)s",
+)
+
 from app.modules.unidadMedida.models import UnidadMedida
 from app.modules.rol.models import Rol         
 from app.modules.usuario.models import Usuario, UsuarioRol 
