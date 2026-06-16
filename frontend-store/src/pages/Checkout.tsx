@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../store/useAuthStore'
 import { useCartStore, saveCartForUser } from '../store/useCartStore'
-import { createPedido, getDirecciones, createDireccion, crearPreferenciaPago } from '../api/endpoints'
+import { createPedido, getDirecciones, createDireccion, updateDireccion, crearPreferenciaPago } from '../api/endpoints'
 import type { Direccion } from '../types'
 
 export default function Checkout() {
@@ -14,6 +14,7 @@ export default function Checkout() {
   const [direccionId, setDireccionId] = useState<number | ''>('')
   const [error, setError] = useState('')
   const [showForm, setShowForm] = useState(false)
+  const [editingDireccion, setEditingDireccion] = useState<Direccion | null>(null)
   const [formaPago, setFormaPago] = useState('EFECTIVO')
 
   const [alias, setAlias] = useState('')
@@ -57,6 +58,31 @@ export default function Checkout() {
     },
     onError: () => {
       setError('Error al guardar la dirección.')
+    },
+  })
+
+  const updateDireccionMutation = useMutation({
+    mutationFn: () =>
+      updateDireccion(user!.id, editingDireccion!.id, {
+        alias,
+        linea1,
+        ciudad,
+        provincia,
+        codigo_postal: codigoPostal,
+        es_principal: editingDireccion?.es_principal ?? false,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['direcciones', user?.id] })
+      setShowForm(false)
+      setEditingDireccion(null)
+      setAlias('')
+      setLinea1('')
+      setCiudad('')
+      setProvincia('')
+      setCodigoPostal('')
+    },
+    onError: () => {
+      setError('Error al actualizar la dirección.')
     },
   })
 
@@ -107,7 +133,11 @@ export default function Checkout() {
 
   const handleSubmitDireccion = () => {
     setError('')
-    direccionMutation.mutate()
+    if (editingDireccion) {
+      updateDireccionMutation.mutate()
+    } else {
+      direccionMutation.mutate()
+    }
   }
 
   useEffect(() => {
@@ -159,8 +189,8 @@ export default function Checkout() {
               {!retiroLocal && (
                 <button
                   type="button"
-                  onClick={() => setShowForm(!showForm)}
-                  className="text-sm font-medium text-orange-600 hover:text-orange-700 flex items-center gap-1"
+                    onClick={() => { setShowForm(!showForm); setEditingDireccion(null); setAlias(''); setLinea1(''); setCiudad(''); setProvincia(''); setCodigoPostal('') }}
+                    className="text-sm font-medium text-orange-600 hover:text-orange-700 flex items-center gap-1"
                 >
                   {showForm ? (
                     <>
@@ -201,7 +231,7 @@ export default function Checkout() {
 
             {!retiroLocal && showForm && (
               <div className="mb-6 p-5 bg-amber-50 rounded-xl border border-amber-200 space-y-4">
-                <h3 className="font-semibold text-stone-700">Nueva dirección</h3>
+                <h3 className="font-semibold text-stone-700">{editingDireccion ? 'Editar dirección' : 'Nueva dirección'}</h3>
                 <input
                   type="text"
                   placeholder="Alias (ej: Casa, Trabajo)"
@@ -247,15 +277,17 @@ export default function Checkout() {
                 <button
                   type="button"
                   onClick={handleSubmitDireccion}
-                  disabled={direccionMutation.isPending}
+                  disabled={direccionMutation.isPending || updateDireccionMutation.isPending}
                   className="w-full py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 disabled:from-stone-300 disabled:to-stone-300 text-white font-semibold rounded-xl transition-all disabled:cursor-not-allowed"
                 >
-                  {direccionMutation.isPending ? 'Guardando...' : 'Guardar dirección'}
+                  {direccionMutation.isPending || updateDireccionMutation.isPending
+                    ? 'Guardando...'
+                    : editingDireccion ? 'Actualizar dirección' : 'Guardar dirección'}
                 </button>
               </div>
             )}
 
-            {!retiroLocal && (direcciones.length > 0 ? (
+            {!retiroLocal && direcciones.length > 0 ? (
               <select
                 value={direccionId}
                 onChange={(e) => setDireccionId(e.target.value ? Number(e.target.value) : '')}
@@ -282,7 +314,27 @@ export default function Checkout() {
                   </button>
                 </div>
               )
-            ))}
+            )}
+            {!retiroLocal && direccionId && (
+              <button
+                type="button"
+                onClick={() => {
+                  const dir = direcciones.find(d => d.id === Number(direccionId))
+                  if (dir) {
+                    setEditingDireccion(dir)
+                    setAlias(dir.alias)
+                    setLinea1(dir.linea1)
+                    setCiudad(dir.ciudad)
+                    setProvincia(dir.provincia)
+                    setCodigoPostal(dir.codigo_postal || '')
+                    setShowForm(true)
+                  }
+                }}
+                className="mt-2 text-sm text-orange-600 hover:text-orange-700 font-medium hover:underline"
+              >
+                ✏️ Editar dirección seleccionada
+              </button>
+            )}
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-6">
